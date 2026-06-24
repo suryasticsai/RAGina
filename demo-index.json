@@ -1,0 +1,14 @@
+{
+  "ragina-bio.html": {
+    "bodyText": "RAGina is a mentalist RAG system. She can read any folder of HTML files and answer questions about their content. She uses TF-IDF retrieval to find the most relevant chunks, then asks a free LLM to generate an answer grounded in those chunks. No API keys needed. She works with messy Confluence exports, documentation folders, wikis, and any static HTML content. Her superpower is penetrating chaos and finding answers where others struggle to search."
+  },
+  "confluence-export.html": {
+    "bodyText": "Confluence exports can be messy. They contain nested folders, inconsistent HTML, legacy markup, and buried information. RAGina handles this by scraping all HTML files recursively, extracting only the visible body text, and indexing it with TF-IDF. She ignores scripts, styles, and navigation elements. The result is a clean, searchable knowledge base from even the messiest Confluence dump."
+  },
+  "how-to-use.html": {
+    "bodyText": "To use RAGina, add a single script tag to your HTML page. Configure the indexUrl to point to your pre-built JSON knowledge index, or use the folder picker to load HTML files directly. RAGina will chunk the text, build a TF-IDF index, and be ready to answer questions instantly. She works on any static site, GitHub Pages, or local file. No server, no API keys, no cost."
+  },
+  "mentalist-powers.html": {
+    "bodyText": "RAGina's mentalist powers come from her unique architecture. She doesn't just search keywords - she understands context through TF-IDF vector scoring, finds the most semantically relevant chunks, and feeds them to an LLM with strict instructions to answer only from the provided context. This grounds her answers in your actual documents, preventing hallucinations. She can penetrate through walls of text, see connections others miss, and deliver answers with attitude."
+  }
+}
