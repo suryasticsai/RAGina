@@ -15,12 +15,25 @@ Visit the live demo to see RAGina in action. No installation required—just ope
 
 ---
 
-## 🚀 Quick Start
+# 🧠 what she does? 
 
-### Option 1: Use the Live Demo
-1. Go to **[https://suryasticsai.github.io/RAGina](https://suryasticsai.github.io/RAGina)**
-2. Click "📂 Select Folder" and choose a folder with HTML files
-3. Start asking questions immediately
+**She reads everything. Forgets nothing. Answers instantly.**
+
+RAGina is a zero-dependency, vanilla JavaScript library that turns any folder of HTML files into an AI-powered Q&A chatbot. She penetrates chaos, reads through walls of text, and finds answers where others struggle to search.
+---
+[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+[![jsDelivr](https://img.shields.io/badge/CDN-jsDelivr-orange)](https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js)
+[![No API Keys](https://img.shields.io/badge/API_Keys-None-green)]()
+[![Size](https://img.shields.io/badge/Size-8KB_minified-blue)]()
+
+---
+
+## Option 1: ⚡ Quick Start
+
+Add **one line** to any HTML page:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js"></script>
 
 ### Option 2: Run Locally
 1. Clone the repository:
