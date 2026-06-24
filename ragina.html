@@ -1,0 +1,1081 @@
+<!-- /RAGina/ragina.html --><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAGina – RAG Engine</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ---- Design System ---- */
+    :root {
+      --primary: #6C63FF;
+      --primary-dark: #5a52d5;
+      --bg: #fefefe;
+      --text: #1a1a2e;
+      --card-bg: #ffffff;
+      --code-bg: #f7f7f9;
+      --border: #e0e0e0;
+      --shadow: 0 8px 30px rgba(0,0,0,0.08);
+      --radius: 14px;
+      --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --footer-bg: #0f0a1a;
+      --footer-text: #c8c0d6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      scroll-behavior: smooth;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ---- Hero with Creative Logo & Mascot ---- */
+    .mascot-hero {
+      background: linear-gradient(135deg, #1a0f3a, #3d2b8a, #6C63FF);
+      color: white;
+      padding: 3rem 1rem 4rem;
+      text-align: center;
+      clip-path: polygon(0 0, 100% 0, 100% 88%, 0 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .mascot-hero::after {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -15%;
+      width: 50%;
+      height: 200%;
+      background: rgba(255,255,255,0.04);
+      transform: rotate(-20deg);
+      pointer-events: none;
+    }
+    .mascot-container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    /* ---- Mascot Character with Creative Animations ---- */
+    .mascot-character {
+      width: 140px;
+      height: 170px;
+      flex-shrink: 0;
+      position: relative;
+      filter: drop-shadow(0 8px 30px rgba(0,0,0,0.4));
+      cursor: pointer;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .mascot-character:hover {
+      transform: scale(1.08) rotate(-3deg);
+    }
+    .mascot-character img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    /* ---- Pose Animations ---- */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(1deg); }
+    }
+    @keyframes floatFast {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      25% { transform: translateY(-8px) scale(1.02) rotate(-2deg); }
+      75% { transform: translateY(-4px) scale(0.98) rotate(2deg); }
+    }
+    @keyframes wave {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-15deg); }
+      75% { transform: rotate(15deg); }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(10deg) scale(1.05); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0) rotate(0deg); }
+      20% { transform: translateX(-8px) rotate(-3deg); }
+      40% { transform: translateX(8px) rotate(3deg); }
+      60% { transform: translateX(-5px) rotate(-2deg); }
+      80% { transform: translateX(5px) rotate(2deg); }
+    }
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 8px 30px rgba(108, 99, 255, 0.4)); }
+      50% { filter: drop-shadow(0 8px 50px rgba(108, 99, 255, 0.8)) drop-shadow(0 0 60px rgba(167, 139, 250, 0.3)); }
+    }
+    @keyframes celebrate {
+      0% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.1) rotate(-5deg); }
+      50% { transform: scale(1.15) rotate(5deg); }
+      75% { transform: scale(1.1) rotate(-3deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    @keyframes sleepy {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(5px) scale(0.98); }
+    }
+    @keyframes rockStar {
+      0% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(-8deg) scale(1.05); }
+      50% { transform: rotate(8deg) scale(1.05); }
+      75% { transform: rotate(-5deg) scale(1.02); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    .mascot-float { animation: float 3.5s ease-in-out infinite; }
+    .mascot-wave { animation: wave 1.2s ease-in-out infinite; }
+    .mascot-bounce { animation: bounce 1s ease-in-out infinite; }
+    .mascot-spin { animation: spin 2s ease-in-out infinite; }
+    .mascot-shake { animation: shake 0.6s ease-in-out; }
+    .mascot-glow { animation: glow 2s ease-in-out infinite; }
+    .mascot-celebrate { animation: celebrate 0.8s ease-in-out; }
+    .mascot-sleepy { animation: sleepy 2.5s ease-in-out infinite; }
+    .mascot-rock { animation: rockStar 1.5s ease-in-out infinite; }
+
+    /* ---- Pose indicator ---- */
+    .pose-indicator {
+      display: inline-block;
+      font-size: 0.7rem;
+      background: rgba(255,255,255,0.15);
+      padding: 0.2rem 0.8rem;
+      border-radius: 12px;
+      margin-top: 0.3rem;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .pose-indicator:hover {
+      background: rgba(255,255,255,0.25);
+      transform: scale(1.05);
+    }
+
+    /* ---- Clickable pose hint ---- */
+    .pose-hint {
+      font-size: 0.6rem;
+      opacity: 0.5;
+      margin-top: 0.2rem;
+      cursor: pointer;
+      transition: opacity 0.3s;
+    }
+    .pose-hint:hover { opacity: 0.8; }
+
+    .logo-creative {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(3rem, 8vw, 5rem);
+      background: linear-gradient(135deg, #ffffff, #c8bfff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 40px rgba(108, 99, 255, 0.3);
+      letter-spacing: 6px;
+      display: inline-block;
+      position: relative;
+      margin: 0;
+      line-height: 1.1;
+    }
+    .logo-creative::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 10%;
+      width: 80%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #a78bfa, #6C63FF, #a78bfa, transparent);
+      border-radius: 2px;
+      filter: blur(3px);
+    }
+    .subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      margin-top: 0.8rem;
+      font-weight: 300;
+      letter-spacing: 2px;
+    }
+    .tagline {
+      font-size: 0.95rem;
+      opacity: 0.7;
+      margin-top: 0.2rem;
+      font-style: italic;
+    }
+
+    /* ---- Navigation ---- */
+    nav {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      padding: 0.8rem 1rem;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    nav a {
+      text-decoration: none;
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    nav a:hover { text-decoration: underline; }
+
+    /* ---- Main Content ---- */
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      flex: 1;
+    }
+    section { margin: 3.5rem 0; }
+    h2 {
+      font-size: 2rem;
+      margin-bottom: 1.2rem;
+      position: relative;
+      display: inline-block;
+    }
+    h2::after {
+      content: '';
+      display: block;
+      width: 40%;
+      height: 4px;
+      background: var(--primary);
+      margin-top: 0.3rem;
+      border-radius: 2px;
+    }
+    h3 { font-size: 1.4rem; margin: 1.8rem 0 0.8rem; }
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 1.8rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-3px); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.2rem;
+    }
+    .features-grid .card {
+      text-align: center;
+      padding: 1.2rem;
+    }
+    .features-grid .card .big-emoji { font-size: 2rem; display: block; margin-bottom: 0.3rem; }
+
+    pre {
+      background: var(--code-bg);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      border: 1px solid #eee;
+    }
+    code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
+    .inline-code {
+      background: #eee;
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    /* ---- Demo ---- */
+    .demo-container {
+      display: flex;
+      gap: 1.2rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .demo-chat {
+      flex: 2;
+      min-width: 280px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .demo-header {
+      background: var(--primary);
+      color: white;
+      padding: 0.6rem 1.2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .demo-messages {
+      height: 300px;
+      overflow-y: auto;
+      padding: 1rem;
+      background: #fafafa;
+    }
+    .demo-input-area {
+      display: flex;
+      border-top: 1px solid #eee;
+      padding: 0.5rem;
+      gap: 0.5rem;
+    }
+    .demo-input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+    }
+    .demo-input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+    .demo-send {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .demo-send:hover { background: var(--primary-dark); }
+
+    .demo-sidebar {
+      flex: 1;
+      min-width: 180px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      box-shadow: var(--shadow);
+    }
+    .sample-question {
+      display: block;
+      background: none;
+      border: 1px solid var(--primary);
+      border-radius: 20px;
+      padding: 0.3rem 0.9rem;
+      margin: 0.4rem 0;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 0.8rem;
+      width: 100%;
+      text-align: left;
+      transition: background 0.2s;
+    }
+    .sample-question:hover { background: #f0edff; }
+    .upload-option { margin-top: 1.2rem; font-size: 0.85rem; }
+    .upload-option label {
+      display: block;
+      cursor: pointer;
+      padding: 0.3rem 0;
+    }
+    .upload-option label:hover { color: var(--primary); }
+
+    .badge {
+      background: var(--primary);
+      color: white;
+      border-radius: 12px;
+      padding: 0.15em 0.7em;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .arch-diagram {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 1.5rem 0;
+      justify-content: center;
+      align-items: center;
+      font-weight: 500;
+    }
+    .arch-box {
+      background: #f0edff;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid var(--primary);
+      min-width: 80px;
+      font-size: 0.9rem;
+    }
+    .arch-arrow { font-size: 1.3rem; }
+
+    /* ---- Chat message styles ---- */
+    .msg-user { text-align: right; }
+    .msg-user .bubble {
+      background: #6C63FF;
+      color: white;
+      border-radius: 18px 18px 4px 18px;
+    }
+    .msg-ai .bubble {
+      background: white;
+      border: 1px solid #ddd;
+      color: #333;
+      border-radius: 18px 18px 18px 4px;
+    }
+    .bubble {
+      display: inline-block;
+      max-width: 80%;
+      padding: 0.5em 1em;
+      word-wrap: break-word;
+    }
+    .msg-sources {
+      font-size: 0.65rem;
+      color: #888;
+      margin-top: 2px;
+      padding-left: 0.5rem;
+    }
+    .thinking {
+      font-style: italic;
+      color: #999;
+      padding: 0.3rem 0;
+    }
+
+    /* ---- Scroll reveal ---- */
+    .scroll-reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s, transform 0.6s;
+    }
+    .scroll-reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ============================================================ */
+    /* ---- FOOTER ---- */
+    /* ============================================================ */
+    .footer {
+      background: var(--footer-bg);
+      color: var(--footer-text);
+      padding: 2.5rem 1.5rem 1.5rem;
+      margin-top: 3rem;
+      border-top: 3px solid var(--primary);
+    }
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 2rem;
+    }
+    .footer-author h3 {
+      font-size: 1.2rem;
+      color: white;
+      margin-bottom: 0.3rem;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 1px;
+    }
+    .footer-author p {
+      margin: 0.2rem 0;
+      font-size: 0.9rem;
+    }
+    .footer-author a {
+      color: #a78bfa;
+      text-decoration: none;
+    }
+    .footer-author a:hover { text-decoration: underline; }
+
+    .footer-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.4rem 1rem;
+    }
+    .footer-links a {
+      color: var(--footer-text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+      display: inline-block;
+    }
+    .footer-links a:hover {
+      color: #a78bfa;
+      text-decoration: underline;
+    }
+
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 1.5rem auto 0;
+      padding-top: 1.2rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.7;
+      grid-column: 1 / -1;
+    }
+    .footer-bottom strong { color: white; }
+
+    @media (max-width: 700px) {
+      .mascot-container { flex-direction: column; gap: 1rem; }
+      .mascot-character { width: 100px; height: 130px; }
+      .footer-inner {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      .footer-links {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      }
+    }
+    @media (max-width: 500px) {
+      .demo-container { flex-direction: column; }
+      .footer-links { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HERO with MASCOT ===== -->
+  <header class="mascot-hero">
+    <div class="mascot-container">
+      <div class="mascot-character mascot-float" id="mascotCharacter">
+        <img id="mascotImage" src="smile.png" alt="RAGina Mascot" />
+      </div>
+      <div class="mascot-info">
+        <h1 class="logo-creative">RAGina</h1>
+        <p class="subtitle">Retrieval Augmented Generation — Instant &amp; Keyless</p>
+        <p class="tagline">Turn any folder of HTML files into a Q&amp;A chatbot — instantly, with zero API keys.</p>
+        <span class="pose-indicator" id="poseIndicator">😊 Smile</span>
+        <div class="pose-hint" id="poseHint">✨ Click the mascot to change pose</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== NAV ===== -->
+  <nav>
+    <a href="#about">About</a>
+    <a href="#features">Features</a>
+    <a href="#demo">Live Demo</a>
+    <a href="#how">How It Works</a>
+    <a href="#code">Code</a>
+  </nav>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="container">
+
+    <section id="about" class="scroll-reveal">
+      <h2>What is RAGina?</h2>
+      <p>
+        <strong>RAGina</strong> is a tiny, vanilla JavaScript library that implements
+        <em>Retrieval‑Augmented Generation</em> entirely in the browser.
+        Point it at a directory of HTML files (or a pre‑built JSON index), and it instantly becomes
+        an AI‑powered Q&amp;A system grounded in your content — with no server, no API key, and no cost.
+      </p>
+      <p style="margin-top: 0.8rem;">
+        It combines a lightweight TF‑IDF search engine with a free LLM to answer
+        questions strictly from your own documents. All processing happens client‑side; your data never
+        leaves the browser except the anonymised prompt to the LLM.
+      </p>
+    </section>
+
+    <section id="features" class="scroll-reveal">
+      <h2>Key Features</h2>
+      <div class="features-grid">
+        <div class="card"><span class="big-emoji">🔐</span><strong>No API keys</strong><br />Uses free, anonymous LLM endpoint.</div>
+        <div class="card"><span class="big-emoji">📂</span><strong>Folder picker</strong><br />Select any folder with .html files.</div>
+        <div class="card"><span class="big-emoji">🧠</span><strong>TF‑IDF retrieval</strong><br />No embeddings needed.</div>
+        <div class="card"><span class="big-emoji">💬</span><strong>Chat UI</strong><br />Ask questions, get answers.</div>
+        <div class="card"><span class="big-emoji">📦</span><strong>One file</strong><br />Zero dependencies.</div>
+        <div class="card"><span class="big-emoji">🌐</span><strong>CDN‑ready</strong><br />Load with one <code class="inline-code">&lt;script&gt;</code>.</div>
+      </div>
+    </section>
+
+    <section id="demo" class="scroll-reveal">
+      <h2>Live Demo</h2>
+      <p>Try it out! The demo is pre‑loaded with three sample documents (cats, pancakes, moon landing).<br />
+      Ask a question or pick one of the suggestions. To test your own data, use the upload options.</p>
+
+      <div class="demo-container">
+        <div class="demo-chat">
+          <div class="demo-header">
+            <span><strong>RAGina Chat</strong></span>
+            <span id="status-badge" class="badge">sample data</span>
+          </div>
+          <div class="demo-messages" id="chat-messages">
+            <div style="text-align:center; color:#888; padding:1rem;">Ask a question to start.</div>
+          </div>
+          <div class="demo-input-area">
+            <input type="text" id="question-input" class="demo-input" placeholder="e.g., How to make pancakes?" />
+            <button id="send-btn" class="demo-send">➤</button>
+          </div>
+        </div>
+        <div class="demo-sidebar">
+          <strong>Sample questions</strong>
+          <button class="sample-question" data-q="What do cats eat?">🐱 What do cats eat?</button>
+          <button class="sample-question" data-q="How to make pancakes?">🥞 How to make pancakes?</button>
+          <button class="sample-question" data-q="Who was the first man on the moon?">🌙 First man on moon?</button>
+          <button class="sample-question" data-q="What did Neil Armstrong say?">🗣️ Armstrong's words?</button>
+
+          <div class="upload-option">
+            <hr style="margin:1rem 0; border-top:1px solid #eee;" />
+            <strong>Use your own data</strong>
+            <label>📁 Load JSON index
+              <input type="file" id="load-json" accept=".json" style="display:none;" />
+            </label>
+            <label>📂 Or select folder (HTML files)
+              <input type="file" id="load-folder" webkitdirectory multiple style="display:none;" />
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="scroll-reveal">
+      <h2>How RAGina Works</h2>
+      <p>The architecture is simple, yet powerful. Everything runs inside your browser:</p>
+      <div class="arch-diagram">
+        <div class="arch-box">📄 HTML files<br /><small>(or index.json)</small></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-box">🔪 Chunking<br /><small>by sentence</small></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-box">📊 TF‑IDF Index</div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-box">🔎 Retrieve top‑k</div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-box">🤖 LLM Answer</div>
+      </div>
+
+      <h3>1. Scraping &amp; Chunking</h3>
+      <p>When you select a folder, the browser reads each <code class="inline-code">.html</code> file, extracts the visible text inside <code class="inline-code">&lt;body&gt;</code>, and splits it into chunks of approximately 200 characters (broken at sentence boundaries).</p>
+
+      <h3>2. Indexing with TF‑IDF</h3>
+      <p>We build a classic <strong>Term Frequency – Inverse Document Frequency</strong> index. For each chunk, we count how often each word appears (TF), and for the whole collection, we calculate how rare each word is (IDF). This gives us a vector representation that can be compared with the user's query.</p>
+
+      <h3>3. Retrieval</h3>
+      <p>When you ask a question, the query is turned into a TF‑IDF vector and we compute the dot product with every chunk's vector. The top <em>k</em> chunks (default 3) with the highest score are selected as the most relevant context.</p>
+
+      <h3>4. Augmented Generation</h3>
+      <p>The retrieved chunks are formatted into a prompt together with the question and sent to a <strong>free text generation API</strong>. The LLM is instructed to answer <strong>only</strong> based on the provided context. The response is displayed along with the sources.</p>
+    </section>
+
+    <section id="code" class="scroll-reveal">
+      <h2>Core Code Snippets</h2>
+      <h3>TF‑IDF Retrieval</h3>
+      <pre><code>function retrieve(query, topK = 3) {
+  const qWords = query.toLowerCase().match(/\b\w+\b/g) || [];
+  const qTF = {};
+  qWords.forEach(w => qTF[w] = (qTF[w] || 0) + 1);
+
+  const scores = chunks.map((ch, idx) => {
+    const cWords = ch.text.toLowerCase().match(/\b\w+\b/g) || [];
+    const cTF = {};
+    cWords.forEach(w => cTF[w] = (cTF[w] || 0) + 1);
+    let score = 0;
+    for (const w of Object.keys(qTF)) {
+      if (cTF[w] && idf[w]) score += qTF[w] * cTF[w] * idf[w];
+    }
+    return { idx, score };
+  });
+  scores.sort((a, b) => b.score - a.score);
+  return scores.slice(0, topK).map(s => chunks[s.idx]);
+}</code></pre>
+
+      <h3>LLM Call (free, no key)</h3>
+      <pre><code>const response = await fetch('https://text.pollinations.ai/' +
+  encodeURIComponent(prompt));
+const answer = await response.text();</code></pre>
+      <p>The complete source is available in this page – just view source!</p>
+    </section>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- FOOTER                                                        -->
+  <!-- ============================================================ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <!-- Author -->
+      <div class="footer-author">
+        <h3>🕵️ RAGina</h3>
+        <p><strong>Surya Sai Varakala</strong></p>
+        <p><a href="https://github.com/suryasticsai" target="_blank">github.com/suryasticsai</a></p>
+        <p><a href="mailto:suryasuprince@gmail.com">suryasuprince@gmail.com</a></p>
+      </div>
+
+      <!-- Links -->
+      <div class="footer-links">
+        <a href="https://github.com/suryasticsai" target="_blank">GitHub Profile</a>
+        <a href="https://github.com/suryasticsai/viscarma" target="_blank">VisCarma</a>
+        <a href="https://github.com/suryasticsai/alkembicneo" target="_blank">AlkembicNeo</a>
+        <a href="https://github.com/suryasticsai/SprintAnalyzer" target="_blank">SprintAnalyzer</a>
+        <a href="https://github.com/suryasticsai/ScrumLens" target="_blank">ScrumLens</a>
+        <a href="https://github.com/suryasticsai/grishtesync-backend" target="_blank">GrishteSync</a>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="footer-bottom">
+        🕵️ <strong>RAGina</strong> — Retrieval Augmented Generation Instant No‑key App &nbsp;·&nbsp;
+        Built by <strong>Surya Sai Varakala</strong> &nbsp;·&nbsp;
+        <a href="https://github.com/suryasticsai" target="_blank" style="color:#a78bfa;">GitHub</a> &nbsp;·&nbsp;
+        <a href="#" style="color:#a78bfa;">Docs</a> &nbsp;·&nbsp;
+        <a href="#" style="color:#a78bfa;">Issues</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================ -->
+  <!-- JAVASCRIPT — RAG engine with mascot poses                    -->
+  <!-- ============================================================ -->
+  <script>
+    (function() {
+      // ---------- MASCOT POSE SYSTEM ----------
+      // Map poses to image filenames (place these in the same folder as this HTML)
+      const POSES = {
+        smile: { file: 'smile.png', label: '😊 Smile', anim: 'mascot-float' },
+        halfsmile: { file: 'halfsmile.png', label: '🙂 Half Smile', anim: 'mascot-float' },
+        shrug: { file: 'what-shrug.png', label: '🤷 Shrug', anim: 'mascot-shake' },
+        rock: { file: 'rock.png', label: '🤘 Rock!', anim: 'mascot-rock' },
+        irritated: { file: 'irritated.png', label: '😤 Irritated', anim: 'mascot-shake' },
+        irritated2: { file: 'irritated-2.png', label: '😠 Very Irritated', anim: 'mascot-shake' },
+      };
+
+      // Pose cycle order for click-to-cycle
+      const poseCycle = ['smile', 'halfsmile', 'shrug', 'rock', 'irritated', 'irritated2'];
+      let currentPoseIndex = 0;
+      let currentPose = 'smile';
+
+      const mascotImage = document.getElementById('mascotImage');
+      const mascotCharacter = document.getElementById('mascotCharacter');
+      const poseIndicator = document.getElementById('poseIndicator');
+      const poseHint = document.getElementById('poseHint');
+
+      function setPose(poseKey, triggerAnimation = false) {
+        if (!POSES[poseKey]) poseKey = 'smile';
+        currentPose = poseKey;
+        const pose = POSES[poseKey];
+        
+        // Update image
+        mascotImage.src = pose.file;
+        poseIndicator.textContent = pose.label;
+        
+        // Remove all animation classes
+        mascotCharacter.className = 'mascot-character';
+        
+        // Add the pose-specific animation class
+        if (pose.anim) {
+          mascotCharacter.classList.add(pose.anim);
+        } else {
+          mascotCharacter.classList.add('mascot-float');
+        }
+        
+        // If triggered by click, add a quick celebration animation
+        if (triggerAnimation) {
+          mascotCharacter.classList.add('mascot-celebrate');
+          setTimeout(() => {
+            mascotCharacter.classList.remove('mascot-celebrate');
+          }, 800);
+        }
+      }
+
+      // Click on mascot to cycle through poses
+      mascotCharacter.addEventListener('click', function(e) {
+        e.stopPropagation();
+        currentPoseIndex = (currentPoseIndex + 1) % poseCycle.length;
+        const newPose = poseCycle[currentPoseIndex];
+        setPose(newPose, true);
+        
+        // Update hint text
+        poseHint.textContent = '✨ Click again for next pose!';
+        setTimeout(() => {
+          poseHint.textContent = '✨ Click the mascot to change pose';
+        }, 3000);
+      });
+
+      // Also allow clicking the hint to cycle
+      poseHint.addEventListener('click', function(e) {
+        e.stopPropagation();
+        mascotCharacter.click();
+      });
+
+      // ---------- AUTO POSE ON EVENTS ----------
+      function autoPose(poseKey) {
+        // Find the pose in the cycle
+        const index = poseCycle.indexOf(poseKey);
+        if (index !== -1) {
+          currentPoseIndex = index;
+          setPose(poseKey);
+        }
+      }
+
+      // ---------- SAMPLE DATA ----------
+      const sampleIndex = {
+        "cats.html": {
+          bodyText: "Cats are small, carnivorous mammals that are often kept as pets. They are known for their agility, sharp claws, and independent nature. Domestic cats have lived with humans for thousands of years and are valued for companionship and their ability to hunt pests. Cats communicate through meowing, purring, hissing, and body language. A purr usually indicates contentment, while a hiss is a warning."
+        },
+        "pancakes.html": {
+          bodyText: "To make pancakes, you need flour, eggs, milk, baking powder, and a pinch of salt. Mix everything into a smooth batter. Heat a non-stick pan over medium heat. Pour a ladle of batter and cook until bubbles form on the surface, then flip. Serve with maple syrup, fresh berries, or butter. For extra fluffiness, let the batter rest for 10 minutes before cooking."
+        },
+        "moon.html": {
+          bodyText: "On July 20, 1969, NASA's Apollo 11 mission landed the first humans on the Moon. Neil Armstrong was the first to step onto the lunar surface. The mission launched from Kennedy Space Center and carried astronauts Armstrong, Buzz Aldrin, and Michael Collins. Armstrong's famous words were: \"That's one small step for man, one giant leap for mankind.\""
+        }
+      };
+
+      // ---------- RAG ENGINE STATE ----------
+      let chunks = [];
+      let idf = {};
+      let isReady = false;
+      const chunkSize = 200;
+      const topK = 3;
+
+      const chatMessages = document.getElementById('chat-messages');
+      const questionInput = document.getElementById('question-input');
+      const sendBtn = document.getElementById('send-btn');
+      const statusBadge = document.getElementById('status-badge');
+      const loadJsonInput = document.getElementById('load-json');
+      const loadFolderInput = document.getElementById('load-folder');
+
+      function buildIndex(data) {
+        chunks = [];
+        for (const [label, doc] of Object.entries(data)) {
+          const bodyText = doc.bodyText || '';
+          if (bodyText.length < 50) continue;
+          const sentences = bodyText.split(/\n+|(?<=[.!?])\s+/);
+          let current = '';
+          for (const s of sentences) {
+            if ((current + s).length > chunkSize && current.length > 0) {
+              chunks.push({ text: current.trim(), source: label });
+              current = '';
+            }
+            current += s + ' ';
+          }
+          if (current.trim()) chunks.push({ text: current.trim(), source: label });
+        }
+
+        idf = {};
+        const total = chunks.length;
+        for (const ch of chunks) {
+          const words = new Set(ch.text.toLowerCase().match(/\b\w+\b/g));
+          for (const w of words) idf[w] = (idf[w] || 0) + 1;
+        }
+        for (const w in idf) {
+          idf[w] = Math.log(total / (1 + idf[w]));
+        }
+        isReady = true;
+      }
+
+      function retrieve(query) {
+        const qWords = query.toLowerCase().match(/\b\w+\b/g) || [];
+        const qTF = {};
+        for (const w of qWords) qTF[w] = (qTF[w] || 0) + 1;
+        const scores = chunks.map((ch, idx) => {
+          const cWords = ch.text.toLowerCase().match(/\b\w+\b/g) || [];
+          const cTF = {};
+          for (const w of cWords) cTF[w] = (cTF[w] || 0) + 1;
+          let score = 0;
+          for (const w of Object.keys(qTF)) {
+            if (cTF[w] && idf[w]) score += qTF[w] * cTF[w] * idf[w];
+          }
+          return { idx, score };
+        });
+        scores.sort((a, b) => b.score - a.score);
+        return scores.slice(0, topK).map(s => chunks[s.idx]);
+      }
+
+      function addMessage(text, sender, sources = []) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = sender === 'user' ? 'msg-user' : 'msg-ai';
+        msgDiv.style.marginBottom = '0.7rem';
+
+        const bubble = document.createElement('span');
+        bubble.className = 'bubble';
+        bubble.textContent = text;
+        msgDiv.appendChild(bubble);
+
+        if (sources.length > 0) {
+          const srcDiv = document.createElement('div');
+          srcDiv.className = 'msg-sources';
+          srcDiv.textContent = '📌 ' + sources.map(s => s.source + ': ' + s.text.slice(0, 40) + '…').join(' | ');
+          msgDiv.appendChild(srcDiv);
+        }
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function addThinking() {
+        const div = document.createElement('div');
+        div.className = 'thinking';
+        div.id = 'thinking-indicator';
+        div.textContent = '🧠 RAGina is thinking...';
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return div;
+      }
+
+      // ---------- LLM CALL WITH FALLBACK ----------
+      async function callLLM(prompt) {
+        try {
+          const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Pollinations returned ' + response.status);
+          }
+          
+          const text = await response.text();
+          if (text.includes('"error"')) {
+            throw new Error('Pollinations error: ' + text);
+          }
+          return text;
+        } catch (err) {
+          console.warn('Pollinations.ai failed:', err.message);
+          return generateFallbackResponse(prompt);
+        }
+      }
+
+      function generateFallbackResponse(prompt) {
+        const contextMatch = prompt.match(/Context:\s*([\s\S]*?)\n\nQuestion:/);
+        if (!contextMatch) return "I couldn't find relevant information in the provided documents.";
+        
+        const context = contextMatch[1];
+        const lines = context.split('\n').filter(line => line.trim().length > 10);
+        
+        if (lines.length === 0) return "I don't have enough information to answer that.";
+        
+        const sourceMatch = lines.find(line => line.includes('Source:'));
+        if (sourceMatch) {
+          const sourceText = lines[lines.indexOf(sourceMatch) + 1];
+          if (sourceText) return sourceText.trim();
+        }
+        return lines[0].trim() || "I don't know based on the given information.";
+      }
+
+      async function ask(question) {
+        if (!isReady || !question.trim()) return;
+        question = question.trim();
+        addMessage(question, 'user');
+
+        // Set mascot to thinking pose (irritated = thinking hard)
+        autoPose('irritated');
+
+        const topChunks = retrieve(question);
+        
+        if (topChunks.length === 0) {
+          autoPose('shrug');
+          addMessage("I couldn't find any relevant information in the documents to answer your question.", 'ai');
+          return;
+        }
+
+        const context = topChunks.map((c, i) => `[${i+1}] Source: ${c.source}\n${c.text}`).join('\n\n');
+        const prompt = `Answer the question using ONLY the context below. If the answer cannot be found, say "I don't know based on the given information."
+
+Context:
+${context}
+
+Question: ${question}
+Answer:`;
+
+        const thinkingEl = addThinking();
+
+        try {
+          const answer = await callLLM(prompt);
+          thinkingEl.remove();
+          
+          // Set mascot pose based on answer quality
+          if (answer && answer.length > 10 && !answer.includes("don't know")) {
+            autoPose('rock'); // Rock on! Great answer!
+          } else if (answer.includes("don't know")) {
+            autoPose('shrug');
+          } else {
+            autoPose('smile');
+          }
+          
+          addMessage(answer, 'ai', topChunks);
+        } catch (err) {
+          thinkingEl.remove();
+          autoPose('irritated2');
+          addMessage('Error: ' + err.message, 'ai');
+        }
+      }
+
+      // ---------- EVENT LISTENERS ----------
+      sendBtn.addEventListener('click', () => ask(questionInput.value));
+      questionInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') ask(questionInput.value); });
+
+      questionInput.addEventListener('focus', () => autoPose('smile'));
+      questionInput.addEventListener('input', () => {
+        if (questionInput.value.length > 0) autoPose('halfsmile');
+      });
+
+      document.querySelectorAll('.sample-question').forEach(btn => {
+        btn.addEventListener('click', () => {
+          questionInput.value = btn.dataset.q;
+          ask(btn.dataset.q);
+        });
+      });
+
+      loadJsonInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        try {
+          const data = JSON.parse(text);
+          buildIndex(data);
+          chatMessages.innerHTML = '';
+          statusBadge.textContent = 'custom JSON';
+          statusBadge.style.background = '#28a745';
+          autoPose('rock');
+          addMessage('📚 Loaded custom index. Ask away!', 'ai');
+        } catch (err) {
+          alert('Invalid JSON file.');
+        }
+      });
+
+      loadFolderInput.addEventListener('change', async (e) => {
+        const files = [...e.target.files].filter(f => f.name.endsWith('.html'));
+        if (files.length === 0) {
+          alert('No HTML files found in selected folder.');
+          return;
+        }
+        const data = {};
+        for (const file of files) {
+          const text = await file.text();
+          const doc = new DOMParser().parseFromString(text, 'text/html');
+          const bodyText = doc.body?.textContent?.trim() || '';
+          const label = file.webkitRelativePath || file.name;
+          data[label] = { bodyText };
+        }
+        buildIndex(data);
+        chatMessages.innerHTML = '';
+        statusBadge.textContent = 'folder: ' + files.length + ' files';
+        statusBadge.style.background = '#28a745';
+        autoPose('rock');
+        addMessage('📂 Loaded ' + files.length + ' HTML files. Ready!', 'ai');
+      });
+
+      // ---------- INIT ----------
+      buildIndex(sampleIndex);
+      isReady = true;
+      
+      // Start with smile pose
+      setPose('smile');
+      setTimeout(() => {
+        addMessage('Hi! I\'m RAGina. Ask me about cats, pancakes, or the moon landing.', 'ai');
+      }, 600);
+    })();
+  </script>
+
+  <!-- Scroll reveal -->
+  <script>
+    const reveals = document.querySelectorAll('.scroll-reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.15 });
+    reveals.forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
