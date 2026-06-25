@@ -1,4 +1,3 @@
-<!-- RAGina created by @suryasticsai -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,14 +10,12 @@
   <style>
     :root {
       --primary: #6C63FF;
-      --primary-dark: #4b44cc;
       --accent: #FF6584;
       --bg: #0a0a14;
       --card: #111122;
       --text: #e0e0f0;
       --muted: #8888aa;
       --border: rgba(108,99,255,0.2);
-      --glow: rgba(108,99,255,0.4);
     }
     * { margin:0; padding:0; box-sizing:border-box; }
     html { scroll-behavior: smooth; }
@@ -29,122 +26,216 @@
       line-height: 1.7;
       overflow-x: hidden;
     }
-    h1, h2, h3, .title-font { font-family: 'Syne', system-ui, sans-serif; }
+    h1, h2, h3 { font-family: 'Syne', system-ui, sans-serif; }
 
-    /* ---- Floating particles ---- */
-    .particles {
+    /* ---- Particles ---- */
+    .particles-container {
       position: fixed; top:0; left:0; width:100%; height:100%;
       pointer-events: none; z-index: 0;
     }
     .particle {
       position: absolute;
-      width: 3px; height: 3px;
-      background: var(--primary);
       border-radius: 50%;
-      opacity: 0;
-      animation: float-up 8s infinite;
+      pointer-events: none;
+      animation: float-up linear infinite;
     }
     @keyframes float-up {
-      0% { opacity:0; transform: translateY(100vh) scale(0); }
+      0% { opacity:0; transform: translateY(100vh) scale(0) rotate(0deg); }
       10% { opacity:1; }
-      90% { opacity:0.3; }
-      100% { opacity:0; transform: translateY(-10vh) scale(1.5); }
+      90% { opacity:0.5; }
+      100% { opacity:0; transform: translateY(-10vh) scale(1.5) rotate(360deg); }
+    }
+
+    /* ---- Burst Particles (on mascot click) ---- */
+    .burst-particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 999;
+      animation: burst-out 1.2s ease-out forwards;
+      font-size: 1.5rem;
+    }
+    @keyframes burst-out {
+      0% { opacity:1; transform: translate(0,0) scale(0); }
+      30% { opacity:1; transform: translate(var(--bx), var(--by)) scale(1.5); }
+      100% { opacity:0; transform: translate(var(--bx), var(--by)) scale(0.3); }
+    }
+
+    /* ---- Screen Shake ---- */
+    .screen-shake {
+      animation: shake 0.5s ease-out;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translate(0); }
+      10% { transform: translate(-6px, 4px); }
+      20% { transform: translate(6px, -4px); }
+      30% { transform: translate(-4px, -2px); }
+      40% { transform: translate(4px, 2px); }
+      50% { transform: translate(-2px, 4px); }
+      60% { transform: translate(2px, -4px); }
+      70% { transform: translate(-4px, -2px); }
+      80% { transform: translate(4px, 2px); }
+      90% { transform: translate(-2px, -4px); }
     }
 
     /* ---- Hero ---- */
     .hero {
       position: relative; z-index: 1;
       text-align: center;
-      padding: 6rem 1.5rem 4rem;
+      padding: 5rem 1.5rem 3rem;
       min-height: 90vh;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      background: radial-gradient(ellipse at center, rgba(108,99,255,0.1) 0%, transparent 70%);
+      background: radial-gradient(ellipse at center, rgba(108,99,255,0.08) 0%, transparent 70%);
+      transition: background 0.8s ease;
     }
-    .hero-mascot {
-      width: 180px; height: 180px;
-      border-radius: 50%;
-      border: 3px solid var(--primary);
-      box-shadow: 0 0 60px var(--glow), 0 0 120px rgba(108,99,255,0.2);
+    .hero.rage-mode { background: radial-gradient(ellipse at center, rgba(255,101,132,0.12) 0%, transparent 70%); }
+    .hero.dance-mode { background: radial-gradient(ellipse at center, rgba(108,99,255,0.15) 0%, transparent 60%); }
+    .hero.victory-mode { background: radial-gradient(ellipse at center, rgba(255,215,0,0.1) 0%, transparent 70%); }
+
+    /* ---- Mascot Container ---- */
+    .mascot-container {
+      position: relative;
+      cursor: pointer;
       margin-bottom: 2rem;
-      animation: mascot-float 5s ease-in-out infinite, mascot-glow 3s ease-in-out infinite;
+      transition: transform 0.3s ease;
+    }
+    .mascot-container:hover { transform: scale(1.05); }
+    .mascot-container:active { transform: scale(0.95); }
+
+    /* ---- Mascot Image ---- */
+    .mascot-image {
+      width: 200px; height: 200px;
+      border-radius: 50%;
       object-fit: cover;
-      transition: all 0.5s ease;
+      border: 4px solid var(--primary);
+      box-shadow: 0 0 50px rgba(108,99,255,0.5), 0 0 100px rgba(108,99,255,0.2);
+      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      position: relative; z-index: 1;
     }
-    .hero-mascot:hover {
-      transform: scale(1.08);
-      box-shadow: 0 0 80px var(--glow), 0 0 160px rgba(108,99,255,0.4);
+    .mascot-image.spinning {
+      animation: mascot-spin 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
     }
-    @keyframes mascot-float {
+    .mascot-image.bouncing {
+      animation: mascot-bounce 0.6s ease;
+    }
+    .mascot-image.glitching {
+      animation: mascot-glitch 0.4s ease;
+    }
+    .mascot-image.victory-pulse {
+      animation: victory-pulse 0.5s ease-out;
+    }
+    @keyframes mascot-spin {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.2); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    @keyframes mascot-bounce {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-15px); }
+      25% { transform: translateY(-30px); }
+      50% { transform: translateY(0); }
+      75% { transform: translateY(-15px); }
     }
-    @keyframes mascot-glow {
-      0%, 100% { box-shadow: 0 0 60px var(--glow), 0 0 120px rgba(108,99,255,0.2); }
-      50% { box-shadow: 0 0 80px var(--glow), 0 0 180px rgba(108,99,255,0.5); }
+    @keyframes mascot-glitch {
+      0% { transform: translate(0); filter: hue-rotate(0deg); }
+      20% { transform: translate(-8px, 4px); filter: hue-rotate(90deg); }
+      40% { transform: translate(8px, -4px); filter: hue-rotate(180deg); }
+      60% { transform: translate(-4px, -2px); filter: hue-rotate(270deg); }
+      80% { transform: translate(4px, 2px); filter: hue-rotate(360deg); }
+      100% { transform: translate(0); filter: hue-rotate(0deg); }
     }
-    .hero h1 {
-      font-size: clamp(3rem, 8vw, 6rem);
-      font-weight: 800;
-      background: linear-gradient(135deg, #6C63FF 0%, #FF6584 50%, #6C63FF 100%);
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: shimmer 3s linear infinite;
-      letter-spacing: -2px;
-    }
-    @keyframes shimmer {
-      to { background-position: 200% center; }
-    }
-    .hero .tagline {
-      font-size: 1.4rem;
-      color: var(--muted);
-      max-width: 600px;
-      margin: 1rem auto;
-      font-weight: 500;
-    }
-    .hero .powers {
-      display: flex; flex-wrap: wrap; gap: 0.6rem;
-      justify-content: center; margin: 1.5rem 0;
-    }
-    .power-badge {
-      background: rgba(108,99,255,0.15);
-      border: 1px solid var(--border);
-      color: #a89fff;
-      padding: 0.5rem 1.2rem;
-      border-radius: 25px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: all 0.3s;
-      cursor: default;
-    }
-    .power-badge:hover {
-      background: rgba(108,99,255,0.25);
-      border-color: var(--primary);
-      box-shadow: 0 0 20px rgba(108,99,255,0.3);
-      transform: translateY(-2px);
-    }
-    .cta-btn {
-      display: inline-block;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: white;
-      padding: 1rem 2.5rem;
-      border-radius: 40px;
-      font-weight: 700;
-      font-size: 1.1rem;
-      text-decoration: none;
-      margin-top: 1.5rem;
-      transition: all 0.3s;
-      box-shadow: 0 8px 30px rgba(108,99,255,0.4);
-      font-family: 'Syne', sans-serif;
-      letter-spacing: 1px;
-    }
-    .cta-btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 40px rgba(108,99,255,0.6);
+    @keyframes victory-pulse {
+      0% { transform: scale(1); box-shadow: 0 0 50px rgba(108,99,255,0.5); }
+      50% { transform: scale(1.15); box-shadow: 0 0 120px rgba(255,215,0,0.8), 0 0 200px rgba(108,99,255,0.6); }
+      100% { transform: scale(1); box-shadow: 0 0 50px rgba(108,99,255,0.5); }
     }
 
-    /* ---- Nav ---- */
+    /* ---- Glow Ring ---- */
+    .glow-ring {
+      position: absolute; top:50%; left:50%;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      border: 2px solid var(--primary);
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    .glow-ring.active {
+      animation: ring-expand 1s ease-out forwards;
+    }
+    @keyframes ring-expand {
+      0% { width:200px; height:200px; opacity:0.8; border-width:3px; }
+      100% { width:500px; height:500px; opacity:0; border-width:1px; }
+    }
+
+    /* ---- Quote Bubble ---- */
+    .quote-bubble {
+      position: absolute;
+      top: -70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.8rem 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      z-index: 2;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .quote-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 10px solid var(--card);
+    }
+    .quote-bubble.visible {
+      opacity: 1;
+      top: -85px;
+    }
+
+    /* ---- Click Hint ---- */
+    .click-hint {
+      position: absolute;
+      bottom: -35px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 0.8rem;
+      opacity: 0.7;
+      animation: hint-pulse 2s ease-in-out infinite;
+      white-space: nowrap;
+    }
+    @keyframes hint-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* ---- Pose Name Badge ---- */
+    .pose-name-badge {
+      display: inline-block;
+      background: rgba(108,99,255,0.2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.4rem 1.2rem;
+      font-size: 0.85rem;
+      color: #a89fff;
+      margin-top: 0.5rem;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+
+    /* ---- Rest of the styles (nav, sections, etc.) ---- */
     .nav {
       position: sticky; top: 0; z-index: 100;
       background: rgba(10,10,20,0.85);
@@ -169,10 +260,9 @@
     .nav a:hover { color: #fff; }
     .nav a:hover::after { width: 100%; }
 
-    /* ---- Sections ---- */
     .section {
       max-width: 1000px; margin: 0 auto;
-      padding: 5rem 1.5rem; position: relative; z-index: 1;
+      padding: 4rem 1.5rem; position: relative; z-index: 1;
     }
     .section-label {
       display: inline-block;
@@ -184,55 +274,8 @@
       margin-bottom: 0.5rem;
       font-weight: 700;
     }
-    h2 {
-      font-size: 2.5rem; font-weight: 700;
-      margin-bottom: 1.5rem; color: #fff;
-    }
-    h3 { font-size: 1.4rem; color: #fff; margin: 1rem 0 0.5rem; }
+    h2 { font-size: 2.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #fff; }
 
-    /* ---- Pose Gallery ---- */
-    .pose-gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 1.2rem;
-      margin: 2rem 0;
-    }
-    .pose-card {
-      text-align: center;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.2rem 0.8rem;
-      transition: all 0.4s;
-      cursor: default;
-    }
-    .pose-card:hover {
-      transform: translateY(-6px);
-      border-color: var(--primary);
-      box-shadow: 0 12px 40px rgba(108,99,255,0.2);
-    }
-    .pose-card img {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--border);
-      margin-bottom: 0.6rem;
-      transition: all 0.3s;
-    }
-    .pose-card:hover img {
-      border-color: var(--primary);
-      box-shadow: 0 0 20px var(--glow);
-    }
-    .pose-card .pose-name {
-      font-weight: 600; font-size: 0.85rem;
-      color: #ccc;
-    }
-    .pose-card .pose-mood {
-      font-size: 0.75rem; color: var(--muted);
-      margin-top: 0.2rem;
-    }
-
-    /* ---- Install Box ---- */
     .install-box {
       background: var(--card);
       border: 1px solid var(--border);
@@ -261,9 +304,8 @@
       font-weight: 600; font-size: 0.85rem;
       transition: all 0.2s;
     }
-    .copy-btn:hover { background: var(--primary-dark); transform: scale(1.05); }
+    .copy-btn:hover { background: #5a52d5; }
 
-    /* ---- Features Grid ---- */
     .features {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -294,7 +336,80 @@
     .feature-card h3 { font-size: 1.2rem; }
     .feature-card p { color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; }
 
-    /* ---- Demo Section ---- */
+    .powers {
+      display: flex; flex-wrap: wrap; gap: 0.6rem;
+      justify-content: center; margin: 1.5rem 0;
+    }
+    .power-badge {
+      background: rgba(108,99,255,0.15);
+      border: 1px solid var(--border);
+      color: #a89fff;
+      padding: 0.5rem 1.2rem;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .power-badge:hover {
+      background: rgba(108,99,255,0.25);
+      border-color: var(--primary);
+      box-shadow: 0 0 20px rgba(108,99,255,0.3);
+      transform: translateY(-2px);
+    }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      padding: 1rem 2.5rem;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-decoration: none;
+      margin-top: 1.5rem;
+      transition: all 0.3s;
+      box-shadow: 0 8px 30px rgba(108,99,255,0.4);
+      font-family: 'Syne', sans-serif;
+      letter-spacing: 1px;
+    }
+    .cta-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(108,99,255,0.6); }
+
+    .pose-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .pose-card {
+      text-align: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem 0.6rem;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .pose-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--primary);
+      box-shadow: 0 8px 25px rgba(108,99,255,0.2);
+    }
+    .pose-card img {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+      margin-bottom: 0.4rem;
+      transition: all 0.3s;
+    }
+    .pose-card:hover img {
+      border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(108,99,255,0.4);
+    }
+    .pose-card .pose-name {
+      font-weight: 600; font-size: 0.8rem;
+      color: #ccc;
+    }
+
     .demo-section {
       background: var(--card);
       border: 1px solid var(--border);
@@ -303,16 +418,7 @@
       margin: 2rem 0;
       text-align: center;
     }
-    .demo-section .ragina-demo-pose {
-      width: 120px; height: 120px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid var(--primary);
-      margin: 1rem auto;
-    }
-    .demo-section p { color: var(--muted); margin-bottom: 1rem; }
 
-    /* ---- Footer ---- */
     footer {
       text-align: center;
       padding: 3rem 1.5rem;
@@ -322,33 +428,50 @@
     }
     footer a { color: var(--primary); text-decoration: none; }
 
-    /* ---- Scroll Animations ---- */
     .reveal {
       opacity: 0; transform: translateY(30px);
       transition: opacity 0.8s ease, transform 0.8s ease;
     }
     .reveal.visible { opacity: 1; transform: translateY(0); }
 
-    /* ---- Responsive ---- */
     @media (max-width: 768px) {
-      .hero h1 { font-size: 2.5rem; }
       h2 { font-size: 1.8rem; }
       .nav { gap: 1rem; font-size: 0.8rem; }
-      .pose-gallery { grid-template-columns: repeat(3, 1fr); }
+      .mascot-image { width: 150px; height: 150px; }
+      .quote-bubble { font-size: 0.75rem; padding: 0.6rem 1rem; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Floating particles -->
-  <div class="particles" id="particles"></div>
+  <!-- Background Particles -->
+  <div class="particles-container" id="particles"></div>
 
   <!-- ============ HERO ============ -->
-  <section class="hero">
-    <img src="research.png" alt="RAGina Mascot" class="hero-mascot" id="heroMascot"
-         onerror="this.style.display='none'">
-    <h1>RAGina</h1>
-    <p class="tagline">
+  <section class="hero" id="hero">
+    <!-- Mascot -->
+    <div class="mascot-container" id="mascotContainer">
+      <div class="quote-bubble" id="quoteBubble">Click me! 🔮</div>
+      <div class="glow-ring" id="glowRing"></div>
+      <img src="research.png" alt="RAGina" class="mascot-image" id="mascotImage"
+           onerror="this.style.display='none'">
+      <div class="click-hint" id="clickHint">👆 Click me to see my powers!</div>
+    </div>
+    <div class="pose-name-badge" id="poseBadge">🔍 Deep Research</div>
+
+    <h1 style="font-size: clamp(3rem, 8vw, 6rem); font-weight: 800;
+               background: linear-gradient(135deg, #6C63FF 0%, #FF6584 50%, #6C63FF 100%);
+               background-size: 200% auto;
+               -webkit-background-clip: text;
+               -webkit-text-fill-color: transparent;
+               animation: shimmer 3s linear infinite;
+               letter-spacing: -2px; margin-top: 1.5rem;">
+      RAGina
+    </h1>
+    <style>
+      @keyframes shimmer { to { background-position: 200% center; } }
+    </style>
+    <p style="font-size: 1.4rem; color: var(--muted); max-width: 600px; margin: 1rem auto;">
       She penetrates walls. She reads chaos. She is the Mentalist RAG.
     </p>
     <div class="powers">
@@ -364,83 +487,44 @@
 
   <!-- ============ NAV ============ -->
   <nav class="nav">
-    <a href="#poses">🎭 Her Poses</a>
+    <a href="#hero">🏠 Home</a>
+    <a href="#poses">🎭 Poses</a>
     <a href="#install">📦 Install</a>
     <a href="#features">🦸 Powers</a>
-    <a href="#demo">🔮 Live Demo</a>
+    <a href="#demo">🔮 Demo</a>
     <a href="#api">💻 API</a>
-    <a href="#confluence">📋 Confluence</a>
   </nav>
 
   <!-- ============ POSES GALLERY ============ -->
   <section class="section" id="poses">
-    <span class="section-label">Her Many Moods</span>
-    <h2>🎭 The Faces of RAGina</h2>
-    <p style="color:var(--muted); margin-bottom:1rem;">
-      She expresses herself. Each pose tells a story of her mentalist journey.
+    <span class="section-label">Click the Mascot Above!</span>
+    <h2>🎭 All 7 Mentalist Poses</h2>
+    <p style="color:var(--muted); margin-bottom:1.5rem;">
+      Click any pose below to see RAGina transform instantly. Each one is a different superpower state.
     </p>
-    <div class="pose-gallery">
-      <div class="pose-card reveal">
-        <img src="research.png" alt="Research Mode" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%236C63FF%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>🔍</text></svg>'">
-        <div class="pose-name">Deep Research</div>
-        <div class="pose-mood">Scanning documents...</div>
-      </div>
-      <div class="pose-card reveal">
-        <img src="doubt.png" alt="Doubt Mode" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23FF6584%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>🤨</text></svg>'">
-        <div class="pose-name">Doubt Detected</div>
-        <div class="pose-mood">"That's not in the files..."</div>
-      </div>
-      <div class="pose-card reveal">
-        <img src="crosshands.png" alt="Defiant" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23FF6584%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>💢</text></svg>'">
-        <div class="pose-name">Cross Hands</div>
-        <div class="pose-mood">"Organize better, human."</div>
-      </div>
-      <div class="pose-card reveal">
-        <img src="shrug-what.png" alt="Shrug" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%236C63FF%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>🤷</text></svg>'">
-        <div class="pose-name">Shrug</div>
-        <div class="pose-mood">"Your files are silent."</div>
-      </div>
-      <div class="pose-card reveal">
-        <img src="dance1.png" alt="Victory Dance 1" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%236C63FF%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>💃</text></svg>'">
-        <div class="pose-name">Victory Dance</div>
-        <div class="pose-mood">"Found it, darling!"</div>
-      </div>
-      <div class="pose-card reveal">
-        <img src="dance2.png" alt="Victory Dance 2" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23FF6584%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>🕺</text></svg>'">
-        <div class="pose-name">Happy Dance</div>
-        <div class="pose-mood">"Piece of cake!"</div>
-      </div>
-      <div class="pose-card reveal">
-        <img src="dance3.png" alt="Victory Dance 3" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%236C63FF%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>🎉</text></svg>'">
-        <div class="pose-name">Celebration</div>
-        <div class="pose-mood">"Knew exactly where that was!"</div>
-      </div>
+    <div class="pose-gallery" id="poseGallery">
+      <!-- Generated by JS -->
     </div>
   </section>
 
   <!-- ============ INSTALL ============ -->
   <section class="section" id="install">
     <span class="section-label">Get Started</span>
-    <h2>📦 One Line, That's It</h2>
-    <p style="color:var(--muted); margin-bottom:1.5rem;">
-      Add RAGina to any website with a single <code style="color:var(--primary);">&lt;script&gt;</code> tag.
-      She'll appear as a floating chat bubble, ready to answer questions from your documents.
-    </p>
+    <h2>📦 One Line, She's Yours</h2>
     <div class="install-box">
-      <button class="copy-btn" onclick="copyCode('install-prod')">📋 Copy</button>
-      <code id="install-prod">&lt;script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js"&gt;&lt;/script&gt;</code>
+      <button class="copy-btn" onclick="copyCode('install-code')">📋 Copy</button>
+      <code id="install-code">&lt;script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js"&gt;&lt;/script&gt;</code>
     </div>
-
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1.5rem;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1rem;">
       <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.2rem;">
         <strong style="color:var(--primary);">Production (Minified)</strong>
-        <p style="font-size:0.8rem; color:var(--muted); margin-top:0.3rem; word-break:break-all;">
+        <p style="font-size:0.75rem; color:var(--muted); word-break:break-all;">
           cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js
         </p>
       </div>
       <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.2rem;">
-        <strong style="color:var(--primary);">Development (Readable)</strong>
-        <p style="font-size:0.8rem; color:var(--muted); margin-top:0.3rem; word-break:break-all;">
+        <strong style="color:var(--primary);">Development</strong>
+        <p style="font-size:0.75rem; color:var(--muted); word-break:break-all;">
           cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js
         </p>
       </div>
@@ -455,92 +539,48 @@
       <div class="feature-card reveal">
         <div class="icon">🧠</div>
         <h3>TF‑IDF Mentalist Vision</h3>
-        <p>She doesn't just search — she understands context through vector scoring. Finds semantically relevant chunks, not just keyword matches.</p>
+        <p>Understands context through vector scoring. Finds semantically relevant chunks, not just keywords.</p>
       </div>
       <div class="feature-card reveal">
         <div class="icon">📂</div>
         <h3>Confluence Whisperer</h3>
-        <p>Exported messy Confluence pages? Nested folders? Legacy HTML? She penetrates the chaos and extracts only what matters.</p>
+        <p>Penetrates messy Confluence exports, nested folders, legacy HTML — extracts only what matters.</p>
       </div>
       <div class="feature-card reveal">
         <div class="icon">🔐</div>
         <h3>Zero API Keys</h3>
-        <p>Uses Pollinations.ai — completely free, anonymous, no signup. Your data stays in the browser. Only the prompt goes to the LLM.</p>
+        <p>Uses Pollinations.ai — completely free, anonymous. Your data stays in the browser.</p>
       </div>
       <div class="feature-card reveal">
         <div class="icon">📦</div>
         <h3>CDN Library (8KB)</h3>
-        <p>One script tag. Zero dependencies. Works with React, Vue, Svelte, or plain HTML. Load it and she's ready.</p>
+        <p>One script tag. Zero dependencies. Works with any framework or plain HTML.</p>
       </div>
       <div class="feature-card reveal">
         <div class="icon">💅</div>
         <h3>Sassy Personality</h3>
-        <p>She answers with attitude. "Even I can't find that. Organize better, human." Makes Q&A fun.</p>
+        <p>"Even I can't find that. Organize better, human." — answers with attitude.</p>
       </div>
       <div class="feature-card reveal">
         <div class="icon">📱</div>
         <h3>Mobile Ready</h3>
-        <p>Responsive chat panel. Dark theme with glowing accents. Works on phones, tablets, and desktops.</p>
+        <p>Responsive chat panel. Dark theme with glowing accents. Works everywhere.</p>
       </div>
     </div>
   </section>
 
-  <!-- ============ LIVE DEMO ============ -->
+  <!-- ============ DEMO ============ -->
   <section class="section" id="demo">
     <span class="section-label">Try Her</span>
     <h2>🔮 She's Live Right Now</h2>
-    <p style="color:var(--muted); margin-bottom:1rem;">
-      RAGina is active on this page! Click the <span style="color:var(--primary);">🔮 bubble</span> 
-      at the bottom-right corner to chat with her. She's pre-loaded with knowledge about herself.
-    </p>
     <div class="demo-section reveal">
-      <img src="dance1.png" alt="RAGina Ready" class="ragina-demo-pose"
-           onerror="this.style.display='none'">
-      <h3>Ask her anything:</h3>
-      <p>
-        "What is RAGina?" • "How do you handle Confluence?" • "What are your powers?"<br>
-        "Who created you?" • "How does TF‑IDF work?" • "Can I use you offline?"
+      <p style="margin-bottom:1rem; color:var(--muted);">
+        RAGina is active on this page! Click the <strong style="color:var(--primary);">🔮 bubble</strong> 
+        at the bottom-right to chat.
       </p>
-      <p style="font-size:0.85rem; color:var(--primary);">
-        👆 Click the floating bubble → bottom right
+      <p style="color:var(--primary); font-weight:600;">
+        Ask: "What is RAGina?" • "How does TF‑IDF work?" • "What are your powers?"
       </p>
-    </div>
-  </section>
-
-  <!-- ============ CONFLUENCE ============ -->
-  <section class="section" id="confluence">
-    <span class="section-label">Use Case</span>
-    <h2>📋 Confluence → Instant Knowledge Base</h2>
-    <p style="color:var(--muted); margin-bottom:1.5rem;">
-      Got a messy Confluence space? Export it as HTML, point RAGina at the folder,
-      and she'll turn that chaos into an instant Q&A system.
-    </p>
-    <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin:2rem 0;">
-      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; flex:1; min-width:200px; text-align:center;">
-        <div style="font-size:2rem;">📤</div>
-        <strong>1. Export</strong>
-        <p style="color:var(--muted); font-size:0.85rem;">Confluence → HTML Export</p>
-      </div>
-      <div style="font-size:1.5rem; color:var(--primary);">→</div>
-      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; flex:1; min-width:200px; text-align:center;">
-        <div style="font-size:2rem;">📂</div>
-        <strong>2. Point</strong>
-        <p style="color:var(--muted); font-size:0.85rem;">Select folder in RAGina</p>
-      </div>
-      <div style="font-size:1.5rem; color:var(--primary);">→</div>
-      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; flex:1; min-width:200px; text-align:center;">
-        <div style="font-size:2rem;">💬</div>
-        <strong>3. Ask</strong>
-        <p style="color:var(--muted); font-size:0.85rem;">Instant Q&A from your wiki</p>
-      </div>
-    </div>
-    <div class="install-box">
-      <code>// Generate index.json from your Confluence export folder
-// Then configure RAGina:
-window.RAGINA_CONFIG = {
-  indexUrl: './confluence-index.json',
-  placeholder: 'Ask about our wiki...'
-};</code>
     </div>
   </section>
 
@@ -549,23 +589,10 @@ window.RAGINA_CONFIG = {
     <span class="section-label">For Developers</span>
     <h2>💻 Programmatic API</h2>
     <div class="install-box">
-      <code>// Full control over RAGina
-RAGina.init({ indexUrl: './my-index.json' });
-
-// Load custom data
-RAGina.loadData({
-  "page1.html": { bodyText: "Your content..." }
-});
-
-// Load from folder input
-document.getElementById('folderPicker')
-  .addEventListener('change', (e) => {
-    RAGina.loadFolder(e.target.files);
-  });
-
-// Direct retrieval access
-const engine = RAGina.getEngine();
-const chunks = engine.retrieve("your question");</code>
+      <code>RAGina.init({ indexUrl: './my-index.json' });
+RAGina.loadData({ "page.html": { bodyText: "..." } });
+RAGina.loadFolder(fileList);
+const engine = RAGina.getEngine();</code>
     </div>
   </section>
 
@@ -574,43 +601,169 @@ const chunks = engine.retrieve("your question");</code>
     <p style="font-family:'Syne',sans-serif; font-size:1.2rem; font-weight:700;">
       🧠 RAGina – The Mentalist RAG
     </p>
-    <p style="margin-top:0.5rem;">
-      <a href="https://github.com/suryasticsai/RAGina">GitHub</a> · 
-      <a href="#install">CDN</a> · 
-      <a href="#demo">Demo</a> · 
-      MIT License
+    <p>
+      <a href="https://github.com/suryasticsai/RAGina">GitHub</a> · MIT License
     </p>
     <p style="margin-top:1rem; font-size:0.8rem;">
-      She penetrates walls. She reads chaos. She forgets nothing.<br>
-      She is the Mentalist RAG. 🔮
+      She penetrates walls. She reads chaos. She forgets nothing. 🔮
     </p>
   </footer>
 
   <!-- ============ SCRIPTS ============ -->
   <script>
-    // ---- Floating Particles ----
-    const particlesContainer = document.getElementById('particles');
-    for (let i = 0; i < 40; i++) {
-      const particle = document.createElement('div');
-      particle.className = 'particle';
-      particle.style.left = Math.random() * 100 + '%';
-      particle.style.animationDelay = Math.random() * 8 + 's';
-      particle.style.animationDuration = (6 + Math.random() * 10) + 's';
-      particle.style.width = (2 + Math.random() * 4) + 'px';
-      particle.style.height = particle.style.width;
-      particlesContainer.appendChild(particle);
+    // ---- Pose Data ----
+    const poses = [
+      { file: 'research.png', name: 'Deep Research', emoji: '🔍', 
+        quote: 'Scanning every document...', mood: 'focused', animation: 'spinning' },
+      { file: 'doubt.png', name: 'Doubt Detected', emoji: '🤨', 
+        quote: "That's not in the files...", mood: 'skeptical', animation: 'glitching' },
+      { file: 'crosshands.png', name: 'Cross Hands', emoji: '💢', 
+        quote: 'Organize better, human!', mood: 'rage', animation: 'glitching' },
+      { file: 'shrug-what.png', name: 'Shrug', emoji: '🤷', 
+        quote: 'Your files are silent on this.', mood: 'confused', animation: 'bouncing' },
+      { file: 'dance1.png', name: 'Victory Dance', emoji: '💃', 
+        quote: 'Found it, darling!', mood: 'victory', animation: 'bouncing' },
+      { file: 'dance2.png', name: 'Happy Dance', emoji: '🕺', 
+        quote: 'Piece of cake!', mood: 'dance', animation: 'victory-pulse' },
+      { file: 'dance3.png', name: 'Celebration', emoji: '🎉', 
+        quote: 'Knew exactly where that was!', mood: 'victory', animation: 'victory-pulse' }
+    ];
+
+    let currentPoseIndex = 0;
+    const mascotImage = document.getElementById('mascotImage');
+    const quoteBubble = document.getElementById('quoteBubble');
+    const glowRing = document.getElementById('glowRing');
+    const poseBadge = document.getElementById('poseBadge');
+    const mascotContainer = document.getElementById('mascotContainer');
+    const hero = document.getElementById('hero');
+    const clickHint = document.getElementById('clickHint');
+
+    // ---- Change Pose Function ----
+    function changePose(index, triggerAnimation = true) {
+      currentPoseIndex = index;
+      const pose = poses[index];
+      
+      // Fade out
+      mascotImage.style.opacity = '0';
+      mascotImage.style.transform = 'scale(0.8)';
+      
+      setTimeout(() => {
+        // Change image
+        mascotImage.src = pose.file;
+        poseBadge.textContent = pose.emoji + ' ' + pose.name;
+        
+        // Fade in
+        mascotImage.style.opacity = '1';
+        mascotImage.style.transform = 'scale(1)';
+        
+        // Show quote
+        quoteBubble.textContent = pose.quote;
+        quoteBubble.classList.add('visible');
+        
+        // Trigger animation
+        if (triggerAnimation) {
+          mascotImage.className = 'mascot-image ' + pose.animation;
+          setTimeout(() => { mascotImage.className = 'mascot-image'; }, 800);
+        }
+        
+        // Glow ring
+        glowRing.classList.add('active');
+        setTimeout(() => { glowRing.classList.remove('active'); }, 1000);
+        
+        // Hide quote after delay
+        setTimeout(() => { quoteBubble.classList.remove('visible'); }, 2500);
+        
+        // Hero mood
+        hero.className = 'hero';
+        if (pose.mood === 'rage') hero.classList.add('rage-mode');
+        if (pose.mood === 'dance' || pose.mood === 'victory') hero.classList.add('dance-mode');
+        
+        // Screen shake for rage
+        if (pose.mood === 'rage' && triggerAnimation) {
+          document.body.classList.add('screen-shake');
+          setTimeout(() => { document.body.classList.remove('screen-shake'); }, 500);
+        }
+      }, 200);
     }
 
-    // ---- Copy to Clipboard ----
-    function copyCode(id) {
-      const code = document.getElementById(id).textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        const btns = document.querySelectorAll('.copy-btn');
-        btns.forEach(b => { b.textContent = '✅ Copied!'; });
+    // ---- Burst Particles on Click ----
+    function createBurstParticles(x, y) {
+      const emojis = ['✨', '💜', '🔮', '⚡', '💫', '🌟', '💥', '🎯', '🧠', '📂'];
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('span');
+        particle.className = 'burst-particle';
+        particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        particle.style.setProperty('--bx', (Math.random() * 200 - 100) + 'px');
+        particle.style.setProperty('--by', (Math.random() * -200 - 50) + 'px');
+        document.body.appendChild(particle);
+        setTimeout(() => { particle.remove(); }, 1200);
+      }
+    }
+
+    // ---- Click Handler ----
+    mascotContainer.addEventListener('click', (e) => {
+      // Next pose (cycle)
+      const nextIndex = (currentPoseIndex + 1) % poses.length;
+      changePose(nextIndex, true);
+      
+      // Burst particles at click position
+      createBurstParticles(e.clientX, e.clientY);
+      
+      // Hide the "click me" hint after first click
+      if (clickHint.style.display !== 'none') {
+        clickHint.style.opacity = '0';
+        setTimeout(() => { clickHint.style.display = 'none'; }, 300);
+      }
+    });
+
+    // ---- Keyboard navigation ----
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        changePose((currentPoseIndex + 1) % poses.length, true);
+        createBurstParticles(window.innerWidth / 2, 300);
+      }
+      if (e.key === 'ArrowLeft') {
+        changePose((currentPoseIndex - 1 + poses.length) % poses.length, true);
+        createBurstParticles(window.innerWidth / 2, 300);
+      }
+    });
+
+    // ---- Build Pose Gallery ----
+    const poseGallery = document.getElementById('poseGallery');
+    poses.forEach((pose, index) => {
+      const card = document.createElement('div');
+      card.className = 'pose-card';
+      card.innerHTML = `
+        <img src="${pose.file}" alt="${pose.name}" 
+             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%236C63FF%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>${pose.emoji}</text></svg>'">
+        <div class="pose-name">${pose.emoji} ${pose.name}</div>
+      `;
+      card.addEventListener('click', () => {
+        changePose(index, true);
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Burst particles from center
         setTimeout(() => {
-          btns.forEach(b => { b.textContent = '📋 Copy'; });
-        }, 2000);
+          createBurstParticles(window.innerWidth / 2, 250);
+        }, 300);
       });
+      poseGallery.appendChild(card);
+    });
+
+    // ---- Background Particles ----
+    const particlesContainer = document.getElementById('particles');
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 10 + 's';
+      p.style.animationDuration = (8 + Math.random() * 12) + 's';
+      p.style.width = (2 + Math.random() * 4) + 'px';
+      p.style.height = p.style.width;
+      p.style.background = Math.random() > 0.5 ? 'var(--primary)' : 'var(--accent)';
+      particlesContainer.appendChild(p);
     }
 
     // ---- Scroll Reveal ----
@@ -622,20 +775,14 @@ const chunks = engine.retrieve("your question");</code>
     }, { threshold: 0.15 });
     reveals.forEach(el => observer.observe(el));
 
-    // ---- Hero Mascot Random Poses ----
-    const heroMascot = document.getElementById('heroMascot');
-    if (heroMascot && heroMascot.complete && heroMascot.naturalWidth > 0) {
-      const poses = ['research.png', 'doubt.png', 'crosshands.png', 'shrug-what.png', 
-                     'dance1.png', 'dance2.png', 'dance3.png'];
-      let currentPose = 0;
-      setInterval(() => {
-        currentPose = (currentPose + 1) % poses.length;
-        heroMascot.style.opacity = '0';
-        setTimeout(() => {
-          heroMascot.src = poses[currentPose];
-          heroMascot.style.opacity = '1';
-        }, 300);
-      }, 4000);
+    // ---- Copy Code ----
+    function copyCode(id) {
+      const code = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const btns = document.querySelectorAll('.copy-btn');
+        btns.forEach(b => { b.textContent = '✅ Copied!'; });
+        setTimeout(() => { btns.forEach(b => { b.textContent = '📋 Copy'; }); }, 2000);
+      });
     }
   </script>
 
