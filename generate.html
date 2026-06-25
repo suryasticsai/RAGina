@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGina Generator – Create Your Chatbot</title>
+  <style>
+    :root{--primary:#6C63FF;--bg:#0a0a14;--card:#111122;--text:#e0e0f0;--muted:#8888aa;--border:rgba(108,99,255,0.2);--success:#00d68f}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+    .hero{text-align:center;padding:3rem 1.5rem 1rem}
+    .hero h1{font-size:clamp(2rem,5vw,3.5rem);background:linear-gradient(135deg,#6C63FF,#FF6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .hero p{color:var(--muted);margin-top:.5rem}
+    .container{max-width:650px;margin:0 auto;padding:1rem 1.5rem 3rem}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;margin:1.5rem 0}
+    .card h2{font-size:1.3rem;margin-bottom:1rem}
+    label{display:block;font-weight:600;margin:1rem 0 .3rem;font-size:.85rem;color:#ccc}
+    input,textarea,select{width:100%;background:#0a0a18;border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;color:white;font-family:inherit;font-size:.95rem}
+    input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary)}
+    textarea{resize:vertical;min-height:100px;font-size:.8rem}
+    .upload-area{border:2px dashed var(--border);border-radius:14px;padding:2rem;text-align:center;cursor:pointer;margin:1rem 0;transition:all .3s}
+    .upload-area:hover,.upload-area.drag-over{border-color:var(--primary);background:rgba(108,99,255,.05)}
+    .upload-area input{display:none}
+    .file-list{font-size:.8rem;color:var(--muted);margin-top:.5rem}
+    .file-item{padding:.2rem 0}
+    .btn{display:block;width:100%;background:linear-gradient(135deg,var(--primary),#8b7cff);color:white;border:none;padding:1rem;border-radius:30px;font-weight:700;font-size:1.1rem;cursor:pointer;margin-top:1rem;transition:all .3s}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(108,99,255,.4)}
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .success{background:rgba(0,214,143,.1);border:1px solid var(--success);border-radius:12px;padding:1.5rem;text-align:center;margin:1.5rem 0;display:none}
+    .success.visible{display:block}
+    footer{text-align:center;padding:2rem;color:var(--muted);font-size:.8rem}
+    footer a{color:var(--primary)}
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>⚡ RAGina Generator</h1>
+    <p>Create an AI chatbot for your product in 60 seconds</p>
+  </div>
+  <div class="container">
+    <div class="card">
+      <h2>1️⃣ Product Name</h2>
+      <label>What should we call your chatbot?</label>
+      <input type="text" id="productName" value="MyProduct" placeholder="e.g., CloudDash, DocuFlow">
+      <p style="color:var(--muted);font-size:.8rem;margin-top:.3rem">Bot name: <strong style="color:var(--primary)" id="previewName">RAGina powered by MyProduct</strong></p>
+    </div>
+    <div class="card">
+      <h2>2️⃣ Add Your Content</h2>
+      <label>Upload HTML files (documentation, Confluence export, etc.)</label>
+      <div class="upload-area" id="dropZone"><p>📁 <strong>Click or drop .html files here</strong></p><p style="font-size:.8rem;color:var(--muted)">You can also select a whole folder</p><input type="file" id="fileInput" webkitdirectory multiple accept=".html"></div>
+      <div class="file-list" id="fileList"></div>
+      <label style="margin-top:1rem">Or paste Q&A pairs (one per line: Q: ... A: ...)</label>
+      <textarea id="sampleText" placeholder="What is CloudDash? CloudDash is a dashboard tool for analytics.
+How to install? Download from our website and run setup.
+Pricing starts at $10/month for the basic plan."></textarea>
+    </div>
+    <div class="card">
+      <h2>3️⃣ Customize</h2>
+      <label>Accent Color</label>
+      <input type="text" id="accentColor" value="#6C63FF">
+      <label>Chat Position</label>
+      <select id="position"><option value="bottom-right">Bottom Right</option><option value="bottom-left">Bottom Left</option></select>
+    </div>
+    <button class="btn" id="generateBtn" disabled>🔮 Generate My Chatbot</button>
+    <div class="success" id="successBox"><h3>✅ Your Chatbot is Ready!</h3><p id="successMsg"></p><button class="btn" id="downloadBtn" style="background:var(--success)">⬇ Download HTML File</button></div>
+  </div>
+  <footer><p>🧠 <a href="https://github.com/suryasticsai/RAGina">RAGina</a> – The Mentalist RAG</p></footer>
+
+  <script>
+    let uploadedFiles=[],generatedBlob=null;
+    const dropZone=document.getElementById('dropZone'),fileInput=document.getElementById('fileInput'),
+          fileList=document.getElementById('fileList'),productNameInput=document.getElementById('productName'),
+          previewName=document.getElementById('previewName'),sampleText=document.getElementById('sampleText'),
+          generateBtn=document.getElementById('generateBtn'),successBox=document.getElementById('successBox'),
+          successMsg=document.getElementById('successMsg'),downloadBtn=document.getElementById('downloadBtn');
+
+    productNameInput.addEventListener('input',()=>{previewName.textContent='RAGina powered by '+(productNameInput.value||'MyProduct');checkReady()});
+    dropZone.addEventListener('click',()=>fileInput.click());
+    dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});
+    dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');addFiles([...e.dataTransfer.files].filter(f=>f.name.endsWith('.html')))});
+    fileInput.addEventListener('change',()=>{addFiles([...fileInput.files].filter(f=>f.name.endsWith('.html')))});
+    sampleText.addEventListener('input',checkReady);
+
+    function addFiles(files){uploadedFiles=[...uploadedFiles,...files];renderFileList();checkReady()}
+    function renderFileList(){fileList.innerHTML=uploadedFiles.length>0?`<strong>${uploadedFiles.length} files loaded:</strong><br>`+uploadedFiles.map(f=>'📄 '+(f.webkitRelativePath||f.name)).join('<br>'):''}
+    function checkReady(){const hasFiles=uploadedFiles.length>0,hasText=sampleText.value.trim().length>0,hasName=productNameInput.value.trim().length>0;generateBtn.disabled=!hasName||(!hasFiles&&!hasText)}
+
+    generateBtn.addEventListener('click',async()=>{
+      generateBtn.disabled=true;generateBtn.textContent='⏳ Generating...';
+      const productName=productNameInput.value.trim(),accentColor=document.getElementById('accentColor').value.trim()||'#6C63FF',
+            position=document.getElementById('position').value;
+      let knowledge={};
+      for(const file of uploadedFiles){
+        const text=await file.text(),doc=new DOMParser().parseFromString(text,'text/html');
+        knowledge[file.webkitRelativePath||file.name]={bodyText:(doc.body?.textContent||'').trim()};
+      }
+      const sampleLines=sampleText.value.trim().split('\n').filter(l=>l.trim());
+      if(sampleLines.length>0){knowledge['sample-content']={bodyText:sampleLines.join('\n')};}
+      
+      const knowledgeJSON=JSON.stringify(knowledge);
+      const html=`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGina powered by ${productName}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:system-ui,sans-serif;background:#f5f5f9;min-height:100vh}
+    .welcome{text-align:center;padding:3rem 1.5rem}
+    .welcome h1{font-size:2.2rem;background:linear-gradient(135deg,${accentColor},#FF6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem}
+    .welcome p{color:#666;font-size:1.1rem}
+    .welcome .hint{margin-top:2rem;padding:1rem 1.5rem;background:rgba(${parseInt(accentColor.slice(1,3),16)},${parseInt(accentColor.slice(3,5),16)},${parseInt(accentColor.slice(5,7),16)},0.1);border-radius:12px;color:${accentColor};font-weight:600;display:inline-block}
+  </style>
+</head>
+<body>
+  <div class="welcome">
+    <h1>🤖 RAGina</h1>
+    <p>powered by <strong>${productName}</strong></p>
+    <div class="hint">👆 Click the chat bubble at the ${position==='bottom-right'?'bottom-right':'bottom-left'} to ask questions!</div>
+  </div>
+
+  <script>window.__RAGINA_INDEX__=${knowledgeJSON};<\/script>
+  <script>
+    window.RAGINA_CONFIG={
+      position:'${position}',
+      placeholder:'Ask about ${productName}...',
+      title:'RAGina | ${productName}',
+      theme:{primary:'${accentColor}'}
+    };
+  <\/script>
+  <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js"><\/script>
+</body>
+</html>`;
+      
+      generatedBlob=new Blob([html],{type:'text/html'});
+      successBox.classList.add('visible');
+      successMsg.textContent=`Your chatbot "RAGina powered by ${productName}" is ready! Download and host it anywhere.`;
+      generateBtn.textContent='✅ Generated!';
+      setTimeout(()=>{generateBtn.textContent='🔮 Generate My Chatbot';generateBtn.disabled=false},2000);
+    });
+
+    downloadBtn.addEventListener('click',()=>{
+      if(!generatedBlob)return;
+      const url=URL.createObjectURL(generatedBlob),a=document.createElement('a');
+      a.href=url;a.download='ragina-chatbot.html';document.body.appendChild(a);a.click();
+      document.body.removeChild(a);URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
