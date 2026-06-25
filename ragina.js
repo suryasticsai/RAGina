@@ -1,23 +1,11 @@
 /*!
- * RAGina.js v1.0.0
+ * RAGina.js v1.1.0
  * Mentalist RAG - She reads everything, forgets nothing.
- * MIT License - Use freely, credit appreciated.
- * 
- * Usage:
- *   <script src="https://cdn.jsdelivr.net/gh/YOUR_USERNAME/ragina/ragina.min.js"></script>
- *   <script>
- *     RAGina.init({
- *       indexUrl: './index.json',
- *       position: 'bottom-right',
- *       personality: 'sassy',
- *       theme: { primary: '#6C63FF' }
- *     });
- *   </script>
+ * MIT License | github.com/suryasticsai/RAGina
  */
 (function (global) {
   'use strict';
 
-  // ==================== RAGina Mentalist Quotes ====================
   const QUOTES = {
     ready: [
       "Alright darling, I've read every file in this place. Ask away.",
@@ -47,7 +35,6 @@
 
   const randomQuote = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-  // ==================== TF-IDF Engine ====================
   class RAGEngine {
     constructor() {
       this.chunks = [];
@@ -58,8 +45,8 @@
     buildIndex(data, chunkSize = 200) {
       this.chunks = [];
       for (const [label, doc] of Object.entries(data)) {
-        const bodyText = doc.bodyText || doc.body || '';
-        if (bodyText.length < 50) continue;
+        const bodyText = doc.bodyText || doc.body || doc.content || '';
+        if (!bodyText || bodyText.length < 30) continue;
 
         const sentences = bodyText.split(/\n+|(?<=[.!?])\s+/);
         let current = '';
@@ -74,9 +61,9 @@
       }
 
       this.idf = {};
-      const total = this.chunks.length;
+      const total = this.chunks.length || 1;
       for (const ch of this.chunks) {
-        const words = new Set(ch.text.toLowerCase().match(/\b\w+\b/g));
+        const words = new Set((ch.text.toLowerCase().match(/\b\w+\b/g) || []));
         for (const w of words) this.idf[w] = (this.idf[w] || 0) + 1;
       }
       for (const w in this.idf) {
@@ -86,12 +73,13 @@
     }
 
     retrieve(query, topK = 3) {
-      const qWords = query.toLowerCase().match(/\b\w+\b/g) || [];
+      if (!this.isReady || this.chunks.length === 0) return [];
+      const qWords = (query.toLowerCase().match(/\b\w+\b/g) || []);
       const qTF = {};
       for (const w of qWords) qTF[w] = (qTF[w] || 0) + 1;
 
       const scores = this.chunks.map((ch, idx) => {
-        const cWords = ch.text.toLowerCase().match(/\b\w+\b/g) || [];
+        const cWords = (ch.text.toLowerCase().match(/\b\w+\b/g) || []);
         const cTF = {};
         for (const w of cWords) cTF[w] = (cTF[w] || 0) + 1;
         let score = 0;
@@ -105,119 +93,22 @@
     }
   }
 
-  // ==================== LLM Call ====================
-  async function askLLM(prompt, model = 'openai') {
+  async function askLLM(prompt, model) {
     const url = 'https://text.pollinations.ai/' + encodeURIComponent(prompt);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`LLM error: ${res.status}`);
     return await res.text();
   }
 
-  // ==================== UI Builder ====================
   class RAGinaUI {
     constructor(engine, config) {
       this.engine = engine;
       this.config = config;
-      this.container = null;
       this.bubble = null;
       this.panel = null;
       this.messages = null;
       this.input = null;
-    }
-
-    injectStyles() {
-      if (document.getElementById('ragina-styles')) return;
-      const css = `
-        @keyframes ragina-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(${this.hexToRgb(this.config.theme.primary)}, 0.5); }
-          50% { box-shadow: 0 0 0 18px rgba(${this.hexToRgb(this.config.theme.primary)}, 0); }
-        }
-        @keyframes ragina-float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes ragina-glow {
-          0%, 100% { filter: drop-shadow(0 0 6px ${this.config.theme.primary}); }
-          50% { filter: drop-shadow(0 0 16px ${this.config.theme.primary}); }
-        }
-        .ragina-bubble {
-          position: fixed; ${this.config.position === 'bottom-left' ? 'left:24px;' : 'right:24px;'}
-          bottom: 24px; width: 60px; height: 60px; border-radius: 50%;
-          background: ${this.config.theme.primary}; border: none; cursor: pointer;
-          z-index: 99999; font-size: 28px; display: flex; align-items: center;
-          justify-content: center; transition: transform 0.3s, box-shadow 0.3s;
-          animation: ragina-float 4s ease-in-out infinite, ragina-pulse 2s infinite;
-        }
-        .ragina-bubble:hover { transform: scale(1.15); animation: none; }
-        .ragina-bubble img { width: 44px; height: 44px; border-radius: 50%; }
-        .ragina-panel {
-          position: fixed; ${this.config.position === 'bottom-left' ? 'left:24px;' : 'right:24px;'}
-          bottom: 100px; width: 380px; max-width: 92vw; height: 520px; max-height: 70vh;
-          background: #0f0f1a; border-radius: 20px; z-index: 99999;
-          display: flex; flex-direction: column; overflow: hidden;
-          border: 1px solid rgba(108,99,255,0.4);
-          box-shadow: 0 0 40px rgba(108,99,255,0.2), 0 20px 60px rgba(0,0,0,0.6);
-          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          font-family: system-ui, sans-serif;
-        }
-        .ragina-panel.hidden {
-          opacity: 0; pointer-events: none;
-          transform: translateY(30px) scale(0.95);
-        }
-        .ragina-header {
-          background: linear-gradient(135deg, ${this.config.theme.primary}, #8b7cff);
-          padding: 14px 18px; display: flex; align-items: center; gap: 12px;
-        }
-        .ragina-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; }
-        .ragina-header-info { flex: 1; color: white; }
-        .ragina-header-name { font-weight: 700; font-size: 1.1rem; }
-        .ragina-header-status { font-size: 0.7rem; opacity: 0.8; }
-        .ragina-close {
-          background: rgba(255,255,255,0.2); border: none; color: white;
-          width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px;
-        }
-        .ragina-messages {
-          flex: 1; padding: 16px; overflow-y: auto;
-          background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
-        }
-        .ragina-messages::-webkit-scrollbar { width: 4px; }
-        .ragina-messages::-webkit-scrollbar-thumb { background: rgba(108,99,255,0.4); border-radius: 4px; }
-        .ragina-msg { margin-bottom: 14px; display: flex; flex-direction: column; }
-        .ragina-msg.user { align-items: flex-end; }
-        .ragina-msg.user .ragina-bubble-text {
-          background: ${this.config.theme.primary}; color: white;
-          border-radius: 18px 18px 4px 18px;
-        }
-        .ragina-msg.ai .ragina-bubble-text {
-          background: rgba(108,99,255,0.1); color: #ddd;
-          border: 1px solid rgba(108,99,255,0.3);
-          border-radius: 18px 18px 18px 4px;
-        }
-        .ragina-bubble-text {
-          max-width: 82%; padding: 10px 16px; font-size: 0.9rem; line-height: 1.5;
-        }
-        .ragina-sources {
-          font-size: 0.65rem; color: rgba(108,99,255,0.7); margin-top: 4px;
-          padding-left: 8px; font-style: italic;
-        }
-        .ragina-input-area { display: flex; padding: 10px; border-top: 1px solid rgba(108,99,255,0.2); background: #0f0f1a; }
-        .ragina-input {
-          flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(108,99,255,0.3);
-          border-radius: 24px; padding: 10px 16px; color: white; font-size: 0.9rem; outline: none;
-        }
-        .ragina-input::placeholder { color: rgba(255,255,255,0.3); }
-        .ragina-send {
-          background: ${this.config.theme.primary}; border: none; border-radius: 50%;
-          width: 40px; height: 40px; margin-left: 8px; cursor: pointer; color: white;
-          font-size: 16px; transition: all 0.2s;
-        }
-        .ragina-send:hover { box-shadow: 0 0 15px rgba(108,99,255,0.6); }
-        .ragina-send:disabled { opacity: 0.4; }
-      `;
-      const style = document.createElement('style');
-      style.id = 'ragina-styles';
-      style.textContent = css;
-      document.head.appendChild(style);
+      this.sendBtn = null;
     }
 
     hexToRgb(hex) {
@@ -225,21 +116,63 @@
       return result ? `${parseInt(result[1],16)}, ${parseInt(result[2],16)}, ${parseInt(result[3],16)}` : '108,99,255';
     }
 
+    injectStyles() {
+      if (document.getElementById('ragina-styles')) return;
+      const primary = this.config.theme?.primary || '#6C63FF';
+      const rgb = this.hexToRgb(primary);
+      const css = `
+@keyframes ragina-pulse{0%,100%{box-shadow:0 0 0 0 rgba(${rgb},0.5)}50%{box-shadow:0 0 0 18px rgba(${rgb},0)}}
+@keyframes ragina-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ragina-bubble{position:fixed;${this.config.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:24px;width:60px;height:60px;border-radius:50%;background:${primary};border:none;cursor:pointer;z-index:99999;font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform 0.3s;animation:ragina-float 4s ease-in-out infinite,ragina-pulse 2s infinite;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+.ragina-bubble:hover{transform:scale(1.15);animation:none}
+.ragina-bubble img{width:44px;height:44px;border-radius:50%}
+.ragina-panel{position:fixed;${this.config.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:100px;width:380px;max-width:92vw;height:520px;max-height:70vh;background:#0f0f1a;border-radius:20px;z-index:99999;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(${rgb},0.4);box-shadow:0 0 40px rgba(${rgb},0.2),0 20px 60px rgba(0,0,0,0.6);transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);font-family:system-ui,sans-serif}
+.ragina-panel.hidden{opacity:0;pointer-events:none;transform:translateY(30px) scale(0.95)}
+.ragina-header{background:linear-gradient(135deg,${primary},#8b7cff);padding:14px 18px;display:flex;align-items:center;gap:12px}
+.ragina-avatar{width:40px;height:40px;border-radius:50%;border:2px solid white;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px}
+.ragina-header-info{flex:1;color:white}
+.ragina-header-name{font-weight:700;font-size:1.1rem}
+.ragina-header-status{font-size:0.7rem;opacity:0.8}
+.ragina-close{background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px}
+.ragina-messages{flex:1;padding:16px;overflow-y:auto;background:linear-gradient(180deg,#0f0f1a 0%,#1a1a2e 100%)}
+.ragina-messages::-webkit-scrollbar{width:4px}
+.ragina-messages::-webkit-scrollbar-thumb{background:rgba(${rgb},0.4);border-radius:4px}
+.ragina-msg{margin-bottom:14px;display:flex;flex-direction:column}
+.ragina-msg.user{align-items:flex-end}
+.ragina-msg.user .ragina-bubble-text{background:${primary};color:white;border-radius:18px 18px 4px 18px}
+.ragina-msg.ai .ragina-bubble-text{background:rgba(${rgb},0.1);color:#ddd;border:1px solid rgba(${rgb},0.3);border-radius:18px 18px 18px 4px}
+.ragina-bubble-text{max-width:82%;padding:10px 16px;font-size:0.9rem;line-height:1.5;word-break:break-word}
+.ragina-sources{font-size:0.65rem;color:rgba(${rgb},0.7);margin-top:4px;padding-left:8px;font-style:italic}
+.ragina-input-area{display:flex;padding:10px;border-top:1px solid rgba(${rgb},0.2);background:#0f0f1a}
+.ragina-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(${rgb},0.3);border-radius:24px;padding:10px 16px;color:white;font-size:0.9rem;outline:none}
+.ragina-input::placeholder{color:rgba(255,255,255,0.3)}
+.ragina-send{background:${primary};border:none;border-radius:50%;width:40px;height:40px;margin-left:8px;cursor:pointer;color:white;font-size:16px;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.ragina-send:hover{box-shadow:0 0 15px rgba(${rgb},0.6)}
+.ragina-send:disabled{opacity:0.4;cursor:not-allowed}
+.ragina-typing{display:flex;gap:4px;padding:10px 16px}
+.ragina-typing span{width:8px;height:8px;border-radius:50%;background:rgba(${rgb},0.6);animation:ragina-typing 1.4s infinite}
+.ragina-typing span:nth-child(2){animation-delay:0.2s}
+.ragina-typing span:nth-child(3){animation-delay:0.4s}
+@keyframes ragina-typing{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-8px);opacity:1}}
+`;
+      const style = document.createElement('style');
+      style.id = 'ragina-styles';
+      style.textContent = css;
+      document.head.appendChild(style);
+    }
+
     build() {
       this.injectStyles();
+
+      const avatarContent = this.config.avatarUrl 
+        ? `<img class="ragina-avatar" src="${this.config.avatarUrl}" alt="RAGina" style="object-fit:cover;">` 
+        : `<div class="ragina-avatar">🔮</div>`;
 
       // Bubble
       this.bubble = document.createElement('button');
       this.bubble.className = 'ragina-bubble';
-      this.bubble.title = 'RAGina – Your Mentalist RAG';
-      if (this.config.avatarUrl) {
-        const img = document.createElement('img');
-        img.src = this.config.avatarUrl;
-        img.alt = 'RAGina';
-        this.bubble.appendChild(img);
-      } else {
-        this.bubble.textContent = '🔮';
-      }
+      this.bubble.title = this.config.title || 'RAGina – Your Mentalist RAG';
+      this.bubble.innerHTML = this.config.bubbleIcon || '🔮';
       document.body.appendChild(this.bubble);
 
       // Panel
@@ -247,9 +180,9 @@
       this.panel.className = 'ragina-panel hidden';
       this.panel.innerHTML = `
         <div class="ragina-header">
-          <img class="ragina-avatar" src="${this.config.avatarUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%236C63FF%22/><text x=%2250%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2240%22>🔮</text></svg>'}" alt="RAGina">
+          ${avatarContent}
           <div class="ragina-header-info">
-            <div class="ragina-header-name">RAGina</div>
+            <div class="ragina-header-name">${this.config.title || 'RAGina'}</div>
             <div class="ragina-header-status">🧠 Mentalist Online</div>
           </div>
           <button class="ragina-close">✕</button>
@@ -264,23 +197,24 @@
 
       this.messages = this.panel.querySelector('.ragina-messages');
       this.input = this.panel.querySelector('.ragina-input');
-      const sendBtn = this.panel.querySelector('.ragina-send');
-      const closeBtn = this.panel.querySelector('.ragina-close');
+      this.sendBtn = this.panel.querySelector('.ragina-send');
 
       // Events
       this.bubble.addEventListener('click', () => this.toggle());
-      closeBtn.addEventListener('click', () => this.hide());
-      sendBtn.addEventListener('click', () => this.handleSend());
+      this.panel.querySelector('.ragina-close').addEventListener('click', () => this.hide());
+      this.sendBtn.addEventListener('click', () => this.handleSend());
       this.input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') this.handleSend();
       });
 
       if (this.engine.isReady) {
         this.addMessage(randomQuote(QUOTES.ready), 'ai');
+      } else {
+        this.addMessage("I'm ready! Upload some files or load an index to get started.", 'ai');
       }
     }
 
-    toggle() { this.panel.classList.toggle('hidden'); }
+    toggle() { this.panel.classList.toggle('hidden'); if (!this.panel.classList.contains('hidden')) this.input.focus(); }
     hide() { this.panel.classList.add('hidden'); }
     show() { this.panel.classList.remove('hidden'); this.input.focus(); }
 
@@ -294,25 +228,48 @@
       if (sources.length > 0) {
         const src = document.createElement('div');
         src.className = 'ragina-sources';
-        src.textContent = '📌 ' + sources.map(s => s.source.split('/').pop() + '…').join(' · ');
+        src.textContent = '📌 ' + sources.map(s => (s.source || '').split('/').pop() + '…').join(' · ');
         msgDiv.appendChild(src);
       }
       this.messages.appendChild(msgDiv);
       this.messages.scrollTop = this.messages.scrollHeight;
+      return msgDiv;
+    }
+
+    showTyping() {
+      const div = document.createElement('div');
+      div.className = 'ragina-msg ai';
+      div.innerHTML = '<div class="ragina-typing"><span></span><span></span><span></span></div>';
+      this.messages.appendChild(div);
+      this.messages.scrollTop = this.messages.scrollHeight;
+      return div;
     }
 
     async handleSend() {
       const question = this.input.value.trim();
       if (!question || !this.engine.isReady) return;
       this.input.value = '';
+      this.sendBtn.disabled = true;
 
       this.addMessage(question, 'user');
-      this.addMessage(randomQuote(QUOTES.thinking), 'ai');
+      const typingDiv = this.showTyping();
 
       const topChunks = this.engine.retrieve(question, this.config.topK || 3);
-      const context = topChunks.map((c, i) => `[${i + 1}] ${c.source}\n${c.text}`).join('\n\n');
+      
+      const context = topChunks.length > 0 
+        ? topChunks.map((c, i) => `[${i + 1}] ${c.source}\n${c.text}`).join('\n\n')
+        : 'No relevant documents found.';
 
-      const prompt = `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.
+      const personality = this.config.personality || 'sassy';
+      const prompt = personality === 'professional'
+        ? `Answer the question using ONLY the context below. If the answer cannot be found, say "I don't have enough information to answer that."
+
+Context:
+${context}
+
+Question: ${question}
+Answer:`
+        : `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.
 
 Context:
 ${context}
@@ -322,12 +279,14 @@ Answer (as RAGina, with sass):`;
 
       try {
         const answer = await askLLM(prompt, this.config.model);
-        this.messages.lastChild.remove(); // remove thinking
+        typingDiv.remove();
         this.addMessage(answer, 'ai', topChunks);
       } catch (err) {
-        this.messages.lastChild.remove();
+        typingDiv.remove();
         this.addMessage(randomQuote(QUOTES.error) + ' ' + err.message, 'ai');
       }
+      this.sendBtn.disabled = false;
+      this.input.focus();
     }
   }
 
@@ -335,69 +294,105 @@ Answer (as RAGina, with sass):`;
   const RAGina = {
     engine: null,
     ui: null,
+    config: {},
 
     init(config = {}) {
       const defaultConfig = {
-        indexUrl: './index.json',
+        indexUrl: null,
         position: 'bottom-right',
-        placeholder: 'Ask me anything…',
+        placeholder: 'Ask me anything...',
         topK: 3,
         model: 'openai',
         avatarUrl: null,
+        bubbleIcon: '🔮',
+        title: 'RAGina',
+        personality: 'sassy',
         theme: { primary: '#6C63FF' },
+        chunkSize: 200,
       };
       this.config = { ...defaultConfig, ...config };
       this.engine = new RAGEngine();
 
-      // Load index
-      fetch(this.config.indexUrl)
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        })
-        .then(data => {
-          this.engine.buildIndex(data, this.config.chunkSize);
-          this.ui = new RAGinaUI(this.engine, this.config);
-          this.ui.build();
-          this.ui.show();
-        })
-        .catch(err => {
-          console.warn('RAGina: Could not load index. Running in manual mode.', err.message);
-          this.ui = new RAGinaUI(this.engine, this.config);
-          this.ui.build();
-        });
-    },
+      const finishInit = () => {
+        this.ui = new RAGinaUI(this.engine, this.config);
+        this.ui.build();
+      };
 
-    /** Load custom data programmatically */
-    loadData(data) {
-      this.engine.buildIndex(data);
-      if (this.ui) {
-        this.ui.messages.innerHTML = '';
-        this.ui.input.disabled = false;
-        this.ui.panel.querySelector('.ragina-send').disabled = false;
-        this.ui.addMessage(randomQuote(QUOTES.ready), 'ai');
+      // Check for embedded index first
+      if (window.__RAGINA_INDEX__ && typeof window.__RAGINA_INDEX__ === 'object') {
+        this.engine.buildIndex(window.__RAGINA_INDEX__, this.config.chunkSize);
+        finishInit();
+        this.ui.show();
+        return;
+      }
+
+      // Try fetching from URL
+      if (this.config.indexUrl) {
+        fetch(this.config.indexUrl)
+          .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          })
+          .then(data => {
+            this.engine.buildIndex(data, this.config.chunkSize);
+            finishInit();
+            this.ui.show();
+          })
+          .catch(err => {
+            console.warn('RAGina: Could not load index from URL.', err.message);
+            finishInit();
+          });
+      } else {
+        finishInit();
       }
     },
 
-    /** Load a folder of HTML files */
+    loadData(data) {
+      if (!this.engine) this.engine = new RAGEngine();
+      this.engine.buildIndex(data, this.config.chunkSize);
+      if (this.ui) {
+        this.ui.messages.innerHTML = '';
+        this.ui.input.disabled = false;
+        if (this.ui.sendBtn) this.ui.sendBtn.disabled = false;
+        this.ui.addMessage(randomQuote(QUOTES.ready), 'ai');
+      } else {
+        this.ui = new RAGinaUI(this.engine, this.config);
+        this.ui.build();
+        this.ui.show();
+      }
+    },
+
     async loadFolder(fileList) {
-      const files = [...fileList].filter(f => f.name.endsWith('.html'));
+      const files = [...fileList].filter(f => f.name.endsWith('.html') || f.name.endsWith('.htm'));
       const data = {};
       for (const file of files) {
         const text = await file.text();
         const doc = new DOMParser().parseFromString(text, 'text/html');
         data[file.webkitRelativePath || file.name] = {
-          bodyText: doc.body?.textContent?.trim() || ''
+          bodyText: (doc.body?.textContent || '').trim()
         };
       }
       this.loadData(data);
     },
 
-    /** Get engine instance for direct use */
-    getEngine() { return this.engine; }
+    getEngine() { return this.engine; },
+
+    ask(question) {
+      if (!this.ui) return;
+      this.ui.input.value = question;
+      this.ui.handleSend();
+    }
   };
 
-  // Expose globally
   global.RAGina = RAGina;
+
+  // Auto-init if config exists
+  if (global.RAGINA_CONFIG) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => RAGina.init(global.RAGINA_CONFIG));
+    } else {
+      RAGina.init(global.RAGINA_CONFIG);
+    }
+  }
 
 })(typeof window !== 'undefined' ? window : this);
