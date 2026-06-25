@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGina – Auto PR Bot</title>
+  <style>
+    :root{--primary:#6C63FF;--bg:#0a0a14;--card:#111122;--text:#e0e0f0;--muted:#8888aa;--border:rgba(108,99,255,0.2);--success:#00d68f;--danger:#FF4757}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+    .hero{text-align:center;padding:3rem 1.5rem 1.5rem;background:radial-gradient(ellipse at center,rgba(108,99,255,0.1) 0%,transparent 70%)}
+    .hero h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;background:linear-gradient(135deg,#6C63FF,#FF6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .hero p{color:var(--muted);margin-top:.5rem;font-size:1.1rem}
+    .container{max-width:650px;margin:0 auto;padding:0 1.5rem 3rem}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;margin:1.5rem 0}
+    .card h2{font-size:1.3rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+    .step-num{background:var(--primary);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0}
+    label{display:block;font-weight:600;margin:.8rem 0 .3rem;font-size:.85rem;color:#ccc}
+    input,textarea{width:100%;background:#0a0a18;border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;color:#fff;font-family:inherit;font-size:.95rem;transition:all .3s}
+    input:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 15px rgba(108,99,255,.2)}
+    textarea{resize:vertical;min-height:80px}
+    .btn{display:block;width:100%;background:linear-gradient(135deg,var(--primary),#8b7cff);color:#fff;border:none;padding:1rem;border-radius:30px;font-weight:700;font-size:1.1rem;cursor:pointer;margin-top:1rem;transition:all .3s}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(108,99,255,.4)}
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .status{padding:.8rem 1rem;border-radius:10px;margin:1rem 0;font-size:.9rem;display:none;line-height:1.5}
+    .status.visible{display:block}
+    .status.info{background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.3)}
+    .status.success{background:rgba(0,214,143,.1);border:1px solid var(--success)}
+    .status.error{background:rgba(255,71,87,.1);border:1px solid var(--danger)}
+    .log{background:#000;border:1px solid var(--border);border-radius:10px;padding:1rem;margin:1rem 0;max-height:250px;overflow-y:auto;font-family:'Fira Code',monospace;font-size:.75rem;color:#6C63FF;display:none}
+    .log.visible{display:block}
+    .log .log-success{color:var(--success)}
+    .log .log-error{color:var(--danger)}
+    .token-help{background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:1.2rem;margin-top:.8rem;font-size:.8rem;color:var(--muted);line-height:1.7}
+    .token-help ol{padding-left:1.2rem;margin:.5rem 0}
+    .token-help a{color:var(--primary)}
+    .token-help code{background:rgba(255,255,255,.05);padding:.1rem .4rem;border-radius:4px;font-size:.85em}
+    footer{text-align:center;padding:3rem;color:var(--muted);font-size:.8rem}
+    footer a{color:var(--primary)}
+    .hint-icon{font-size:1.2rem}
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🚀 RAGina PR Bot</h1>
+  <p>One token → Describe product → Auto PR with chatbot in 60 seconds</p>
+</div>
+
+<div class="container">
+
+  <!-- Step 1 -->
+  <div class="card">
+    <h2><span class="step-num">1</span> GitHub Token</h2>
+    <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+    <div class="token-help">
+      <strong>🔐 How to get a token (30 seconds):</strong>
+      <ol>
+        <li>Go to <a href="https://github.com/settings/tokens/new?scopes=repo&description=RAGina" target="_blank">github.com/settings/tokens/new</a></li>
+        <li>Select <code>repo</code> scope (all sub-checkboxes)</li>
+        <li>Click <strong>Generate token</strong></li>
+        <li>Copy and paste it here</li>
+      </ol>
+      <span style="font-size:.7rem;">🔒 Token stays in your browser. Never sent anywhere except GitHub API.</span>
+    </div>
+    <div class="status info" id="tokenStatus"></div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card">
+    <h2><span class="step-num">2</span> Target Repository</h2>
+    <input type="text" id="repoFullName" placeholder="username/repository (e.g., myorg/docs)">
+    <button class="btn" id="fetchRepoBtn" style="margin-top:.5rem;">🔍 Scan for HTML Files</button>
+    <div class="status info" id="repoStatus"></div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="card">
+    <h2><span class="step-num">3</span> Describe Your Product</h2>
+    <label>Product Name</label>
+    <input type="text" id="productName" placeholder="e.g., DocuFlow, CloudDash">
+    <label>What does it do? (2-3 sentences)</label>
+    <textarea id="productDescription" placeholder="DocuFlow helps teams create, organize, and share documentation. It supports markdown, real-time collaboration, and integrates with Slack and Jira." rows="3"></textarea>
+    <label>Key topics (comma separated)</label>
+    <input type="text" id="keyTopics" placeholder="installation, api, pricing, troubleshooting">
+    <label>Accent Color</label>
+    <input type="text" id="accentColor" value="#6C63FF">
+  </div>
+
+  <!-- Step 4 -->
+  <div class="card">
+    <h2><span class="step-num">4</span> Create Pull Request</h2>
+    <div class="status info" id="prStatus">Enter token and repo to get started.</div>
+    <div class="log" id="logBox"></div>
+    <button class="btn" id="raisePRBtn" disabled>🔮 Scan Repo & Raise PR</button>
+    <div class="status success" id="successBox" style="display:none;"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>🧠 <a href="https://github.com/suryasticsai/RAGina">RAGina</a> · No secrets stored · No servers · Pure browser magic 🔮</p>
+</footer>
+
+<script>
+// ============ STATE ============
+let githubToken = null, repoOwner = null, repoName = null, repoHtmlFiles = [], scrapedKnowledge = {};
+
+// ============ DOM ============
+const tokenInput = document.getElementById('githubToken');
+const tokenStatus = document.getElementById('tokenStatus');
+const repoFullNameInput = document.getElementById('repoFullName');
+const fetchRepoBtn = document.getElementById('fetchRepoBtn');
+const repoStatus = document.getElementById('repoStatus');
+const productNameInput = document.getElementById('productName');
+const productDescriptionInput = document.getElementById('productDescription');
+const keyTopicsInput = document.getElementById('keyTopics');
+const accentColorInput = document.getElementById('accentColor');
+const raisePRBtn = document.getElementById('raisePRBtn');
+const prStatus = document.getElementById('prStatus');
+const logBox = document.getElementById('logBox');
+const successBox = document.getElementById('successBox');
+
+// ============ LOGGING ============
+function log(msg, type = 'info') {
+  logBox.classList.add('visible');
+  const line = document.createElement('div');
+  line.className = `log-${type}`;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logBox.appendChild(line);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+function updateStatus(el, msg, type = 'info') {
+  el.className = `status ${type} visible`;
+  el.textContent = msg;
+}
+
+// ============ TOKEN VALIDATION ============
+tokenInput.addEventListener('input', async () => {
+  const token = tokenInput.value.trim();
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    githubToken = null;
+    updateStatus(tokenStatus, 'Enter a valid token starting with ghp_ or github_pat_', 'info');
+    checkReady();
+    return;
+  }
+  
+  // Verify token silently
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (res.ok) {
+      const user = await res.json();
+      githubToken = token;
+      updateStatus(tokenStatus, `✅ Connected as <strong>${user.login}</strong>`, 'success');
+      log(`Authenticated as ${user.login}`, 'success');
+    } else {
+      githubToken = null;
+      updateStatus(tokenStatus, '❌ Invalid token. Check and try again.', 'error');
+    }
+  } catch {
+    githubToken = null;
+    updateStatus(tokenStatus, '❌ Network error. Check your connection.', 'error');
+  }
+  checkReady();
+});
+
+// ============ REPO SCANNING ============
+fetchRepoBtn.addEventListener('click', async () => {
+  const fullName = repoFullNameInput.value.trim();
+  if (!fullName.includes('/')) {
+    updateStatus(repoStatus, 'Enter username/repository', 'error');
+    return;
+  }
+  [repoOwner, repoName] = fullName.split('/');
+  if (!githubToken) {
+    updateStatus(repoStatus, 'Enter a valid token first!', 'error');
+    return;
+  }
+  
+  updateStatus(repoStatus, '🔍 Scanning for HTML files...', 'info');
+  fetchRepoBtn.disabled = true;
+  fetchRepoBtn.textContent = '⏳ Scanning...';
+  log(`Scanning ${repoOwner}/${repoName}...`, 'info');
+  
+  try {
+    repoHtmlFiles = await findHtmlFiles(repoOwner, repoName, '');
+    log(`Found ${repoHtmlFiles.length} HTML files`, 'success');
+    updateStatus(repoStatus, `✅ ${repoHtmlFiles.length} HTML files found`, 'success');
+    checkReady();
+  } catch (e) {
+    log('Scan failed: ' + e.message, 'error');
+    updateStatus(repoStatus, '❌ Repo not found or no access.', 'error');
+  }
+  
+  fetchRepoBtn.disabled = false;
+  fetchRepoBtn.textContent = '🔍 Scan for HTML Files';
+});
+
+async function findHtmlFiles(owner, repo, path) {
+  const files = [];
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' }
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  
+  const items = await res.json();
+  for (const item of Array.isArray(items) ? items : [items]) {
+    if (item.type === 'file' && /\.html?$/i.test(item.name)) files.push(item);
+    else if (item.type === 'dir' && !item.name.startsWith('.') && item.name !== 'node_modules') {
+      files.push(...await findHtmlFiles(owner, repo, item.path));
+    }
+  }
+  return files;
+}
+
+// ============ CHECK READY ============
+function checkReady() {
+  const ready = !!(githubToken && repoOwner && repoName && productNameInput.value.trim());
+  raisePRBtn.disabled = !ready;
+  if (ready) updateStatus(prStatus, '✅ Ready! Click to raise PR.', 'info');
+}
+productNameInput.addEventListener('input', checkReady);
+repoFullNameInput.addEventListener('input', () => { repoHtmlFiles = []; checkReady(); });
+
+// ============ RAISE PR ============
+raisePRBtn.addEventListener('click', async () => {
+  raisePRBtn.disabled = true;
+  raisePRBtn.textContent = '⏳ Working...';
+  logBox.innerHTML = '';
+  logBox.classList.add('visible');
+  successBox.style.display = 'none';
+  
+  const productName = productNameInput.value.trim();
+  const productDescription = productDescriptionInput.value.trim();
+  const keyTopics = keyTopicsInput.value.trim();
+  const accentColor = accentColorInput.value.trim() || '#6C63FF';
+
+  try {
+    // Scrape
+    log('🔍 Scraping HTML files...', 'info');
+    scrapedKnowledge = {};
+    
+    for (const file of repoHtmlFiles.slice(0, 20)) {
+      try {
+        const res = await fetch(file.download_url);
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const text = (doc.body?.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 2000);
+        if (text.length > 50) {
+          scrapedKnowledge[file.path] = { bodyText: text };
+          log(`  ✅ ${file.path}`, 'success');
+        }
+      } catch { log(`  ⚠️ ${file.path}`, 'info'); }
+    }
+    
+    if (productDescription) {
+      scrapedKnowledge['product-overview'] = {
+        bodyText: `${productName}: ${productDescription}. Key topics: ${keyTopics || 'general documentation'}.`
+      };
+    }
+    
+    log(`📚 ${Object.keys(scrapedKnowledge).length} knowledge entries`, 'success');
+
+    // Generate chatbot
+    log('🧩 Generating chatbot page...', 'info');
+    const html = generateChatbot(productName, accentColor, scrapedKnowledge);
+    log('✅ Generated!', 'success');
+
+    // Get base branch
+    log('🌿 Finding base branch...', 'info');
+    let baseBranch = 'main', baseSha;
+    try {
+      const r = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/main`, {
+        headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!r.ok) throw new Error();
+      baseSha = (await r.json()).object.sha;
+    } catch {
+      const r = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/master`, {
+        headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' }
+      });
+      baseSha = (await r.json()).object.sha;
+      baseBranch = 'master';
+    }
+    log(`✅ Base: ${baseBranch}`, 'success');
+
+    // Create branch
+    const branch = `ragina-chatbot-${Date.now()}`;
+    log(`🌿 Creating branch: ${branch}`, 'info');
+    await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' },
+      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha })
+    });
+    log('✅ Branch created', 'success');
+
+    // Create file
+    log('📄 Adding ragina-chatbot.html...', 'info');
+    const content = btoa(unescape(encodeURIComponent(html)));
+    await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/ragina-chatbot.html`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' },
+      body: JSON.stringify({
+        message: `🤖 Add RAGina AI Chatbot for ${productName}`,
+        content, branch
+      })
+    });
+    log('✅ File added', 'success');
+
+    // Create PR
+    log('🚀 Creating Pull Request...', 'info');
+    const prRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/pulls`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' },
+      body: JSON.stringify({
+        title: `🤖 Add RAGina AI Chatbot for ${productName}`,
+        head: branch,
+        base: baseBranch,
+        body: `## 🤖 RAGina AI Chatbot\n\nThis PR adds a smart chatbot powered by **${productName}** knowledge.\n\n### ✨ What You Get\n- 💬 Floating chat bubble on your site\n- 🧠 Answers questions about ${productName}\n- 🔐 No API keys needed — works instantly\n- 📚 Built from ${Object.keys(scrapedKnowledge).length} knowledge entries scraped from this repo\n\n### 🚀 How to Use\n1. Merge this PR\n2. Visit \`/ragina-chatbot.html\` on your deployed site\n3. Start asking questions!\n\n---\n*PR raised by [RAGina](https://github.com/suryasticsai/RAGina) — The Mentalist Bot* 🔮`
+      })
+    });
+    
+    const prData = await prRes.json();
+    log(`🎉 PR #${prData.number} created!`, 'success');
+    
+    successBox.style.display = 'block';
+    successBox.innerHTML = `
+      <h3 style="text-align:center;">🎉 Pull Request Created!</h3>
+      <p style="text-align:center;margin:1rem 0;">
+        <a href="${prData.html_url}" target="_blank" style="color:var(--primary);font-size:1.1rem;text-decoration:none;font-weight:700;">
+          🔗 View PR #${prData.number} on GitHub
+        </a>
+      </p>
+      <p style="text-align:center;font-size:.85rem;color:var(--muted);">
+        Merge it → Your chatbot is live at <code style="color:var(--primary);">/ragina-chatbot.html</code>
+      </p>
+    `;
+    
+    raisePRBtn.textContent = '✅ Done!';
+    updateStatus(prStatus, '✅ PR created!', 'success');
+    
+  } catch (err) {
+    log(`❌ Error: ${err.message}`, 'error');
+    updateStatus(prStatus, `Error: ${err.message}`, 'error');
+    raisePRBtn.textContent = '🔮 Scan Repo & Raise PR';
+    raisePRBtn.disabled = false;
+  }
+});
+
+function generateChatbot(name, color, knowledge) {
+  const json = JSON.stringify(knowledge);
+  const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>${name} - AI Chatbot</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:system-ui,sans-serif;background:#f5f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .c{text-align:center;padding:2rem}
+    h1{font-size:2.5rem;background:linear-gradient(135deg,${color},#FF6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    p{color:#666;font-size:1.2rem;margin-top:.5rem}
+    .b{display:inline-block;margin-top:2rem;padding:.8rem 2rem;background:rgba(${r},${g},${b},0.1);border-radius:30px;color:${color};font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="c">
+    <h1>🤖 AI Chatbot</h1>
+    <p>Ask questions about <strong>${name}</strong></p>
+    <div class="b">👇 Click the chat bubble below</div>
+  </div>
+  <script>window.__RAGINA_INDEX__=${json};<\/script>
+  <script>window.RAGINA_CONFIG={title:'${name} Bot',placeholder:'Ask about ${name}...',position:'bottom-right',theme:{primary:'${color}'}};<\/script>
+  <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js"><\/script>
+</body>
+</html>`;
+}
+</script>
+</body>
+</html>
