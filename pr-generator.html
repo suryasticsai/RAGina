@@ -176,6 +176,7 @@ let allRepoFiles = [];
 let htmlFiles = [];
 let selectedFile = null;
 let scrapedKnowledge = {};
+let currentBranchName = null;   // for undo
 
 // ============ DOM ============
 const tokenInput = document.getElementById('githubToken');
@@ -217,12 +218,7 @@ function setStatus(el, msg, type = 'info') {
   el.innerHTML = msg;
 }
 
-function hideStatus(el) {
-  el.className = 'status';
-  el.innerHTML = '';
-}
-
-// ============ TOKEN VALIDATION ============
+// ============ TOKEN ============
 tokenInput.addEventListener('input', async () => {
   const t = tokenInput.value.trim();
   if (!t.startsWith('ghp_') && !t.startsWith('github_pat_')) {
@@ -277,7 +273,6 @@ scanBtn.addEventListener('click', async () => {
     
     log(`Found ${htmlFiles.length} HTML files (${allRepoFiles.length} total)`, 'success');
     
-    // Show file picker
     filePickerCard.style.display = 'block';
     renderFileList();
     setStatus(repoStatus, `✅ ${htmlFiles.length} HTML files found`, 'success');
@@ -319,7 +314,6 @@ function renderFileList() {
     return;
   }
 
-  // Auto-select index.html
   const indexFile = htmlFiles.find(f => f.name.toLowerCase() === 'index.html');
   if (indexFile) selectedFile = indexFile;
   else if (!selectedFile || !htmlFiles.find(f => f.path === selectedFile.path)) {
@@ -374,7 +368,7 @@ document.querySelectorAll('input[name="injectMode"]').forEach(radio => {
   });
 });
 
-// ============ READINESS CHECK ============
+// ============ READINESS ============
 function checkAllReady() {
   const hasToken = !!githubToken;
   const hasRepo = !!(repoOwner && repoName && htmlFiles.length >= 0);
@@ -385,26 +379,17 @@ function checkAllReady() {
 
   raiseBtn.disabled = !ready;
 
-  if (!hasToken) {
-    setStatus(prStatus, '⏳ Step 1: Enter your GitHub token.', 'info');
-  } else if (!hasRepo) {
-    setStatus(prStatus, '⏳ Step 2: Enter repo name and click Scan.', 'info');
-  } else if (!hasName) {
-    setStatus(prStatus, '⏳ Step 4: Enter your product name.', 'info');
-  } else if (!isNewMode && !hasFileSelected) {
-    setStatus(prStatus, '⚠️ Step 3: Select an HTML file or switch to "Create new".', 'error');
-  } else if (ready) {
-    if (isNewMode) {
-      setStatus(prStatus, '✅ Ready! Will create standalone chatbot page.', 'success');
-    } else {
-      setStatus(prStatus, `✅ Ready! Will inject into <strong>${selectedFile.path}</strong>`, 'success');
-    }
+  if (!hasToken) setStatus(prStatus, '⏳ Step 1: Enter your GitHub token.', 'info');
+  else if (!hasRepo) setStatus(prStatus, '⏳ Step 2: Enter repo name and click Scan.', 'info');
+  else if (!hasName) setStatus(prStatus, '⏳ Step 4: Enter your product name.', 'info');
+  else if (!isNewMode && !hasFileSelected) setStatus(prStatus, '⚠️ Select an HTML file or switch to "Create new".', 'error');
+  else if (ready) {
+    if (isNewMode) setStatus(prStatus, '✅ Ready! Will create standalone chatbot page.', 'success');
+    else setStatus(prStatus, `✅ Ready! Will inject into <strong>${selectedFile.path}</strong>`, 'success');
   }
 }
 
-// Attach listeners
 productNameInput.addEventListener('input', checkAllReady);
-productDescriptionInput.addEventListener('input', checkAllReady);
 repoInput.addEventListener('input', () => {
   allRepoFiles = [];
   htmlFiles = [];
@@ -413,7 +398,7 @@ repoInput.addEventListener('input', () => {
   checkAllReady();
 });
 
-// ============ SNIPPET GENERATION ============
+// ============ SNIPPET ============
 function makeSnippet(productName, accentColor, knowledge) {
   const json = JSON.stringify(knowledge);
   return `
@@ -424,7 +409,6 @@ function makeSnippet(productName, accentColor, knowledge) {
 }
 
 function makeStandalone(productName, accentColor, knowledge) {
-  const json = JSON.stringify(knowledge);
   const r = parseInt(accentColor.slice(1,3),16), g = parseInt(accentColor.slice(3,5),16), b = parseInt(accentColor.slice(5,7),16);
   return `<!DOCTYPE html>
 <html lang="en">
@@ -457,6 +441,23 @@ function injectSnippet(html, snippet, loc) {
   }
 }
 
+// ============ UNDO ============
+async function undoPR(branchName) {
+  if (!confirm('Are you sure? This will delete the branch and close the PR. The chatbot snippet will be removed.')) return;
+  try {
+    log('↩️ Deleting branch ' + branchName + '...', 'info');
+    await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs/heads/${branchName}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' }
+    });
+    log('✅ Branch deleted. PR closed.', 'success');
+    successBox.innerHTML = '<p style="text-align:center;">✅ PR undone successfully. The branch and changes have been removed.</p>';
+  } catch (err) {
+    log('❌ Failed to delete branch: ' + err.message, 'error');
+    alert('Could not delete the branch. It may have already been merged or deleted.');
+  }
+}
+
 // ============ RAISE PR ============
 raiseBtn.addEventListener('click', async () => {
   raiseBtn.disabled = true;
@@ -473,7 +474,7 @@ raiseBtn.addEventListener('click', async () => {
   const location = injectLocation.value;
 
   try {
-    // SCRAPE
+    // SCRAPE with cleaned text
     log('🔍 Scraping repo knowledge...', 'info');
     scrapedKnowledge = {};
     for (const f of htmlFiles.slice(0, 25)) {
@@ -481,7 +482,10 @@ raiseBtn.addEventListener('click', async () => {
         const r = await fetch(f.download_url);
         const html = await r.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
-        const text = (doc.body?.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 2000);
+        // Remove scripts and styles before extracting text
+        const clone = doc.body.cloneNode(true);
+        clone.querySelectorAll('script, style, noscript').forEach(el => el.remove());
+        const text = (clone.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 2000);
         if (text.length > 40) {
           scrapedKnowledge[f.path] = { bodyText: text };
           log(`  ✅ ${f.path}`, 'success');
@@ -512,12 +516,12 @@ raiseBtn.addEventListener('click', async () => {
     log(`✅ ${baseBranch}`, 'success');
 
     // BRANCH
-    const branchName = `ragina-${Date.now()}`;
-    log(`🌿 Creating ${branchName}...`, 'info');
+    currentBranchName = `ragina-${Date.now()}`;
+    log(`🌿 Creating ${currentBranchName}...`, 'info');
     await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' },
-      body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha: baseSha })
+      body: JSON.stringify({ ref: `refs/heads/${currentBranchName}`, sha: baseSha })
     });
     log('✅ Branch created', 'success');
 
@@ -529,11 +533,11 @@ raiseBtn.addEventListener('click', async () => {
       await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/ragina-chatbot.html`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' },
-        body: JSON.stringify({ message: `🤖 Add RAGina chatbot for ${productName}`, content, branch: branchName })
+        body: JSON.stringify({ message: `🤖 Add RAGina chatbot for ${productName}`, content, branch: currentBranchName })
       });
       log('✅ Standalone page created', 'success');
     } else {
-      // INJECT INTO EXISTING
+      // INJECT
       log(`📝 Injecting into ${selectedFile.path}...`, 'info');
       const fileRes = await fetch(selectedFile.url, {
         headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' }
@@ -547,7 +551,7 @@ raiseBtn.addEventListener('click', async () => {
       await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${selectedFile.path}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' },
-        body: JSON.stringify({ message: `🤖 Inject RAGina into ${selectedFile.name}`, content: encoded, sha: fileData.sha, branch: branchName })
+        body: JSON.stringify({ message: `🤖 Inject RAGina into ${selectedFile.name}`, content: encoded, sha: fileData.sha, branch: currentBranchName })
       });
       log(`✅ Injected into ${selectedFile.path}`, 'success');
     }
@@ -562,7 +566,7 @@ raiseBtn.addEventListener('click', async () => {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' },
       body: JSON.stringify({
-        title, head: branchName, base: baseBranch,
+        title, head: currentBranchName, base: baseBranch,
         body: `## 🤖 RAGina AI Chatbot\n\n${changeDesc}\n\n### ✨ What You Get\n- 💬 Floating chat bubble\n- 🧠 Knowledge from ${Object.keys(scrapedKnowledge).length} sources\n- 🔐 No API keys\n- 📱 Mobile ready\n\n### 🚀 How to Use\nMerge this PR → Chatbot appears!\n\n${body}`
       })
     });
@@ -572,13 +576,26 @@ raiseBtn.addEventListener('click', async () => {
     
     successBox.style.display = 'block';
     successBox.innerHTML = `
-      <h3 style="text-align:center;">🎉 PR Created!</h3>
+      <h3 style="text-align:center;">🎉 Pull Request Created!</h3>
       <p style="text-align:center;margin:1rem 0;">
-        <a href="${pr.html_url}" target="_blank" style="color:var(--primary);font-size:1.1rem;font-weight:700;">🔗 View PR #${pr.number}</a>
+        <a href="${pr.html_url}" target="_blank" style="color:var(--primary);font-size:1.1rem;text-decoration:none;font-weight:700;">
+          🔗 View PR #${pr.number}
+        </a>
       </p>
-      <p style="text-align:center;font-size:.8rem;color:var(--muted);">
-        ${isNew ? 'Merge → Chatbot at <code>/ragina-chatbot.html</code>' : `Merge → Chatbot injected into <code>${selectedFile.path}</code>`}
-      </p>`;
+      <p style="text-align:center;font-size:.85rem;color:var(--muted);">
+        ${isNew 
+          ? 'Merge → Chatbot live at <code style="color:var(--primary);">/ragina-chatbot.html</code>' 
+          : `Merge → Chatbot injected into <code style="color:var(--primary);">${selectedFile.path}</code>`}
+      </p>
+      <div style="text-align:center;margin-top:1rem;">
+        <button class="btn" style="background:var(--danger);width:auto;display:inline-block;" onclick="undoPR('${currentBranchName}')">
+          ↩️ Undo (Delete Branch & Close PR)
+        </button>
+      </div>
+      <p style="text-align:center;font-size:.7rem;color:var(--muted);margin-top:.5rem;">
+        This will delete the branch <code>${currentBranchName}</code> and close the PR without merging.
+      </p>
+    `;
     
     raiseBtn.textContent = '✅ Done!';
     setStatus(prStatus, '✅ PR created successfully!', 'success');
