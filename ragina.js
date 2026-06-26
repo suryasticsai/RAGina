@@ -1,6 +1,6 @@
 /*!
- * RAGina.js v1.1.0
- * Mentalist RAG - She reads everything, forgets nothing.
+ * RAGina.js v1.2.0
+ * Mentalist RAG - Fixed embedded index detection
  * MIT License | github.com/suryasticsai/RAGina
  */
 (function (global) {
@@ -168,14 +168,12 @@
         ? `<img class="ragina-avatar" src="${this.config.avatarUrl}" alt="RAGina" style="object-fit:cover;">` 
         : `<div class="ragina-avatar">🔮</div>`;
 
-      // Bubble
       this.bubble = document.createElement('button');
       this.bubble.className = 'ragina-bubble';
       this.bubble.title = this.config.title || 'RAGina – Your Mentalist RAG';
       this.bubble.innerHTML = this.config.bubbleIcon || '🔮';
       document.body.appendChild(this.bubble);
 
-      // Panel
       this.panel = document.createElement('div');
       this.panel.className = 'ragina-panel hidden';
       this.panel.innerHTML = `
@@ -199,7 +197,6 @@
       this.input = this.panel.querySelector('.ragina-input');
       this.sendBtn = this.panel.querySelector('.ragina-send');
 
-      // Events
       this.bubble.addEventListener('click', () => this.toggle());
       this.panel.querySelector('.ragina-close').addEventListener('click', () => this.hide());
       this.sendBtn.addEventListener('click', () => this.handleSend());
@@ -318,15 +315,15 @@ Answer (as RAGina, with sass):`;
         this.ui.build();
       };
 
-      // Check for embedded index first
-      if (window.__RAGINA_INDEX__ && typeof window.__RAGINA_INDEX__ === 'object') {
+      // ✅ PRIORITY 1: Embedded index
+      if (window.__RAGINA_INDEX__ && typeof window.__RAGINA_INDEX__ === 'object' && Object.keys(window.__RAGINA_INDEX__).length > 0) {
         this.engine.buildIndex(window.__RAGINA_INDEX__, this.config.chunkSize);
         finishInit();
         this.ui.show();
         return;
       }
 
-      // Try fetching from URL
+      // PRIORITY 2: Fetch from URL
       if (this.config.indexUrl) {
         fetch(this.config.indexUrl)
           .then(res => {
@@ -349,7 +346,7 @@ Answer (as RAGina, with sass):`;
 
     loadData(data) {
       if (!this.engine) this.engine = new RAGEngine();
-      this.engine.buildIndex(data, this.config.chunkSize);
+      this.engine.buildIndex(data, this.config.chunkSize || 200);
       if (this.ui) {
         this.ui.messages.innerHTML = '';
         this.ui.input.disabled = false;
@@ -386,13 +383,25 @@ Answer (as RAGina, with sass):`;
 
   global.RAGina = RAGina;
 
-  // Auto-init if config exists
-  if (global.RAGINA_CONFIG) {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => RAGina.init(global.RAGINA_CONFIG));
-    } else {
-      RAGina.init(global.RAGINA_CONFIG);
+  // ==================== AUTO-INIT (FIXED) ====================
+  const autoStart = () => {
+    // If embedded index exists, use it directly
+    if (window.__RAGINA_INDEX__ && typeof window.__RAGINA_INDEX__ === 'object' && Object.keys(window.__RAGINA_INDEX__).length > 0) {
+      const config = window.RAGINA_CONFIG || {};
+      RAGina.init({ ...config, indexUrl: null });
+      return;
     }
+
+    // Otherwise init with config (may have indexUrl)
+    if (window.RAGINA_CONFIG) {
+      RAGina.init(window.RAGINA_CONFIG);
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoStart);
+  } else {
+    autoStart();
   }
 
 })(typeof window !== 'undefined' ? window : this);
