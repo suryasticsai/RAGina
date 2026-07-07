@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGina – Instant Website Chatbot</title>
+  <style>
+    :root {
+      --primary: #6C63FF;
+      --bg: #0a0a14;
+      --card: #111122;
+      --text: #e0e0f0;
+      --muted: #8888aa;
+      --border: rgba(108,99,255,0.2);
+      --success: #00d68f;
+      --danger: #FF4757;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--primary), #FF6584);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p { color: var(--muted); margin-bottom: 1.5rem; }
+    input {
+      width: 100%;
+      padding: 0.9rem 1.2rem;
+      background: #0a0a18;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: white;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.3s;
+    }
+    input:focus { outline: none; border-color: var(--primary); }
+    .btn {
+      display: block;
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), #8b7cff);
+      color: white;
+      border: none;
+      padding: 1rem;
+      border-radius: 30px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,99,255,0.4); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .status {
+      margin: 1rem 0;
+      padding: 0.8rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .status.info { background: rgba(108,99,255,0.15); border: 1px solid rgba(108,99,255,0.3); display: block; }
+    .status.success { background: rgba(0,214,143,0.1); border: 1px solid var(--success); display: block; }
+    .status.error { background: rgba(255,71,87,0.1); border: 1px solid var(--danger); display: block; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔮 RAGina Instant</h1>
+    <p>Paste any website URL – she reads it and answers your questions.</p>
+    <input type="url" id="urlInput" placeholder="https://docs.yourproduct.com" value="https://example.com">
+    <button class="btn" id="crawlBtn">Crawl & Launch Chatbot</button>
+    <div class="status info" id="statusBox">Ready to crawl</div>
+    <div class="hint">No API keys. No files. Just a URL.</div>
+  </div>
+
+  <script type="module">
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.2/dist/transformers.min.js';
+
+    const urlInput = document.getElementById('urlInput');
+    const crawlBtn = document.getElementById('crawlBtn');
+    const statusBox = document.getElementById('statusBox');
+
+    let generator = null;
+    let chunks = [];
+    let idf = {};
+
+    // Replace with your actual Vercel URL
+    const CRAWL_PROXY = 'https://ragina-crawler-ragina.vercel.app/api/crawl';
+
+    // Load the in-browser LLM (once)
+    async function loadModel() {
+      statusBox.textContent = '🧠 Loading AI model (first time may take a moment)...';
+      statusBox.className = 'status info';
+      generator = await pipeline('text-generation', 'Xenova/TinyLlama-1.1B-Chat-v0.6');
+      statusBox.textContent = '✅ Model loaded. Ready to crawl.';
+      statusBox.className = 'status success';
+    }
+
+    // Crawl the website
+    async function crawlWebsite(url) {
+      statusBox.textContent = '🔍 Crawling website...';
+      statusBox.className = 'status info';
+      const res = await fetch(CRAWL_PROXY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      return data.pages || [];
+    }
+
+    // Build TF‑IDF index from pages
+    function buildIndex(pages) {
+      chunks = [];
+      for (const page of pages) {
+        const text = page.content;
+        if (!text || text.length < 50) continue;
+        const sentences = text.split(/\n+|(?<=[.!?])\s+/);
+        let current = '';
+        for (const s of sentences) {
+          if ((current + s).length > 200 && current.length > 0) {
+            chunks.push({ text: current.trim(), source: page.url });
+            current = '';
+          }
+          current += s + ' ';
+        }
+        if (current.trim()) chunks.push({ text: current.trim(), source: page.url });
+      }
+
+      idf = {};
+      const total = chunks.length || 1;
+      for (const ch of chunks) {
+        const words = new Set(ch.text.toLowerCase().match(/\b\w+\b/g) || []);
+        for (const w of words) idf[w] = (idf[w] || 0) + 1;
+      }
+      for (const w in idf) idf[w] = Math.log(total / (1 + idf[w]));
+    }
+
+    // Retrieve top‑k chunks
+    function retrieve(query, topK = 3) {
+      const qWords = query.toLowerCase().match(/\b\w+\b/g) || [];
+      const qTF = {};
+      for (const w of qWords) qTF[w] = (qTF[w] || 0) + 1;
+      const scores = chunks.map((ch, idx) => {
+        const cWords = ch.text.toLowerCase().match(/\b\w+\b/g) || [];
+        const cTF = {};
+        for (const w of cWords) cTF[w] = (cTF[w] || 0) + 1;
+        let score = 0;
+        for (const w of Object.keys(qTF)) {
+          if (cTF[w] && idf[w]) score += qTF[w] * cTF[w] * idf[w];
+        }
+        return { idx, score };
+      });
+      scores.sort((a, b) => b.score - a.score);
+      return scores.slice(0, topK).map(s => chunks[s.idx]);
+    }
+
+    // Answer question using in‑browser LLM
+    async function answerQuestion(question) {
+      const topChunks = retrieve(question);
+      const context = topChunks.map((c, i) => `[${i+1}] ${c.source}\n${c.text}`).join('\n\n');
+      const prompt = `You are a helpful assistant. Answer the question using ONLY the context below. If the answer cannot be found, say "I don't know based on the given information."\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer:`;
+      const result = await generator(prompt, { max_new_tokens: 150 });
+      return result[0].generated_text.replace(prompt, '').trim();
+    }
+
+    // Create minimal chatbot UI after crawling
+    function showChatUI() {
+      document.querySelector('.container').innerHTML = `
+        <h1>🔮 RAGina Chat</h1>
+        <p>Ask questions about the crawled website</p>
+        <div id="chatMessages" style="max-height:400px;overflow-y:auto;text-align:left;background:#0a0a18;padding:1rem;border-radius:12px;margin:1rem 0;"></div>
+        <div style="display:flex;gap:0.5rem;">
+          <input type="text" id="questionInput" placeholder="Ask a question..." style="flex:1;">
+          <button class="btn" id="askBtn" style="width:auto;">Ask</button>
+        </div>
+      `;
+
+      const messages = document.getElementById('chatMessages');
+      const questionInput = document.getElementById('questionInput');
+      const askBtn = document.getElementById('askBtn');
+
+      async function ask() {
+        const q = questionInput.value.trim();
+        if (!q) return;
+        questionInput.value = '';
+        messages.innerHTML += `<p><strong>You:</strong> ${q}</p>`;
+        messages.innerHTML += '<p><em>Thinking…</em></p>';
+        try {
+          const answer = await answerQuestion(q);
+          messages.innerHTML = messages.innerHTML.replace('<p><em>Thinking…</em></p>', '');
+          messages.innerHTML += `<p><strong>RAGina:</strong> ${answer}</p>`;
+        } catch (err) {
+          messages.innerHTML = messages.innerHTML.replace('<p><em>Thinking…</em></p>', '');
+          messages.innerHTML += `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+        }
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      askBtn.addEventListener('click', ask);
+      questionInput.addEventListener('keypress', e => { if (e.key === 'Enter') ask(); });
+    }
+
+    // Main flow
+    crawlBtn.addEventListener('click', async () => {
+      const url = urlInput.value.trim();
+      if (!url) return;
+      crawlBtn.disabled = true;
+      crawlBtn.textContent = '⏳ Crawling...';
+
+      try {
+        if (!generator) await loadModel();
+        const pages = await crawlWebsite(url);
+        buildIndex(pages);
+        statusBox.textContent = `✅ Crawled ${pages.length} pages. Ready!`;
+        statusBox.className = 'status success';
+        setTimeout(() => showChatUI(), 500);
+      } catch (err) {
+        statusBox.textContent = '❌ ' + err.message;
+        statusBox.className = 'status error';
+        crawlBtn.disabled = false;
+        crawlBtn.textContent = 'Crawl & Launch Chatbot';
+      }
+    });
+
+    // Pre‑load model in background
+    loadModel();
+  </script>
+</body>
+</html>
