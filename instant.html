@@ -81,6 +81,7 @@
     .status.success { background: rgba(0,214,143,0.1); border: 1px solid var(--success); display: block; }
     .status.error { background: rgba(255,71,87,0.1); border: 1px solid var(--danger); display: block; }
     .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+    #chatMessages p { margin-bottom: 0.5rem; text-align: left; }
   </style>
 </head>
 <body>
@@ -104,19 +105,19 @@
     let chunks = [];
     let idf = {};
 
-    // Replace with your actual Vercel URL
+    // Your Vercel proxy URL (Firecrawl key hidden)
     const CRAWL_PROXY = 'https://ragina-crawler-ragina.vercel.app/api/crawl';
 
-    // Load the in-browser LLM (once)
+    // Load the keyless in‑browser LLM (LaMini‑Flan‑T5, no auth)
     async function loadModel() {
       statusBox.textContent = '🧠 Loading AI model (first time may take a moment)...';
       statusBox.className = 'status info';
-      generator = await pipeline('text-generation', 'Xenova/TinyLlama-1.1B-Chat-v0.6');
+      generator = await pipeline('text2text-generation', 'Xenova/LaMini-Flan-T5-783M');
       statusBox.textContent = '✅ Model loaded. Ready to crawl.';
       statusBox.className = 'status success';
     }
 
-    // Crawl the website
+    // Crawl website via your Vercel proxy
     async function crawlWebsite(url) {
       statusBox.textContent = '🔍 Crawling website...';
       statusBox.className = 'status info';
@@ -130,7 +131,7 @@
       return data.pages || [];
     }
 
-    // Build TF‑IDF index from pages
+    // Build TF‑IDF index from crawled pages
     function buildIndex(pages) {
       chunks = [];
       for (const page of pages) {
@@ -147,7 +148,6 @@
         }
         if (current.trim()) chunks.push({ text: current.trim(), source: page.url });
       }
-
       idf = {};
       const total = chunks.length || 1;
       for (const ch of chunks) {
@@ -157,7 +157,7 @@
       for (const w in idf) idf[w] = Math.log(total / (1 + idf[w]));
     }
 
-    // Retrieve top‑k chunks
+    // Retrieve top‑k relevant chunks
     function retrieve(query, topK = 3) {
       const qWords = query.toLowerCase().match(/\b\w+\b/g) || [];
       const qTF = {};
@@ -180,12 +180,12 @@
     async function answerQuestion(question) {
       const topChunks = retrieve(question);
       const context = topChunks.map((c, i) => `[${i+1}] ${c.source}\n${c.text}`).join('\n\n');
-      const prompt = `You are a helpful assistant. Answer the question using ONLY the context below. If the answer cannot be found, say "I don't know based on the given information."\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer:`;
+      const prompt = `Answer the question using only the context. If you cannot find the answer, say "I don't know".\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer:`;
       const result = await generator(prompt, { max_new_tokens: 150 });
       return result[0].generated_text.replace(prompt, '').trim();
     }
 
-    // Create minimal chatbot UI after crawling
+    // Show chat interface after crawling
     function showChatUI() {
       document.querySelector('.container').innerHTML = `
         <h1>🔮 RAGina Chat</h1>
