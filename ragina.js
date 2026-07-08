@@ -1,5 +1,5 @@
 /*!
- * RAGina.js v2.0.4
+ * RAGina.js v2.0.6
  * Created by suryasticsai@gmail.com | github.com/suryasticsai
  * ⭐ Star the repo: https://github.com/suryasticsai/RAGina
  * MIT License
@@ -394,5 +394,18 @@
   } else {
     autoStart();
   }
+
+  // ── BUILT‑IN FALLBACK: force‑load embedded index if engine isn't ready ──
+  setTimeout(() => {
+    if (window.RAGina && window.__RAGINA_INDEX__ && (!window.RAGina.engine || !window.RAGina.engine.isReady)) {
+      // Clean up any broken bubble / panel from a previous attempt
+      var oldBubble = document.querySelector('.ragina-bubble');
+      if (oldBubble) oldBubble.remove();
+      var oldPanel = document.querySelector('.ragina-panel');
+      if (oldPanel) oldPanel.remove();
+      // Fresh load of embedded knowledge
+      RAGina.loadData(window.__RAGINA_INDEX__);
+    }
+  }, 500);
 
 })(typeof window !== 'undefined' ? window : this);
