@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        /* ========== CUSTOM VARIABLES ========== */
         :root {
             --primary: #6C63FF;
             --bg: #0a0a14;
@@ -17,6 +18,7 @@
             --border: rgba(108,99,255,0.2);
             --success: #00d68f;
             --danger: #FF4757;
+            --input-bg: #0a0a18;
             --transition-speed: 0.5s;
         }
         .light {
@@ -25,13 +27,15 @@
             --text: #1a1a2e;
             --muted: #666666;
             --border: rgba(108,99,255,0.3);
+            --input-bg: #ffffff;
             --primary: #4b44cc;
         }
+
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: system-ui, sans-serif;
             background: var(--bg);
-            color: var(--text);
+            color: var(--text) !important; /* override Bootstrap */
             min-height: 100vh;
             line-height: 1.6;
             transition: background var(--transition-speed), color var(--transition-speed);
@@ -39,60 +43,93 @@
             position: relative;
         }
         canvas#bgCanvas { position: fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events: none; }
+
+        /* Navbar */
         .navbar {
-            background: rgba(10,10,20,0.8);
+            background: var(--card) !important;
             backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border);
             z-index: 10;
-            position: sticky; top: 0;
-            padding: 0.5rem 1rem;
             transition: background var(--transition-speed), border-color var(--transition-speed);
         }
-        .navbar .logo { width:40px; height:40px; border-radius:50%; margin-right:0.5rem; cursor:pointer; animation: auto-spin 8s linear infinite; transition: box-shadow var(--transition-speed); }
+        .navbar .logo { width:40px; height:40px; border-radius:50%; margin-right:0.5rem; cursor:pointer; animation: auto-spin 8s linear infinite; }
         .navbar .logo.fast { animation: fast-spin 0.6s ease-in-out; }
         @keyframes auto-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes fast-spin { 0%{transform:rotate(0deg)} 50%{transform:rotate(360deg)} 100%{transform:rotate(360deg)} }
         .brand-text { font-weight:700; background: linear-gradient(135deg, var(--primary), #FF6584); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:1.3rem; }
         .theme-toggle { cursor:pointer; border: none; background: none; color: var(--text); font-size:1.2rem; }
-        .theme-indicator { position: fixed; top: 20px; right: 20px; background: var(--card); border:1px solid var(--border); border-radius:30px; padding:0.3rem 1rem; font-size:0.85rem; color:var(--text); z-index:100; cursor:pointer; transition: all var(--transition-speed); backdrop-filter: blur(5px); display:none; }
-        .avatar { width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); }
+
+        /* Cards */
+        .card-ragina {
+            background: var(--card) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            transition: all var(--transition-speed);
+        }
+
+        /* Inputs & selects */
+        input, textarea, select, .form-control, .form-select {
+            background-color: var(--input-bg) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text) !important;
+            transition: all var(--transition-speed);
+        }
+        input::placeholder, textarea::placeholder { color: var(--muted); }
+
         .btn-primary-ragina { background: var(--primary); border:none; color:white; }
         .btn-primary-ragina:hover { background: #5a52d5; }
         .btn-outline-ragina { border:1px solid var(--primary); color:var(--primary); }
         .btn-outline-ragina:hover { background: var(--primary); color:white; }
-        .card-ragina { background: var(--card); border:1px solid var(--border); border-radius:16px; padding:1.5rem; margin-bottom:1.5rem; transition: all var(--transition-speed); }
+
         .progress-bar-ragina { background: linear-gradient(90deg, var(--primary), #FF6584); }
+
+        /* Chat */
         .chat-messages { max-height:400px; overflow-y:auto; background: rgba(0,0,0,0.05); border-radius:12px; padding:1rem; }
         .chat-messages .user { text-align:right; }
         .chat-messages .bot { text-align:left; }
         .chat-messages span { display:inline-block; max-width:80%; padding:8px 16px; border-radius:18px; margin:4px 0; }
         .chat-messages .user span { background: var(--primary); color:white; }
         .chat-messages .bot span { background: rgba(108,99,255,0.1); border:1px solid rgba(108,99,255,0.3); color:var(--text); }
-        .kb-tile { background: var(--card); border:1px solid var(--border); border-radius:16px; padding:1.5rem; margin:1rem 0; transition: all var(--transition-speed); }
+
+        .kb-tile { background: var(--card); border:1px solid var(--border); border-radius:16px; padding:1.5rem; margin:1rem 0; }
         .stats { font-size:0.9rem; color:var(--muted); }
-        .toast { background: var(--card); color:var(--text); border:1px solid var(--border); }
-        footer { border-top:1px solid var(--border); }
-        /* Thunderstorm flash */
-        .flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; opacity:0; z-index:9999; pointer-events:none; animation: flash 0.5s ease-out; }
-        @keyframes flash { 0%{opacity:0.8} 100%{opacity:0} }
-        /* Cloud styles (drawn on canvas) */
-        .hidden { display:none; }
-        .file-list { max-height:220px; overflow-y:auto; margin:.8rem 0; border:1px solid var(--border); border-radius:10px; background:#0a0a18; }
+
+        /* Log box */
+        .log { background:#000; border:1px solid var(--border); border-radius:10px; padding:1rem; margin:.8rem 0; max-height:200px; overflow-y:auto; font-family:'Fira Code',monospace; font-size:.7rem; color:#6C63FF; }
+        .log .log-success { color: var(--success); }
+        .log .log-error { color: var(--danger); }
+
+        .file-list { max-height:220px; overflow-y:auto; margin:.8rem 0; border:1px solid var(--border); border-radius:10px; background:var(--input-bg); }
         .file-row { display:flex; align-items:center; gap:.6rem; padding:.6rem 1rem; border-bottom:1px solid rgba(255,255,255,.03); cursor:pointer; font-size:.85rem; color:var(--text); }
         .file-row:hover { background:rgba(108,99,255,.08); }
         .file-row.selected { background:rgba(108,99,255,.15); border-left:3px solid var(--primary); }
         .file-row .check { color:var(--success); opacity:0; }
         .file-row.selected .check { opacity:1; }
+
         .radio-row { display:flex; gap:.8rem; margin:.8rem 0; }
         .radio-card { flex:1; position:relative; }
         .radio-card input { position:absolute; opacity:0; }
-        .radio-card label { display:flex; align-items:center; gap:.5rem; padding:.8rem 1rem; border:2px solid var(--border); border-radius:12px; cursor:pointer; font-weight:500; }
+        .radio-card label { display:flex; align-items:center; gap:.5rem; padding:.8rem 1rem; border:2px solid var(--border); border-radius:12px; cursor:pointer; font-weight:500; color:var(--text); }
         .radio-card input:checked+label { border-color:var(--primary); background:rgba(108,99,255,.1); }
+
+        .status { padding:.7rem 1rem; border-radius:10px; margin:.8rem 0; font-size:.85rem; line-height:1.5; }
+        .status.info { background:rgba(108,99,255,.12); border:1px solid rgba(108,99,255,.3); }
+        .status.success { background:rgba(0,214,143,.1); border:1px solid var(--success); }
+        .status.error { background:rgba(255,71,87,.1); border:1px solid var(--danger); }
+
+        .toast { background: var(--card); color: var(--text); border:1px solid var(--border); }
+        footer { border-top:1px solid var(--border); }
+
+        /* Lightning flash */
+        .flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; opacity:0; z-index:9999; pointer-events:none; animation: flash 0.5s ease-out; }
+        @keyframes flash { 0%{opacity:0.8} 100%{opacity:0} }
     </style>
 </head>
 <body>
     <canvas id="bgCanvas"></canvas>
-    <div class="theme-indicator" id="themeIndicator" onclick="toggleTheme()"><span id="themeIcon">🌙</span> Dark</div>
 
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
@@ -101,7 +138,7 @@
                 <span class="brand-text">RAGina</span>
             </a>
             <div class="d-flex align-items-center gap-3 ms-auto">
-                <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+                <button class="theme-toggle" id="themeToggleBtn"><i class="fas fa-moon"></i></button>
                 <div id="userArea">
                     <button class="btn btn-outline-light btn-sm" id="loginBtn"><i class="fab fa-github me-1"></i> Login</button>
                 </div>
@@ -120,7 +157,7 @@
             </div>
             <div class="status info" id="targetStatus"></div>
 
-            <!-- Page tree (for both repo files & website pages) -->
+            <!-- Page tree -->
             <div id="pageTreeSection" style="display:none;">
                 <h6>Select up to 5 items to scrape:</h6>
                 <div class="file-list" id="treeContainer"></div>
@@ -136,14 +173,8 @@
             <div class="card card-ragina mb-4">
                 <h4 class="mb-3">⚙️ PR Configuration</h4>
                 <div class="radio-row">
-                    <div class="radio-card">
-                        <input type="radio" name="injectMode" id="modeExisting" value="existing" checked>
-                        <label for="modeExisting">📄 Inject into existing file</label>
-                    </div>
-                    <div class="radio-card">
-                        <input type="radio" name="injectMode" id="modeNew" value="new">
-                        <label for="modeNew">📝 Create new chatbot page</label>
-                    </div>
+                    <div class="radio-card"><input type="radio" name="injectMode" id="modeExisting" value="existing" checked><label for="modeExisting">📄 Inject into existing file</label></div>
+                    <div class="radio-card"><input type="radio" name="injectMode" id="modeNew" value="new"><label for="modeNew">📝 Create new chatbot page</label></div>
                 </div>
                 <div id="existingFileSection">
                     <label>Select target HTML file:</label>
@@ -155,9 +186,7 @@
                         <option value="beforeHeadEnd">Before &lt;/head&gt; tag</option>
                     </select>
                 </div>
-                <div id="newFileSection" style="display:none;">
-                    <p class="text-muted">📝 A new file <code>ragina-chatbot.html</code> will be created in the repo root.</p>
-                </div>
+                <div id="newFileSection" style="display:none;"><p class="text-muted">📝 A new file <code>ragina-chatbot.html</code> will be created in the repo root.</p></div>
                 <label>Product Name *</label>
                 <input type="text" id="productName" class="form-control mb-2" placeholder="e.g., MyProduct">
                 <label>Accent Color</label>
@@ -166,27 +195,18 @@
                 <input type="text" id="prTitle" class="form-control mb-2" value="🤖 Add RAGina AI Chatbot">
                 <label>PR Description</label>
                 <textarea id="prBody" class="form-control mb-2" rows="3">## 🤖 What this PR does
-Adds RAGina - an AI chatbot that answers questions.
-
-## ✨ Features
-- 💬 Floating chat bubble
-- 🧠 Answers from product knowledge
-- 🔐 No API keys needed
-- 📱 Works on mobile</textarea>
+Adds RAGina - an AI chatbot that answers questions.</textarea>
                 <button class="btn btn-primary-ragina" id="raisePRBtn" disabled>🔮 Raise PR</button>
                 <div class="status info" id="prStatus"></div>
-                <div class="log" id="logBox"></div>
+                <div class="log" id="logBox" style="display:none;"></div>
             </div>
         </div>
 
         <!-- Knowledge Base Section -->
         <div id="kbSection" style="display:none;">
-            <div class="kb-tile" id="kbTile">
+            <div class="kb-tile">
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5><i class="fas fa-brain me-2"></i>Knowledge Base</h5>
-                        <div class="stats" id="kbStats"></div>
-                    </div>
+                    <div><h5><i class="fas fa-brain me-2"></i>Knowledge Base</h5><div class="stats" id="kbStats"></div></div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-outline-success btn-sm" id="downloadBtn"><i class="fas fa-download me-1"></i> Download JSON</button>
                         <button class="btn btn-outline-success btn-sm" id="gistBtn"><i class="fab fa-github me-1"></i> Save to Gist</button>
@@ -194,10 +214,8 @@ Adds RAGina - an AI chatbot that answers questions.
                     </div>
                 </div>
             </div>
-
-            <!-- Chat -->
-            <div class="card card-ragina mt-3" id="chatSection">
-                <h5><i class="fas fa-comments me-2"></i>Chat with the crawled content</h5>
+            <div class="card card-ragina mt-3">
+                <h5><i class="fas fa-comments me-2"></i>Chat</h5>
                 <div class="chat-messages mb-3" id="chatMessages"></div>
                 <div class="input-group">
                     <input type="text" id="questionInput" class="form-control" placeholder="Ask a question...">
@@ -209,548 +227,339 @@ Adds RAGina - an AI chatbot that answers questions.
 
     <!-- KB Editor Modal -->
     <div class="modal fade" id="kbEditorModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content bg-dark text-light">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Knowledge Base</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <textarea id="kbEditorTextarea" class="form-control bg-dark text-light" rows="20"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary-ragina" id="saveKbBtn">Save KB</button>
-                </div>
-            </div>
-        </div>
+        <div class="modal-dialog modal-lg"><div class="modal-content bg-dark text-light"><div class="modal-header"><h5>Edit KB</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><textarea id="kbEditorTextarea" class="form-control bg-dark text-light" rows="20"></textarea></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary-ragina" id="saveKbBtn">Save</button></div></div></div>
     </div>
-
-    <!-- Toast container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
-
-    <footer class="py-3 text-center text-muted small">
-        <div class="container">
-            <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" height="24" class="me-1"> RAGina – The Mentalist RAG · <a href="https://github.com/suryasticsai/RAGina" target="_blank">⭐ Star on GitHub</a>
-        </div>
-    </footer>
+    <footer class="py-3 text-center text-muted small"><div class="container"><img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" height="24"> RAGina – The Mentalist RAG · <a href="https://github.com/suryasticsai/RAGina" target="_blank">⭐ Star on GitHub</a></div></footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // ═══════════════════════════════════════════════
-    //  BACKGROUND ANIMATION (Stars/Sun/Clouds/Thunder)
-    // ═══════════════════════════════════════════════
-    const canvas = document.getElementById('bgCanvas');
-    const ctx = canvas.getContext('2d');
-    let stars = [], sunParticles = [], clouds = [], lightningTimer = null;
-    let isDark = true;
-    let animationId;
-
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.addEventListener('resize', resize);
-    resize();
-
-    function createStars(count = 120) {
-        stars = [];
-        for (let i = 0; i < count; i++) {
-            stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 2 + 0.5, twinkle: Math.random() * 0.03 + 0.005, opacity: Math.random() * 0.8 + 0.2 });
-        }
-    }
-    function createSunParticles(count = 60) {
-        sunParticles = [];
-        const cx = canvas.width * 0.5, cy = canvas.height * 0.3;
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 50 + Math.random() * 250;
-            sunParticles.push({ x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist, baseX: cx + Math.cos(angle) * dist, baseY: cy + Math.sin(angle) * dist, size: Math.random() * 3 + 1, speed: 0.002 + Math.random() * 0.005, angle, dist, opacity: Math.random() * 0.5 + 0.3 });
-        }
-    }
-    function createClouds() {
-        clouds = [];
-        for (let i = 0; i < 8; i++) {
-            clouds.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height * 0.6 + 50, width: 80 + Math.random() * 150, height: 40 + Math.random() * 50, speed: 0.3 + Math.random() * 0.7, opacity: 0.4 + Math.random() * 0.3 });
-        }
-    }
-
-    function drawStars() {
-        stars.forEach(s => {
-            s.opacity += s.twinkle;
-            if (s.opacity > 1 || s.opacity < 0.2) s.twinkle *= -1;
-            ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-            ctx.fillStyle = `rgba(255,255,255,${Math.abs(s.opacity)})`;
-            ctx.fill();
-        });
-    }
-    function drawSun() {
-        const cx = canvas.width * 0.5, cy = canvas.height * 0.3;
-        const gradient = ctx.createRadialGradient(cx, cy, 20, cx, cy, 300);
-        gradient.addColorStop(0, 'rgba(255,200,80,0.9)'); gradient.addColorStop(0.4, 'rgba(255,180,40,0.4)'); gradient.addColorStop(1, 'rgba(255,150,20,0)');
-        ctx.beginPath(); ctx.arc(cx, cy, 300, 0, Math.PI*2);
-        ctx.fillStyle = gradient; ctx.fill();
-        sunParticles.forEach(p => { p.angle += p.speed; p.x = cx + Math.cos(p.angle) * p.dist; p.y = cy + Math.sin(p.angle) * p.dist; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fillStyle = `rgba(255,220,100,${p.opacity})`; ctx.fill(); });
-    }
-    function drawClouds() {
-        clouds.forEach(c => {
-            c.x += c.speed;
-            if (c.x > canvas.width + c.width) c.x = -c.width;
-            ctx.fillStyle = `rgba(255,255,255,${c.opacity})`;
-            ctx.beginPath(); ctx.ellipse(c.x, c.y, c.width/2, c.height/2, 0, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(c.x - c.width*0.3, c.y + c.height*0.2, c.width*0.4, c.height*0.4, 0, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(c.x + c.width*0.3, c.y + c.height*0.2, c.width*0.4, c.height*0.4, 0, 0, Math.PI*2); ctx.fill();
-        });
-    }
-    function triggerLightning() {
-        const flash = document.createElement('div');
-        flash.className = 'flash';
-        document.body.appendChild(flash);
-        setTimeout(() => flash.remove(), 500);
-    }
-    function startThunderstorm() {
-        if (lightningTimer) clearInterval(lightningTimer);
-        lightningTimer = setInterval(() => { if (Math.random() < 0.3) triggerLightning(); }, 4000 + Math.random() * 8000);
-    }
-
-    createStars(); createSunParticles(); createClouds(); startThunderstorm();
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (isDark) {
-            drawStars();
-            // dark clouds (storm)
-            clouds.forEach(c => { c.x += c.speed; if (c.x > canvas.width + c.width) c.x = -c.width; ctx.fillStyle = `rgba(30,30,50,${c.opacity})`; ctx.beginPath(); ctx.ellipse(c.x, c.y, c.width/2, c.height/2, 0, 0, Math.PI*2); ctx.fill(); });
-        } else {
-            drawSun();
-            drawClouds();
-        }
-        animationId = requestAnimationFrame(animate);
-    }
-    animate();
-
-    // ═══════════════════════════════════════════════
-    //  GLOBAL STATE
-    // ═══════════════════════════════════════════════
-    let githubToken = null;
-    let repoOwner = null, repoName = null, isRepoMode = false;
-    let allRepoFiles = [], htmlFiles = [], selectedFile = null;
-    let knowledge = null, chunks = [], idf = {}, currentCrawlUrl = '';
-    let gistMemory = {}, currentGistId = null, savingGist = false;
-    let currentBranchName = null;
-    const CRAWL_PROXY = 'https://ragina-crawler-ragina.vercel.app/api/crawl';
-    const MAP_PROXY = 'https://ragina-crawler-ragina.vercel.app/api/map';
-    const ASK_PROXY = 'https://ragina-crawler-ragina.vercel.app/api/ask';
-    const GIST_PROXY = 'https://ragina-crawler-ragina.vercel.app/api/gist';
-    const GITHUB_CLIENT_ID = 'Ov23lizeWF08DBQn2djN';
-    const REDIRECT_URI = 'https://ragina-crawler-ragina.vercel.app/api/auth';
-
-    // ═══════════════════════════════════════════════
-    //  UTILS
-    // ═══════════════════════════════════════════════
+    // ========== DOM helpers ==========
     const $ = (s) => document.querySelector(s);
     const showToast = (msg, type='success') => {
         const t = document.createElement('div');
         t.className = `toast align-items-center text-bg-${type} border-0`;
-        t.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
-        $('#toastContainer').appendChild(t);
+        t.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+        document.getElementById('toastContainer').appendChild(t);
         new bootstrap.Toast(t).show();
         setTimeout(() => t.remove(), 5000);
     };
-    const setStatus = (el, msg, type='info') => { el.className = `status ${type} visible`; el.innerHTML = msg; };
-    const normalizeUrl = (url) => { try { let u = new URL(url); u.hostname = u.hostname.replace(/^www\./,''); u.protocol='https:'; u.hash=''; u.search=''; let p = u.pathname.replace(/\/$/,''); u.pathname = p||'/'; return u.toString(); } catch { return url; } };
-    const getSiteIdentifier = (url) => { try { return new URL(url).hostname.replace(/^www\./,'').replace(/[^a-zA-Z0-9.-]/g,'_'); } catch { return 'unknown'; } };
-    const logPR = (msg, type='info') => { const box = $('#logBox'); box.classList.add('visible'); const d = document.createElement('div'); d.className = `log-${type}`; d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; box.appendChild(d); box.scrollTop = box.scrollHeight; };
+    const setStatus = (el, msg, type='info') => { el.className = `status ${type}`; el.innerHTML = msg; };
 
-    // ═══════════════════════════════════════════════
-    //  THEME TOGGLE
-    // ═══════════════════════════════════════════════
-    function toggleTheme() {
-        const logo = $('#navLogo');
-        logo.classList.add('fast');
-        setTimeout(() => logo.classList.remove('fast'), 600);
+    // ========== Background Animation ==========
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    let stars=[], sunParticles=[], clouds=[], lightningTimer=null, isDark=true;
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    window.addEventListener('resize',resize); resize();
+    function createStars(n=120){ stars=[]; for(let i=0;i<n;i++) stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+.5,twinkle:Math.random()*.03+.005,opacity:Math.random()*.8+.2}); }
+    function drawStars(){ stars.forEach(s=>{ s.opacity+=s.twinkle; if(s.opacity>1||s.opacity<.2)s.twinkle*=-1; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(255,255,255,${Math.abs(s.opacity)})`; ctx.fill(); }); }
+    function createClouds(){ clouds=[]; for(let i=0;i<8;i++) clouds.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height*.6+50,w:80+Math.random()*150,h:40+Math.random()*50,sp:.3+Math.random()*.7,op:.4+Math.random()*.3}); }
+    function drawClouds(){ clouds.forEach(c=>{ c.x+=c.sp; if(c.x>canvas.width+c.w)c.x=-c.w; ctx.fillStyle=`rgba(255,255,255,${c.op})`; ctx.beginPath(); ctx.ellipse(c.x,c.y,c.w/2,c.h/2,0,0,Math.PI*2); ctx.fill(); }); }
+    function triggerLightning(){ const f=document.createElement('div'); f.className='flash'; document.body.appendChild(f); setTimeout(()=>f.remove(),500); }
+    function startThunder(){ if(lightningTimer)clearInterval(lightningTimer); lightningTimer=setInterval(()=>{ if(Math.random()<.3)triggerLightning(); },4000+Math.random()*8000); }
+    createStars(); createClouds(); startThunder();
+    function animate(){ ctx.clearRect(0,0,canvas.width,canvas.height); if(isDark){ drawStars(); clouds.forEach(c=>{ c.x+=c.sp; if(c.x>canvas.width+c.w)c.x=-c.w; ctx.fillStyle=`rgba(30,30,50,${c.op})`; ctx.beginPath(); ctx.ellipse(c.x,c.y,c.w/2,c.h/2,0,0,Math.PI*2); ctx.fill(); }); } else { /* sun */ const cx=canvas.width*.5,cy=canvas.height*.3; const grad=ctx.createRadialGradient(cx,cy,20,cx,cy,300); grad.addColorStop(0,'rgba(255,200,80,.9)'); grad.addColorStop(.4,'rgba(255,180,40,.4)'); grad.addColorStop(1,'rgba(255,150,20,0)'); ctx.beginPath(); ctx.arc(cx,cy,300,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill(); drawClouds(); } requestAnimationFrame(animate); }
+    animate();
+
+    // ========== Theme Toggle ==========
+    function toggleTheme(){
+        const logo = document.getElementById('navLogo'); logo.classList.add('fast'); setTimeout(()=>logo.classList.remove('fast'),600);
         isDark = !isDark;
         const html = document.documentElement;
-        if (isDark) {
-            html.classList.remove('light'); html.classList.add('dark');
-            $('#themeIcon').textContent = '🌙'; $('#themeIndicator').innerHTML = '🌙 Dark';
-            $('#themeToggleBtn').innerHTML = '<i class="fas fa-moon"></i>';
-            createStars(); startThunderstorm();
-        } else {
-            html.classList.add('light'); html.classList.remove('dark');
-            $('#themeIcon').textContent = '☀️'; $('#themeIndicator').innerHTML = '☀️ Light';
-            $('#themeToggleBtn').innerHTML = '<i class="fas fa-sun"></i>';
-            createSunParticles(); createClouds();
-            if (lightningTimer) { clearInterval(lightningTimer); lightningTimer = null; }
-        }
+        if(isDark){ html.classList.remove('light'); html.classList.add('dark'); document.getElementById('themeToggleBtn').innerHTML='<i class="fas fa-moon"></i>'; createStars(); startThunder(); }
+        else { html.classList.add('light'); html.classList.remove('dark'); document.getElementById('themeToggleBtn').innerHTML='<i class="fas fa-sun"></i>'; createClouds(); if(lightningTimer){clearInterval(lightningTimer);lightningTimer=null;} }
     }
-    $('#themeToggleBtn').addEventListener('click', toggleTheme);
-    $('#themeIndicator').addEventListener('click', toggleTheme);
+    document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
 
-    // ═══════════════════════════════════════════════
-    //  GITHUB LOGIN
-    // ═══════════════════════════════════════════════
-    async function loadGistMemory() {
-        if (!githubToken) return;
-        try {
-            const res = await fetch('https://api.github.com/gists', { headers: { Authorization: `Bearer ${githubToken}` } });
-            const gists = await res.json();
-            gistMemory = {};
-            for (const g of gists) {
-                const desc = (g.description||''); const match = desc.match(/^RAGina:\s*(.+)/);
-                if (match && g.files && Object.keys(g.files).length) gistMemory[normalizeUrl(match[1])] = g.id;
-            }
-        } catch(e) { console.warn(e); }
+    // ========== GitHub Login ==========
+    const GITHUB_CLIENT_ID='Ov23lizeWF08DBQn2djN', REDIRECT_URI='https://ragina-crawler-ragina.vercel.app/api/auth';
+    let githubToken=null, repoOwner=null, repoName=null, isRepoMode=false, allRepoFiles=[], htmlFiles=[], knowledge=null, chunks=[], idf={}, currentCrawlUrl='', gistMemory={}, currentGistId=null, savingGist=false, currentBranchName=null;
+    const CRAWL_PROXY='https://ragina-crawler-ragina.vercel.app/api/crawl', MAP_PROXY='https://ragina-crawler-ragina.vercel.app/api/map', ASK_PROXY='https://ragina-crawler-ragina.vercel.app/api/ask', GIST_PROXY='https://ragina-crawler-ragina.vercel.app/api/gist';
+
+    async function loadGistMemory(){ if(!githubToken)return; try{ const r=await fetch('https://api.github.com/gists',{headers:{Authorization:`Bearer ${githubToken}`}}); const gists=await r.json(); gistMemory={}; for(const g of gists){ const m=(g.description||'').match(/^RAGina:\s*(.+)/); if(m&&g.files&&Object.keys(g.files).length) gistMemory[normalizeUrl(m[1])]=g.id; } }catch(e){} }
+    function updateUserUI(){
+        if(githubToken){ fetch('https://api.github.com/user',{headers:{Authorization:`Bearer ${githubToken}`}}).then(r=>r.json()).then(u=>{ document.getElementById('userArea').innerHTML=`<div class="d-flex align-items-center gap-2"><img src="${u.avatar_url}" class="avatar" style="width:32px;height:32px;border-radius:50%;"><span>${u.login}</span><button class="btn btn-sm btn-outline-danger" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button></div>`; document.getElementById('logoutBtn').addEventListener('click',()=>{ githubToken=null; knowledge=null; gistMemory={}; updateUserUI(); document.getElementById('kbSection').style.display='none'; }); loadGistMemory(); }); }
+        else { document.getElementById('userArea').innerHTML=`<button class="btn btn-outline-light btn-sm" id="loginBtn"><i class="fab fa-github me-1"></i> Login</button>`; document.getElementById('loginBtn').addEventListener('click',()=>window.location.href=`https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=repo,gist`); }
     }
-    function updateUserUI() {
-        if (githubToken) {
-            fetch('https://api.github.com/user', { headers: { Authorization: `Bearer ${githubToken}` } })
-            .then(r => r.json()).then(user => {
-                $('#userArea').innerHTML = `<div class="d-flex align-items-center gap-2"><img src="${user.avatar_url}" class="avatar"><span>${user.login}</span><button class="btn btn-sm btn-outline-danger" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button></div>`;
-                $('#logoutBtn').addEventListener('click', () => { githubToken = null; knowledge = null; gistMemory = {}; updateUserUI(); $('#kbSection').style.display='none'; });
-                loadGistMemory();
-            });
-            $('#gistBtn').style.display = 'inline-block';
-            if ($('#gistBtn2')) $('#gistBtn2').style.display = 'inline-block';
-        } else {
-            $('#userArea').innerHTML = `<button class="btn btn-outline-light btn-sm" id="loginBtn"><i class="fab fa-github me-1"></i> Login</button>`;
-            $('#loginBtn').addEventListener('click', () => window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=repo,gist`);
-            $('#gistBtn').style.display = 'none';
-            if ($('#gistBtn2')) $('#gistBtn2').style.display = 'none';
-        }
-    }
-    if (window.location.hash.startsWith('#access_token=')) { githubToken = window.location.hash.split('=')[1]; history.replaceState(null,'',window.location.pathname); }
+    if(window.location.hash.startsWith('#access_token=')){ githubToken=window.location.hash.split('=')[1]; history.replaceState(null,'',window.location.pathname); }
     updateUserUI();
 
-    // ═══════════════════════════════════════════════
-    //  EXPLORE (REPO or URL)
-    // ═══════════════════════════════════════════════
-    $('#exploreBtn').addEventListener('click', async () => {
-        const target = $('#targetInput').value.trim();
-        if (!target) return;
-        // Determine if repo or URL
-        if (target.includes('/') && !target.startsWith('http')) {
-            // Repo mode
-            if (!githubToken) { showToast('Login with GitHub first.','warning'); return; }
+    const normalizeUrl = (url) => { try{ let u=new URL(url); u.hostname=u.hostname.replace(/^www\./,''); u.protocol='https:'; u.hash=''; u.search=''; let p=u.pathname.replace(/\/$/,''); u.pathname=p||'/'; return u.toString(); }catch{ return url; } };
+    const getSiteIdentifier = (url) => { try{ return new URL(url).hostname.replace(/^www\./,'').replace(/[^a-zA-Z0-9.-]/g,'_'); }catch{ return 'unknown'; } };
+
+    // ========== Explore ==========
+    document.getElementById('exploreBtn').addEventListener('click', async ()=>{
+        const target = document.getElementById('targetInput').value.trim();
+        if(!target) return;
+        if(target.includes('/') && !target.startsWith('http')){
+            if(!githubToken){ showToast('Login first','warning'); return; }
             [repoOwner, repoName] = target.split('/');
             isRepoMode = true;
-            $('#prSection').style.display = 'block';
+            document.getElementById('prSection').style.display = 'block';
             await scanRepo();
-        } else if (target.startsWith('http')) {
-            // URL mode
+        } else if(target.startsWith('http')){
             isRepoMode = false;
-            $('#prSection').style.display = 'none';
+            document.getElementById('prSection').style.display = 'none';
             currentCrawlUrl = target;
             await exploreWebsite(target);
-        } else {
-            showToast('Enter a valid repo (user/repo) or URL.','warning');
-        }
+        } else showToast('Enter valid repo or URL','warning');
     });
 
-    async function scanRepo() {
-        $('#exploreBtn').disabled = true; $('#exploreBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Scanning...';
-        allRepoFiles = []; htmlFiles = [];
-        try {
+    async function scanRepo(){
+        const btn = document.getElementById('exploreBtn'); btn.disabled=true; btn.innerHTML='Scanning...';
+        allRepoFiles=[]; htmlFiles=[];
+        try{
             await scanDir(repoOwner, repoName, '');
-            htmlFiles = allRepoFiles.filter(f => /\.html?$/i.test(f.name));
-            logPR(`Found ${htmlFiles.length} HTML files`, 'success');
-            renderFileTree(htmlFiles, f => f.name); // for repo, show file names
-            $('#pageTreeSection').style.display = 'block';
+            htmlFiles = allRepoFiles.filter(f=>/\.html?$/i.test(f.name));
+            renderFileTree(htmlFiles, f=>f.name);
+            document.getElementById('pageTreeSection').style.display='block';
             populatePRFileSelect(htmlFiles);
-        } catch(e) { showToast('Scan failed: '+e.message, 'danger'); }
-        $('#exploreBtn').disabled = false; $('#exploreBtn').innerHTML = '🔍 Explore';
+            checkPRReady();
+        }catch(e){ showToast(e.message,'danger'); }
+        btn.disabled=false; btn.innerHTML='🔍 Explore';
     }
 
-    async function exploreWebsite(url) {
-        $('#exploreBtn').disabled = true; $('#exploreBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Exploring...';
-        try {
-            const res = await fetch(MAP_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
+    async function exploreWebsite(url){
+        const btn = document.getElementById('exploreBtn'); btn.disabled=true; btn.innerHTML='Exploring...';
+        try{
+            const res = await fetch(MAP_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
             const data = await res.json();
-            if (data.error) throw new Error(data.error);
-            const urls = data.urls || [];
-            if (urls.length === 0) { showToast('No pages found.','warning'); $('#exploreBtn').disabled = false; $('#exploreBtn').innerHTML = '🔍 Explore'; return; }
-            renderFileTree(urls, u => new URL(u).pathname || '/');
-            $('#pageTreeSection').style.display = 'block';
-        } catch(e) { showToast('Explore failed: '+e.message, 'danger'); }
-        $('#exploreBtn').disabled = false; $('#exploreBtn').innerHTML = '🔍 Explore';
+            if(data.error) throw new Error(data.error);
+            const urls = data.urls||[];
+            if(!urls.length){ showToast('No pages found','warning'); btn.disabled=false; btn.innerHTML='🔍 Explore'; return; }
+            renderFileTree(urls, u=>new URL(u).pathname||'/');
+            document.getElementById('pageTreeSection').style.display='block';
+        }catch(e){ showToast(e.message,'danger'); }
+        btn.disabled=false; btn.innerHTML='🔍 Explore';
     }
 
-    async function scanDir(owner, repo, path) {
-        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-        const r = await fetch(url, { headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' } });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const items = await r.json();
-        for (const item of (Array.isArray(items)?items:[items])) {
-            if (item.type === 'file') allRepoFiles.push(item);
-            else if (item.type === 'dir' && !item.name.startsWith('.') && item.name !== 'node_modules' && item.name !== '.git') await scanDir(owner, repo, item.path);
+    async function scanDir(owner,repo,path){
+        const url=`https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+        const r=await fetch(url,{headers:{Authorization:`Bearer ${githubToken}`,Accept:'application/vnd.github+json'}});
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const items=await r.json();
+        for(const item of (Array.isArray(items)?items:[items])){
+            if(item.type==='file') allRepoFiles.push(item);
+            else if(item.type==='dir'&&!item.name.startsWith('.')&&item.name!=='node_modules'&&item.name!=='.git') await scanDir(owner,repo,item.path);
         }
     }
 
-    function renderFileTree(items, labelFn) {
-        const container = $('#treeContainer'); container.innerHTML = '';
-        items.forEach((item, i) => {
-            const isFile = isRepoMode ? item.name : true; // all are URLs in website mode
+    function renderFileTree(items, labelFn){
+        const container = document.getElementById('treeContainer'); container.innerHTML='';
+        items.forEach((item,i)=>{
             const label = labelFn(item);
-            const div = document.createElement('div'); div.className = 'file-row';
+            const div = document.createElement('div'); div.className='file-row';
             div.innerHTML = `<span class="icon">${isRepoMode?'📄':'🔗'}</span><span class="name">${label}</span><span class="check">✅</span>`;
-            div.addEventListener('click', () => {
-                div.classList.toggle('selected');
-                updateSelectedCount();
-            });
+            div.addEventListener('click', ()=>{ div.classList.toggle('selected'); updateSelectedCount(); });
             container.appendChild(div);
         });
         updateSelectedCount();
     }
 
-    function updateSelectedCount() {
-        const count = $('#treeContainer').querySelectorAll('.file-row.selected').length;
-        $('#selectedCount').textContent = count + ' selected';
-        if (count > 5) {
-            const sel = $('#treeContainer').querySelectorAll('.file-row.selected');
-            sel[sel.length-1].classList.remove('selected');
-            showToast('Max 5 pages allowed.','warning');
-            return updateSelectedCount();
-        }
+    function updateSelectedCount(){
+        const count = document.getElementById('treeContainer').querySelectorAll('.file-row.selected').length;
+        document.getElementById('selectedCount').textContent = count+' selected';
+        if(count>5){ const sel=document.getElementById('treeContainer').querySelectorAll('.file-row.selected'); sel[sel.length-1].classList.remove('selected'); showToast('Max 5 pages','warning'); return updateSelectedCount(); }
     }
 
-    function populatePRFileSelect(htmlFiles) {
-        const sel = $('#targetFileSelect'); sel.innerHTML = '';
-        htmlFiles.forEach(f => { const opt = document.createElement('option'); opt.value = f.path; opt.textContent = f.path; sel.appendChild(opt); });
+    function populatePRFileSelect(htmlFiles){
+        const sel = document.getElementById('targetFileSelect'); sel.innerHTML='';
+        htmlFiles.forEach(f=>{ const o=document.createElement('option'); o.value=f.path; o.textContent=f.path; sel.appendChild(o); });
     }
 
-    // ═══════════════════════════════════════════════
-    //  SCRAPE SELECTED
-    // ═══════════════════════════════════════════════
-    $('#scrapeSelectedBtn').addEventListener('click', async () => {
-        const selectedRows = $('#treeContainer').querySelectorAll('.file-row.selected');
-        if (selectedRows.length === 0) return showToast('Select at least one item.','warning');
-        const btn = $('#scrapeSelectedBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Scraping...';
-        try {
-            if (isRepoMode) {
-                // Scrape from repo files
-                const selectedPaths = Array.from(selectedRows).map(row => row.querySelector('.name').textContent);
-                const filesToScrape = htmlFiles.filter(f => selectedPaths.includes(f.name));
+    // ========== Scrape Selected ==========
+    document.getElementById('scrapeSelectedBtn').addEventListener('click', async ()=>{
+        const selectedRows = document.getElementById('treeContainer').querySelectorAll('.file-row.selected');
+        if(!selectedRows.length) return showToast('Select at least one item','warning');
+        const btn = document.getElementById('scrapeSelectedBtn'); btn.disabled=true; btn.innerHTML='Scraping...';
+        try{
+            if(isRepoMode){
+                const selectedPaths = Array.from(selectedRows).map(r=>r.querySelector('.name').textContent);
+                const filesToScrape = htmlFiles.filter(f=>selectedPaths.includes(f.name));
                 const knowledgeData = {};
-                for (const f of filesToScrape) {
-                    const res = await fetch(f.download_url); const html = await res.text();
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                for(const f of filesToScrape){
+                    const r = await fetch(f.download_url); const html = await r.text();
+                    const doc = new DOMParser().parseFromString(html,'text/html');
                     const clone = doc.body.cloneNode(true); clone.querySelectorAll('script,style,noscript').forEach(el=>el.remove());
                     knowledgeData[f.path] = { bodyText: (clone.textContent||'').trim().replace(/\s+/g,' ').slice(0,2000) };
                 }
-                // Also add product description if available
-                const prodName = $('#productName').value.trim();
-                if (prodName) knowledgeData['product-overview'] = { bodyText: `${prodName}: Product description.` };
+                const prodName = document.getElementById('productName').value.trim();
+                if(prodName) knowledgeData['product-overview'] = { bodyText: `${prodName}: Product description.` };
                 await buildKnowledgeFromData(knowledgeData);
             } else {
-                // Scrape website pages
-                const selectedUrls = Array.from(selectedRows).map(row => row.querySelector('.name').textContent);
-                const res = await fetch(CRAWL_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls:selectedUrls}) });
-                const data = await res.json();
-                if (data.error) throw new Error(data.error);
+                const selectedUrls = Array.from(selectedRows).map(r=>r.querySelector('.name').textContent);
+                const res = await fetch(CRAWL_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({urls:selectedUrls})});
+                const data = await res.json(); if(data.error) throw new Error(data.error);
                 await buildKnowledgeFromPages(data.pages);
             }
-        } catch(e) { showToast('Scrape error: '+e.message, 'danger'); }
-        btn.disabled = false; btn.innerHTML = '<i class="fas fa-download me-1"></i> Scrape Selected';
+        }catch(e){ showToast(e.message,'danger'); }
+        btn.disabled=false; btn.innerHTML='<i class="fas fa-download me-1"></i> Scrape Selected';
+        checkPRReady();
     });
 
-    async function buildKnowledgeFromData(knowledgeData) {
-        // Convert to pages format and build
-        const pages = Object.entries(knowledgeData).map(([url, {bodyText}]) => ({url, content: bodyText}));
+    async function buildKnowledgeFromData(knowledgeData){
+        const pages = Object.entries(knowledgeData).map(([url,{bodyText}])=>({url,content:bodyText}));
         await buildKnowledgeFromPages(pages);
     }
 
-    async function buildKnowledgeFromPages(pages) {
+    async function buildKnowledgeFromPages(pages){
         knowledge = { metadata: { crawledAt: new Date().toISOString(), sourceUrl: currentCrawlUrl, generator:'RAGina', version:'2.0' }, pages:[] };
         chunks = [];
-        for (const page of pages) {
-            const text = page.content;
-            if (!text || text.length<50) continue;
-            const sentences = text.split(/\n+|(?<=[.!?])\s+/); let current = ''; const rawChunks = [];
-            for (const s of sentences) { if ((current+s).length>200 && current.length>0) { rawChunks.push(current.trim()); current=''; } current += s+' '; }
-            if (current.trim()) rawChunks.push(current.trim());
+        for(const page of pages){
+            const text = page.content; if(!text||text.length<50) continue;
+            const sentences = text.split(/\n+|(?<=[.!?])\s+/); let current=''; const rawChunks=[];
+            for(const s of sentences){ if((current+s).length>200&&current.length>0){ rawChunks.push(current.trim()); current=''; } current+=s+' '; }
+            if(current.trim()) rawChunks.push(current.trim());
             const limited = rawChunks.slice(0,8);
-            // skip AI titles for speed; just use first sentence
-            const enriched = limited.map((t,i) => ({ id:`${page.url}#chunk${i}`, title: t.split(/[.!?]/,1)[0].trim().slice(0,50), text:t, sourceUrl:page.url, chunkIndex:i }));
-            knowledge.pages.push({ url:page.url, title:enriched[0]?.title||'Untitled', tags: extractTags(text), chunks:enriched });
-            enriched.forEach(c => chunks.push(c));
+            const enriched = limited.map((t,i)=>({ id:`${page.url}#chunk${i}`, title:t.split(/[.!?]/,1)[0].trim().slice(0,50), text:t, sourceUrl:page.url, chunkIndex:i }));
+            knowledge.pages.push({ url:page.url, title:enriched[0]?.title||'Untitled', tags:extractTags(text), chunks:enriched });
+            enriched.forEach(c=>chunks.push(c));
         }
         rebuildIDF();
         updateKBTile();
-        $('#kbSection').style.display = 'block';
-        $('#chatMessages').innerHTML = '<div class="bot"><span>I\'ve read the selected pages. Ask me anything!</span></div>';
-        if (githubToken) { try { await saveOrUpdateGist(true); } catch(e){} }
+        document.getElementById('kbSection').style.display='block';
+        document.getElementById('chatMessages').innerHTML = '<div class="bot"><span>I\'ve read the selected pages. Ask me anything!</span></div>';
+        if(githubToken) try{ await saveOrUpdateGist(true); }catch(e){}
+        checkPRReady();
     }
 
-    function extractTags(text, maxTags=5) {
+    function extractTags(text, maxTags=5){
         const stopWords = new Set(['the','a','an','is','are','was','were','be','been','being','have','has','had','do','does','did','but','and','or','if','because','as','until','while','of','at','by','for','with','about','into','through','during','before','after','to','from','in','out','on','off','over','under','again','further','then','once','here','there','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','can','will','just','should','now']);
-        const words = text.toLowerCase().match(/\b\w{4,}\b/g) || [];
-        const freq = {}; words.forEach(w => { if(!stopWords.has(w)) freq[w]=(freq[w]||0)+1; });
+        const words = text.toLowerCase().match(/\b\w{4,}\b/g)||[]; const freq={}; words.forEach(w=>{ if(!stopWords.has(w)) freq[w]=(freq[w]||0)+1; });
         return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,maxTags).map(e=>e[0]);
     }
-    function rebuildIDF() {
-        idf = {}; const total = chunks.length||1;
-        for (const ch of chunks) { const words = new Set(ch.text.toLowerCase().match(/\b\w+\b/g)||[]); for (const w of words) idf[w]=(idf[w]||0)+1; }
-        for (const w in idf) idf[w] = Math.log(total/(1+idf[w]));
-    }
-    function updateKBTile() {
-        const facts = chunks.length, updated = new Date(knowledge.metadata.crawledAt).toLocaleString();
-        let gistInfo = currentGistId ? ` · <a href="https://gist.github.com/${currentGistId}" target="_blank">Gist saved</a>` : '';
-        $('#kbStats').innerHTML = `<i class="fas fa-database me-1"></i> ${facts} facts · Updated ${updated}${gistInfo}`;
+    function rebuildIDF(){ idf={}; const total=chunks.length||1; for(const ch of chunks){ const words=new Set(ch.text.toLowerCase().match(/\b\w+\b/g)||[]); for(const w of words) idf[w]=(idf[w]||0)+1; } for(const w in idf) idf[w]=Math.log(total/(1+idf[w])); }
+    function updateKBTile(){
+        const facts=chunks.length, updated=new Date(knowledge.metadata.crawledAt).toLocaleString();
+        let gistInfo=currentGistId?` · <a href="https://gist.github.com/${currentGistId}" target="_blank">Gist saved</a>`:'';
+        document.getElementById('kbStats').innerHTML=`<i class="fas fa-database me-1"></i> ${facts} facts · Updated ${updated}${gistInfo}`;
     }
 
-    // ═══════════════════════════════════════════════
-    //  CHAT
-    // ═══════════════════════════════════════════════
-    $('#askBtn').addEventListener('click', async () => {
-        const q = $('#questionInput').value.trim(); if (!q) return;
-        $('#questionInput').value = '';
-        $('#chatMessages').innerHTML += `<div class="user"><span>${q}</span></div>`;
-        const thinking = document.createElement('div'); thinking.className = 'bot'; thinking.innerHTML = '<span><i class="fas fa-spinner fa-pulse"></i> Thinking…</span>';
-        $('#chatMessages').appendChild(thinking);
-        try {
+    // ========== Chat ==========
+    document.getElementById('askBtn').addEventListener('click', async ()=>{
+        const q = document.getElementById('questionInput').value.trim(); if(!q) return;
+        document.getElementById('questionInput').value='';
+        const chat = document.getElementById('chatMessages');
+        chat.innerHTML += `<div class="user"><span>${q}</span></div>`;
+        const think = document.createElement('div'); think.className='bot'; think.innerHTML='<span><i class="fas fa-spinner fa-pulse"></i> Thinking…</span>';
+        chat.appendChild(think);
+        try{
             const answer = await answerQuestion(q);
-            thinking.remove();
-            $('#chatMessages').innerHTML += `<div class="bot"><span>${answer}</span></div>`;
-        } catch(e) { thinking.remove(); $('#chatMessages').innerHTML += `<div class="bot"><span class="text-danger">${e.message}</span></div>`; }
-        $('#chatMessages').scrollTop = $('#chatMessages').scrollHeight;
+            think.remove();
+            chat.innerHTML += `<div class="bot"><span>${answer}</span></div>`;
+        }catch(e){ think.remove(); chat.innerHTML += `<div class="bot"><span class="text-danger">${e.message}</span></div>`; }
+        chat.scrollTop = chat.scrollHeight;
     });
-    async function answerQuestion(question) {
-        const topChunks = retrieve(question, 5);
-        let context = topChunks.map((c,i) => `[${i+1}] (${c.title}) ${c.text}`).join('\n\n');
-        if (!context.trim() && knowledge) { const allTags = [...new Set(knowledge.pages.flatMap(p=>p.tags))]; context = allTags.length ? `Topics: ${allTags.join(', ')}.` : 'No info.'; }
-        if (context.length > 2000) context = context.slice(0,2000)+'…';
+
+    async function answerQuestion(question){
+        const topChunks = retrieve(question,5);
+        let context = topChunks.map((c,i)=>`[${i+1}] (${c.title}) ${c.text}`).join('\n\n');
+        if(!context.trim()&&knowledge){ const allTags=[...new Set(knowledge.pages.flatMap(p=>p.tags))]; context=allTags.length?`Topics: ${allTags.join(', ')}.`:'No info.'; }
+        if(context.length>2000) context=context.slice(0,2000)+'…';
         const prompt = `You are a helpful assistant. Using the context below, answer the user's question thoroughly. If the exact answer isn't there, provide a relevant summary.\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer:`;
-        for (let attempt=0; attempt<3; attempt++) {
-            try {
-                const res = await fetch(ASK_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt}) });
-                if (!res.ok) { const err = await res.json().catch(()=>({})); if (err.error?.includes('loading')) { await new Promise(r=>setTimeout(r,5000)); continue; } throw new Error(err.error||`HTTP ${res.status}`); }
-                const data = await res.json(); if (data.error) throw new Error(data.error);
-                let answer = data.text.trim(); if (answer.startsWith(prompt)) answer = answer.slice(prompt.length).trim();
+        for(let attempt=0; attempt<3; attempt++){
+            try{
+                const res = await fetch(ASK_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+                if(!res.ok){ const err=await res.json().catch(()=>({})); if(err.error?.includes('loading')){ await new Promise(r=>setTimeout(r,5000)); continue; } throw new Error(err.error||`HTTP ${res.status}`); }
+                const data = await res.json(); if(data.error) throw new Error(data.error);
+                let answer = data.text.trim(); if(answer.startsWith(prompt)) answer=answer.slice(prompt.length).trim();
                 return answer;
-            } catch(e) { if (attempt===2) throw e; await new Promise(r=>setTimeout(r,3000)); }
+            }catch(e){ if(attempt===2) throw e; await new Promise(r=>setTimeout(r,3000)); }
         }
     }
-    function retrieve(query, topK=5) {
-        const qWords = query.toLowerCase().match(/\b\w+\b/g)||[], qTF={}; qWords.forEach(w=>qTF[w]=(qTF[w]||0)+1);
-        const scores = chunks.map((ch,idx) => { const cWords = ch.text.toLowerCase().match(/\b\w+\b/g)||[], cTF={}; cWords.forEach(w=>cTF[w]=(cTF[w]||0)+1); let score=0; for (const w of Object.keys(qTF)) if (cTF[w]&&idf[w]) score+=qTF[w]*cTF[w]*idf[w]; return {idx,score}; });
+
+    function retrieve(query, topK=5){
+        const qWords=query.toLowerCase().match(/\b\w+\b/g)||[], qTF={}; qWords.forEach(w=>qTF[w]=(qTF[w]||0)+1);
+        const scores = chunks.map((ch,idx)=>{ const cWords=ch.text.toLowerCase().match(/\b\w+\b/g)||[], cTF={}; cWords.forEach(w=>cTF[w]=(cTF[w]||0)+1); let score=0; for(const w of Object.keys(qTF)) if(cTF[w]&&idf[w]) score+=qTF[w]*cTF[w]*idf[w]; return {idx,score}; });
         scores.sort((a,b)=>b.score-a.score); return scores.slice(0,topK).map(s=>chunks[s.idx]);
     }
 
-    // ═══════════════════════════════════════════════
-    //  GIST & KB EDITING
-    // ═══════════════════════════════════════════════
-    async function saveOrUpdateGist(silent=false) {
-        if (!githubToken) { if(!silent) showToast('Login first.','warning'); return; }
-        if (!knowledge || savingGist) return; savingGist = true;
-        const btns = [$('#gistBtn'), $('#gistBtn2')].filter(b=>b);
-        btns.forEach(b=>{ b.disabled=true; b.innerHTML='<span class="spinner-border spinner-border-sm"></span> Saving...'; });
-        try {
+    // ========== Gist & KB Editing ==========
+    async function saveOrUpdateGist(silent=false){
+        if(!githubToken){ if(!silent) showToast('Login first','warning'); return; }
+        if(!knowledge||savingGist) return; savingGist=true;
+        const btns = [document.getElementById('gistBtn')]; btns.forEach(b=>{ b.disabled=true; b.innerHTML='<span class="spinner-border spinner-border-sm"></span> Saving...'; });
+        try{
             await loadGistMemory();
-            const normalizedUrl = normalizeUrl(currentCrawlUrl || knowledge.metadata.sourceUrl);
-            const gistId = currentGistId || gistMemory[normalizedUrl] || undefined;
-            const siteId = getSiteIdentifier(currentCrawlUrl || knowledge.metadata.sourceUrl);
+            const normalizedUrl = normalizeUrl(currentCrawlUrl||knowledge.metadata.sourceUrl);
+            const gistId = currentGistId||gistMemory[normalizedUrl]||undefined;
+            const siteId = getSiteIdentifier(currentCrawlUrl||knowledge.metadata.sourceUrl);
             const fileName = `ragina-${siteId}-kb.json`;
-            const files = { [fileName]: { content: JSON.stringify(knowledge, null, 2) } };
-            const res = await fetch(GIST_PROXY, { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${githubToken}`}, body:JSON.stringify({ description:`RAGina: ${currentCrawlUrl||knowledge.metadata.sourceUrl}`, files, gistId }) });
-            const data = await res.json(); if (data.error) throw new Error(data.error);
-            currentGistId = data.id; gistMemory[normalizedUrl] = data.id;
+            const files = { [fileName]: { content: JSON.stringify(knowledge,null,2) } };
+            const res = await fetch(GIST_PROXY,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${githubToken}`},body:JSON.stringify({description:`RAGina: ${currentCrawlUrl||knowledge.metadata.sourceUrl}`,files,gistId})});
+            const data = await res.json(); if(data.error) throw new Error(data.error);
+            currentGistId = data.id; gistMemory[normalizedUrl]=data.id;
             updateKBTile();
-            if (!silent) showToast(`Gist ${gistId?'updated':'saved'} (${fileName}).`, 'success');
+            if(!silent) showToast(`Gist ${gistId?'updated':'saved'} (${fileName}).`,'success');
             await loadGistMemory();
-        } catch(e) { if(!silent) showToast('Gist error: '+e.message, 'danger'); }
-        finally { savingGist = false; btns.forEach(b=>{ b.disabled=false; b.innerHTML='<i class="fab fa-github me-1"></i> Save to Gist'; }); }
+        }catch(e){ if(!silent) showToast('Gist error: '+e.message,'danger'); }
+        finally{ savingGist=false; btns.forEach(b=>{ b.disabled=false; b.innerHTML='<i class="fab fa-github me-1"></i> Save to Gist'; }); }
     }
-    $('#gistBtn').addEventListener('click', ()=>saveOrUpdateGist());
-    $('#gistBtn2').addEventListener('click', ()=>saveOrUpdateGist());
-    $('#editKbBtn').addEventListener('click', () => { if(!knowledge) return; $('#kbEditorTextarea').value = JSON.stringify(knowledge,null,2); new bootstrap.Modal($('#kbEditorModal')).show(); });
-    $('#editKbBtn2').addEventListener('click', () => { if(!knowledge) return; $('#kbEditorTextarea').value = JSON.stringify(knowledge,null,2); new bootstrap.Modal($('#kbEditorModal')).show(); });
-    $('#saveKbBtn').addEventListener('click', async () => {
-        try { knowledge = JSON.parse($('#kbEditorTextarea').value); chunks = []; knowledge.pages.forEach(p=>p.chunks.forEach(c=>chunks.push(c))); rebuildIDF(); updateKBTile(); showToast('KB updated.','success'); if (githubToken) await saveOrUpdateGist(true); bootstrap.Modal.getInstance($('#kbEditorModal')).hide(); } catch(e) { showToast('Invalid JSON: '+e.message, 'danger'); }
-    });
-    $('#downloadBtn').addEventListener('click', () => { if(!knowledge) return; const blob = new Blob([JSON.stringify(knowledge,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='ragina-knowledge.json'; a.click(); URL.revokeObjectURL(url); });
-    $('#downloadBtn2').addEventListener('click', () => { if(!knowledge) return; const blob = new Blob([JSON.stringify(knowledge,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='ragina-knowledge.json'; a.click(); URL.revokeObjectURL(url); });
+    document.getElementById('gistBtn').addEventListener('click', ()=>saveOrUpdateGist());
+    document.getElementById('editKbBtn').addEventListener('click', ()=>{ if(!knowledge) return; document.getElementById('kbEditorTextarea').value=JSON.stringify(knowledge,null,2); new bootstrap.Modal(document.getElementById('kbEditorModal')).show(); });
+    document.getElementById('saveKbBtn').addEventListener('click', async ()=>{ try{ knowledge=JSON.parse(document.getElementById('kbEditorTextarea').value); chunks=[]; knowledge.pages.forEach(p=>p.chunks.forEach(c=>chunks.push(c))); rebuildIDF(); updateKBTile(); showToast('KB updated','success'); if(githubToken) await saveOrUpdateGist(true); bootstrap.Modal.getInstance(document.getElementById('kbEditorModal')).hide(); }catch(e){ showToast('Invalid JSON: '+e.message,'danger'); } });
+    document.getElementById('downloadBtn').addEventListener('click', ()=>{ if(!knowledge) return; const blob=new Blob([JSON.stringify(knowledge,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='ragina-knowledge.json'; a.click(); URL.revokeObjectURL(url); });
 
-    // ═══════════════════════════════════════════════
-    //  PR BOT LOGIC
-    // ═══════════════════════════════════════════════
-    document.querySelectorAll('input[name="injectMode"]').forEach(r => r.addEventListener('change', () => {
-        if ($('#modeNew').checked) { $('#existingFileSection').style.display='none'; $('#newFileSection').style.display='block'; }
-        else { $('#existingFileSection').style.display='block'; $('#newFileSection').style.display='none'; }
-    }));
-
-    function checkPRReady() {
-        const ready = !!githubToken && isRepoMode && !!knowledge && !!$('#productName').value.trim();
-        $('#raisePRBtn').disabled = !ready;
-        if (ready) setStatus($('#prStatus'), '✅ Ready to raise PR.', 'success');
-        else setStatus($('#prStatus'), 'Login, scan a repo, scrape pages, and enter a product name.', 'info');
+    // ========== PR Bot ==========
+    document.querySelectorAll('input[name="injectMode"]').forEach(r=>r.addEventListener('change', ()=>{ if(document.getElementById('modeNew').checked){ document.getElementById('existingFileSection').style.display='none'; document.getElementById('newFileSection').style.display='block'; } else { document.getElementById('existingFileSection').style.display='block'; document.getElementById('newFileSection').style.display='none'; } }));
+    function checkPRReady(){
+        const ready = !!githubToken && isRepoMode && !!knowledge && !!document.getElementById('productName').value.trim();
+        const btn = document.getElementById('raisePRBtn'); btn.disabled = !ready;
+        const statusEl = document.getElementById('prStatus');
+        if(!githubToken) setStatus(statusEl, 'Login with GitHub first.', 'info');
+        else if(!isRepoMode) setStatus(statusEl, 'Scan a repository to enable PR.', 'info');
+        else if(!knowledge) setStatus(statusEl, 'Scrape pages first.', 'info');
+        else if(!document.getElementById('productName').value.trim()) setStatus(statusEl, 'Enter a product name.', 'info');
+        else setStatus(statusEl, '✅ Ready to raise PR.', 'success');
     }
-    $('#productName').addEventListener('input', checkPRReady);
-    $('#raisePRBtn').addEventListener('click', async () => {
-        const btn = $('#raisePRBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Working...';
-        const productName = $('#productName').value.trim(), accent = $('#accentColor').value || '#6C63FF', isNew = $('#modeNew').checked;
-        const loc = $('#injectLocation').value;
-        try {
-            logPR('Scraping repo knowledge...', 'info');
-            // Re-scrape selected files if needed (or use existing knowledge). For PR, we need snippet with knowledge. We'll use the already built knowledge.
-            // Build snippet
+    document.getElementById('productName').addEventListener('input', checkPRReady);
+    document.getElementById('raisePRBtn').addEventListener('click', async ()=>{
+        const btn = document.getElementById('raisePRBtn'); btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Working...';
+        const productName = document.getElementById('productName').value.trim(), accent = document.getElementById('accentColor').value||'#6C63FF', isNew = document.getElementById('modeNew').checked;
+        const loc = document.getElementById('injectLocation').value;
+        const logBox = document.getElementById('logBox'); logBox.style.display='block'; logBox.innerHTML='';
+        const logPR = (msg,type='info')=>{ const d=document.createElement('div'); d.className=`log-${type}`; d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`; logBox.appendChild(d); logBox.scrollTop=logBox.scrollHeight; };
+        try{
+            logPR('Building snippet...','info');
             const snippet = makeSnippet(productName, accent, knowledge);
-            const baseBranch = 'main'; let baseSha;
-            try { const r = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/main`, { headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' } }); baseSha = (await r.json()).object.sha; } catch { const r = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/master`, { headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' } }); baseSha = (await r.json()).object.sha; }
+            let baseBranch='main', baseSha;
+            try{ const r=await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/main`,{headers:{Authorization:`Bearer ${githubToken}`,Accept:'application/vnd.github+json'}}); baseSha=(await r.json()).object.sha; }catch{ const r=await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/master`,{headers:{Authorization:`Bearer ${githubToken}`,Accept:'application/vnd.github+json'}}); baseSha=(await r.json()).object.sha; baseBranch='master'; }
             currentBranchName = `ragina-${Date.now()}`;
-            logPR(`Creating branch ${currentBranchName}...`, 'info');
-            await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs`, { method:'POST', headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }, body: JSON.stringify({ ref: `refs/heads/${currentBranchName}`, sha: baseSha }) });
-            if (isNew) {
-                logPR('Creating standalone chatbot page...', 'info');
+            logPR(`Creating branch ${currentBranchName}...`,'info');
+            await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs`,{method:'POST',headers:{Authorization:`Bearer ${githubToken}`,Accept:'application/vnd.github+json'},body:JSON.stringify({ref:`refs/heads/${currentBranchName}`,sha:baseSha})});
+            if(isNew){
+                logPR('Creating standalone page...','info');
                 const page = makeStandalone(productName, accent, knowledge);
                 const content = btoa(unescape(encodeURIComponent(page)));
-                await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/ragina-chatbot.html`, { method:'PUT', headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }, body: JSON.stringify({ message: `🤖 Add RAGina chatbot for ${productName}`, content, branch: currentBranchName }) });
+                await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/ragina-chatbot.html`,{method:'PUT',headers:{Authorization:`Bearer ${githubToken}`,Accept:'application/vnd.github+json'},body:JSON.stringify({message:`🤖 Add RAGina chatbot for ${productName}`,content,branch:currentBranchName})});
             } else {
-                const filePath = $('#targetFileSelect').value;
-                logPR(`Injecting into ${filePath}...`, 'info');
-                const fileRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, { headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' } });
+                const filePath = document.getElementById('targetFileSelect').value;
+                logPR(`Injecting into ${filePath}...`,'info');
+                const fileRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`,{headers:{Authorization:`Bearer ${githubToken}`,Accept:'application/vnd.github+json'}});
                 const fileData = await fileRes.json();
                 const current = atob(fileData.content);
                 const updated = injectSnippet(current, snippet, loc);
                 const encoded = btoa(unescape(encodeURIComponent(updated)));
-                await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, { method:'PUT', headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }, body: JSON.stringify({ message: `🤖 Inject RAGina into ${filePath}`, content: encoded, sha: fileData.sha, branch: currentBranchName }) });
+                await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`,{method:'PUT',headers:{Authorization:`Bearer ${githubToken}`,Accept:'application/vnd.github+json'},body:JSON.stringify({message:`🤖 Inject RAGina into ${filePath}`,content:encoded,sha:fileData.sha,branch:currentBranchName})});
             }
-            logPR('Creating PR...', 'info');
-            const prTitle = $('#prTitle').value || `🤖 Add RAGina AI Chatbot for ${productName}`;
-            const prBody = $('#prBody').value || '';
-            const changeDesc = isNew ? 'Adds standalone chatbot page' : `Injects chatbot into \`${$('#targetFileSelect').value}\``;
-            const prRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/pulls`, { method:'POST', headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }, body: JSON.stringify({ title: prTitle, head: currentBranchName, base: baseBranch, body: `## 🤖 RAGina AI Chatbot\n\n${changeDesc}\n\n### ✨ What You Get\n- 💬 Floating chat bubble\n- 🧠 Knowledge from ${Object.keys(knowledge.pages).length} pages\n- 🔐 No API keys\n- 📱 Mobile ready\n\n${prBody}` }) });
+            logPR('Creating PR...','info');
+            const prTitle = document.getElementById('prTitle').value||`🤖 Add RAGina AI Chatbot for ${productName}`;
+            const prBody = document.getElementById('prBody').value||'';
+            const changeDesc = isNew?'Adds standalone chatbot page':`Injects chatbot into \`${document.getElementById('targetFileSelect').value}\``;
+            const prRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/pulls`,{method:'POST',headers:{Authorization:`Bearer ${githubToken}`,Accept:'application/vnd.github+json'},body:JSON.stringify({title:prTitle,head:currentBranchName,base:baseBranch,body:`## 🤖 RAGina AI Chatbot\n\n${changeDesc}\n\n### ✨ What You Get\n- 💬 Floating chat bubble\n- 🧠 Knowledge from ${Object.keys(knowledge.pages).length} pages\n- 🔐 No API keys\n- 📱 Mobile ready\n\n${prBody}`})});
             const pr = await prRes.json();
-            logPR(`🎉 PR #${pr.number} created!`, 'success');
-            showToast(`PR #${pr.number} created. <a href="${pr.html_url}" target="_blank">View</a>`, 'success');
-        } catch(e) { logPR(`Error: ${e.message}`, 'error'); showToast('PR failed: '+e.message, 'danger'); }
-        btn.disabled = false; btn.innerHTML = '🔮 Raise PR';
+            logPR(`🎉 PR #${pr.number} created!`,'success');
+            showToast(`PR #${pr.number} created. <a href="${pr.html_url}" target="_blank">View</a>`,'success');
+        }catch(e){ logPR(`Error: ${e.message}`,'error'); showToast('PR failed: '+e.message,'danger'); }
+        btn.disabled=false; btn.innerHTML='🔮 Raise PR';
     });
 
-    function makeSnippet(productName, accentColor, knowledge) {
-        const json = JSON.stringify(knowledge);
-        return `
-<!-- 🤖 RAGina Chatbot - ${productName} -->
-<script>window.__RAGINA_INDEX__=${json};<\/script>
-<script>window.RAGINA_CONFIG={title:'${productName} Bot',placeholder:'Ask about ${productName}...',position:'bottom-right',theme:{primary:'${accentColor}'}};<\/script>
-<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"><\/script>`;
-    }
-    function makeStandalone(productName, accentColor, knowledge) {
-        const r=parseInt(accentColor.slice(1,3),16), g=parseInt(accentColor.slice(3,5),16), b=parseInt(accentColor.slice(5,7),16);
-        return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${productName} - AI Chatbot</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}h1{font-size:2.5rem;background:linear-gradient(135deg,${accentColor},#FF6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent}p{color:#666;font-size:1.2rem;margin-top:.5rem}.b{display:inline-block;margin-top:2rem;padding:.8rem 2rem;background:rgba(${r},${g},${b},0.1);border-radius:30px;color:${accentColor};font-weight:600}</style>
-</head><body><div class="c"><h1>🤖 AI Chatbot</h1><p>Ask about <strong>${productName}</strong></p><div class="b">👇 Click chat bubble</div></div>
-${makeSnippet(productName, accentColor, knowledge)}
-</body></html>`;
-    }
-    function injectSnippet(html, snippet, loc) {
-        switch(loc) {
-            case 'beforeBodyEnd': return html.replace('</body>', snippet+'\n</body>');
-            case 'afterBodyStart': return html.replace(/<body[^>]*>/i, m => m+'\n'+snippet);
-            case 'beforeHeadEnd': return html.replace('</head>', snippet+'\n</head>');
-            default: return html.replace('</body>', snippet+'\n</body>');
-        }
-    }
+    function makeSnippet(productName, accentColor, knowledge){ const json=JSON.stringify(knowledge); return `\n<!-- 🤖 RAGina Chatbot - ${productName} -->\n<script>window.__RAGINA_INDEX__=${json};<\/script>\n<script>window.RAGINA_CONFIG={title:'${productName} Bot',placeholder:'Ask about ${productName}...',position:'bottom-right',theme:{primary:'${accentColor}'}};<\/script>\n<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"><\/script>`; }
+    function makeStandalone(productName, accentColor, knowledge){ const r=parseInt(accentColor.slice(1,3),16),g=parseInt(accentColor.slice(3,5),16),b=parseInt(accentColor.slice(5,7),16); return `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${productName} - AI Chatbot</title>\n<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}h1{font-size:2.5rem;background:linear-gradient(135deg,${accentColor},#FF6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent}p{color:#666;font-size:1.2rem;margin-top:.5rem}.b{display:inline-block;margin-top:2rem;padding:.8rem 2rem;background:rgba(${r},${g},${b},0.1);border-radius:30px;color:${accentColor};font-weight:600}</style>\n</head><body><div class="c"><h1>🤖 AI Chatbot</h1><p>Ask about <strong>${productName}</strong></p><div class="b">👇 Click chat bubble</div></div>\n${makeSnippet(productName, accentColor, knowledge)}\n</body></html>`; }
+    function injectSnippet(html,snippet,loc){ switch(loc){ case'beforeBodyEnd':return html.replace('</body>',snippet+'\n</body>'); case'afterBodyStart':return html.replace(/<body[^>]*>/i,m=>m+'\n'+snippet); case'beforeHeadEnd':return html.replace('</head>',snippet+'\n</head>'); default:return html.replace('</body>',snippet+'\n</body>'); } }
 
-    // Initialize
+    // Initialize PR button state
     checkPRReady();
     </script>
 </body>
