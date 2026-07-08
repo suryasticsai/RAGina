@@ -1,11 +1,14 @@
 /*!
- * RAGina.js v1.2.0
- * Mentalist RAG - Fixed embedded index detection
+ * RAGina.js v2.0.0
+ * Mentalist RAG – CDN-ready chatbot widget
+ * Uses Vercel proxy for AI (Groq + fallbacks)
+ * Default bubble icon: ragina-logo.png
  * MIT License | github.com/suryasticsai/RAGina
  */
 (function (global) {
   'use strict';
 
+  // ── Sassy quotes ─────────────────────────────────────
   const QUOTES = {
     ready: [
       "Alright darling, I've read every file in this place. Ask away.",
@@ -35,6 +38,7 @@
 
   const randomQuote = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+  // ── TF‑IDF retrieval engine ───────────────────────────
   class RAGEngine {
     constructor() {
       this.chunks = [];
@@ -63,7 +67,7 @@
       this.idf = {};
       const total = this.chunks.length || 1;
       for (const ch of this.chunks) {
-        const words = new Set((ch.text.toLowerCase().match(/\b\w+\b/g) || []));
+        const words = new Set(ch.text.toLowerCase().match(/\b\w+\b/g) || []);
         for (const w of words) this.idf[w] = (this.idf[w] || 0) + 1;
       }
       for (const w in this.idf) {
@@ -74,12 +78,12 @@
 
     retrieve(query, topK = 3) {
       if (!this.isReady || this.chunks.length === 0) return [];
-      const qWords = (query.toLowerCase().match(/\b\w+\b/g) || []);
+      const qWords = query.toLowerCase().match(/\b\w+\b/g) || [];
       const qTF = {};
       for (const w of qWords) qTF[w] = (qTF[w] || 0) + 1;
 
       const scores = this.chunks.map((ch, idx) => {
-        const cWords = (ch.text.toLowerCase().match(/\b\w+\b/g) || []);
+        const cWords = ch.text.toLowerCase().match(/\b\w+\b/g) || [];
         const cTF = {};
         for (const w of cWords) cTF[w] = (cTF[w] || 0) + 1;
         let score = 0;
@@ -93,13 +97,20 @@
     }
   }
 
+  // ── AI proxy (Vercel) ─────────────────────────────────
   async function askLLM(prompt, model) {
-    const url = 'https://text.pollinations.ai/' + encodeURIComponent(prompt);
-    const res = await fetch(url);
+    const res = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
     if (!res.ok) throw new Error(`LLM error: ${res.status}`);
-    return await res.text();
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.text;
   }
 
+  // ── Chat UI ───────────────────────────────────────────
   class RAGinaUI {
     constructor(engine, config) {
       this.engine = engine;
@@ -153,8 +164,7 @@
 .ragina-typing span{width:8px;height:8px;border-radius:50%;background:rgba(${rgb},0.6);animation:ragina-typing 1.4s infinite}
 .ragina-typing span:nth-child(2){animation-delay:0.2s}
 .ragina-typing span:nth-child(3){animation-delay:0.4s}
-@keyframes ragina-typing{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-8px);opacity:1}}
-`;
+@keyframes ragina-typing{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-8px);opacity:1}}`;
       const style = document.createElement('style');
       style.id = 'ragina-styles';
       style.textContent = css;
@@ -164,21 +174,23 @@
     build() {
       this.injectStyles();
 
-      const avatarContent = this.config.avatarUrl 
-        ? `<img class="ragina-avatar" src="${this.config.avatarUrl}" alt="RAGina" style="object-fit:cover;">` 
-        : `<div class="ragina-avatar">🔮</div>`;
+      // Bubble icon: use avatarUrl if set, else bubbleIcon HTML, else emoji
+      const bubbleContent = this.config.avatarUrl
+        ? `<img src="${this.config.avatarUrl}" alt="RAGina" style="width:44px;height:44px;border-radius:50%;">`
+        : (this.config.bubbleIcon || '🔮');
 
       this.bubble = document.createElement('button');
       this.bubble.className = 'ragina-bubble';
       this.bubble.title = this.config.title || 'RAGina – Your Mentalist RAG';
-      this.bubble.innerHTML = this.config.bubbleIcon || '🔮';
+      this.bubble.innerHTML = bubbleContent;
       document.body.appendChild(this.bubble);
 
+      // Panel
       this.panel = document.createElement('div');
       this.panel.className = 'ragina-panel hidden';
       this.panel.innerHTML = `
         <div class="ragina-header">
-          ${avatarContent}
+          ${this.config.avatarUrl ? `<img class="ragina-avatar" src="${this.config.avatarUrl}" alt="RAGina" style="object-fit:cover;">` : '<div class="ragina-avatar">🔮</div>'}
           <div class="ragina-header-info">
             <div class="ragina-header-name">${this.config.title || 'RAGina'}</div>
             <div class="ragina-header-status">🧠 Mentalist Online</div>
@@ -200,9 +212,7 @@
       this.bubble.addEventListener('click', () => this.toggle());
       this.panel.querySelector('.ragina-close').addEventListener('click', () => this.hide());
       this.sendBtn.addEventListener('click', () => this.handleSend());
-      this.input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') this.handleSend();
-      });
+      this.input.addEventListener('keypress', e => { if (e.key === 'Enter') this.handleSend(); });
 
       if (this.engine.isReady) {
         this.addMessage(randomQuote(QUOTES.ready), 'ai');
@@ -252,27 +262,14 @@
       const typingDiv = this.showTyping();
 
       const topChunks = this.engine.retrieve(question, this.config.topK || 3);
-      
-      const context = topChunks.length > 0 
+      const context = topChunks.length > 0
         ? topChunks.map((c, i) => `[${i + 1}] ${c.source}\n${c.text}`).join('\n\n')
         : 'No relevant documents found.';
 
       const personality = this.config.personality || 'sassy';
       const prompt = personality === 'professional'
-        ? `Answer the question using ONLY the context below. If the answer cannot be found, say "I don't have enough information to answer that."
-
-Context:
-${context}
-
-Question: ${question}
-Answer:`
-        : `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.
-
-Context:
-${context}
-
-Question: ${question}
-Answer (as RAGina, with sass):`;
+        ? `Answer the question using ONLY the context below. If the answer cannot be found, say "I don't have enough information to answer that."\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer:`
+        : `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer (as RAGina, with sass):`;
 
       try {
         const answer = await askLLM(prompt, this.config.model);
@@ -287,7 +284,7 @@ Answer (as RAGina, with sass):`;
     }
   }
 
-  // ==================== Public API ====================
+  // ── Public API ────────────────────────────────────────
   const RAGina = {
     engine: null,
     ui: null,
@@ -300,8 +297,8 @@ Answer (as RAGina, with sass):`;
         placeholder: 'Ask me anything...',
         topK: 3,
         model: 'openai',
-        avatarUrl: null,
-        bubbleIcon: '🔮',
+        avatarUrl: 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png', // ← DEFAULT LOGO
+        bubbleIcon: null,
         title: 'RAGina',
         personality: 'sassy',
         theme: { primary: '#6C63FF' },
@@ -315,7 +312,7 @@ Answer (as RAGina, with sass):`;
         this.ui.build();
       };
 
-      // ✅ PRIORITY 1: Embedded index
+      // Check for embedded index first
       if (window.__RAGINA_INDEX__ && typeof window.__RAGINA_INDEX__ === 'object' && Object.keys(window.__RAGINA_INDEX__).length > 0) {
         this.engine.buildIndex(window.__RAGINA_INDEX__, this.config.chunkSize);
         finishInit();
@@ -323,7 +320,7 @@ Answer (as RAGina, with sass):`;
         return;
       }
 
-      // PRIORITY 2: Fetch from URL
+      // Otherwise fetch from URL
       if (this.config.indexUrl) {
         fetch(this.config.indexUrl)
           .then(res => {
@@ -383,16 +380,13 @@ Answer (as RAGina, with sass):`;
 
   global.RAGina = RAGina;
 
-  // ==================== AUTO-INIT (FIXED) ====================
+  // ── Auto‑init ─────────────────────────────────────────
   const autoStart = () => {
-    // If embedded index exists, use it directly
     if (window.__RAGINA_INDEX__ && typeof window.__RAGINA_INDEX__ === 'object' && Object.keys(window.__RAGINA_INDEX__).length > 0) {
-      const config = window.RAGINA_CONFIG || {};
-      RAGina.init({ ...config, indexUrl: null });
+      const cfg = window.RAGINA_CONFIG || {};
+      RAGina.init({ ...cfg, indexUrl: null });
       return;
     }
-
-    // Otherwise init with config (may have indexUrl)
     if (window.RAGINA_CONFIG) {
       RAGina.init(window.RAGINA_CONFIG);
     }
