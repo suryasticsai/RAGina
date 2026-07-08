@@ -131,6 +131,16 @@ Pricing starts at $10/month for the basic plan."></textarea>
     };
   <\/script>
   <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js"><\/script>
+  <!-- Timeout fallback: force-load embedded knowledge if CDN version missed it -->
+  <script>
+    (function waitForRAGina() {
+      if (window.RAGina && window.__RAGINA_INDEX__) {
+        RAGina.loadData(window.__RAGINA_INDEX__);
+        return;
+      }
+      setTimeout(waitForRAGina, 100);
+    })();
+  <\/script>
 </body>
 </html>`;
       
