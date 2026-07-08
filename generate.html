@@ -131,10 +131,16 @@ Pricing starts at $10/month for the basic plan."></textarea>
     };
   <\/script>
   <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js"><\/script>
-  <!-- Timeout fallback: force-load embedded knowledge if CDN version missed it -->
+  <!-- Fallback: remove any broken bubble, then force-load the knowledge -->
   <script>
     (function waitForRAGina() {
       if (window.RAGina && window.__RAGINA_INDEX__) {
+        // Clean up any bubble that was created by the CDN but may be broken
+        var oldBubble = document.querySelector('.ragina-bubble');
+        if (oldBubble) oldBubble.remove();
+        var oldPanel = document.querySelector('.ragina-panel');
+        if (oldPanel) oldPanel.remove();
+        // Now create a fresh, working chatbot
         RAGina.loadData(window.__RAGINA_INDEX__);
         return;
       }
