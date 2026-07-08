@@ -1,14 +1,13 @@
 /*!
- * RAGina.js v2.0.0
- * Mentalist RAG – CDN-ready chatbot widget
- * Uses Vercel proxy for AI (Groq + fallbacks)
- * Default bubble icon: ragina-logo.png
- * MIT License | github.com/suryasticsai/RAGina
+ * RAGina.js v2.0.4
+ * Created by suryasticsai@gmail.com | github.com/suryasticsai
+ * ⭐ Star the repo: https://github.com/suryasticsai/RAGina
+ * MIT License
  */
 (function (global) {
   'use strict';
 
-  // ── Sassy quotes ─────────────────────────────────────
+  // ── Sassy quotes for the chat ─────────────────────────
   const QUOTES = {
     ready: [
       "Alright darling, I've read every file in this place. Ask away.",
@@ -110,7 +109,7 @@
     return data.text;
   }
 
-  // ── Chat UI ───────────────────────────────────────────
+  // ── Chat UI (bubble + panel) ─────────────────────────
   class RAGinaUI {
     constructor(engine, config) {
       this.engine = engine;
@@ -134,8 +133,8 @@
       const css = `
 @keyframes ragina-pulse{0%,100%{box-shadow:0 0 0 0 rgba(${rgb},0.5)}50%{box-shadow:0 0 0 18px rgba(${rgb},0)}}
 @keyframes ragina-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.ragina-bubble{position:fixed;${this.config.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:24px;width:60px;height:60px;border-radius:50%;background:${primary};border:none;cursor:pointer;z-index:99999;font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform 0.3s;animation:ragina-float 4s ease-in-out infinite,ragina-pulse 2s infinite;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
-.ragina-bubble:hover{transform:scale(1.15);animation:none}
+.ragina-bubble{position:fixed;${this.config.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:24px;width:60px;height:60px;border-radius:50%;background:transparent;border:2px solid ${primary};cursor:pointer;z-index:99999;font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;animation:ragina-float 4s ease-in-out infinite,ragina-pulse 2s infinite;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+.ragina-bubble:hover{transform:scale(1.15) rotate(360deg);animation:none;border-color:${primary};box-shadow:0 0 25px rgba(${rgb},0.6)}
 .ragina-bubble img{width:44px;height:44px;border-radius:50%}
 .ragina-panel{position:fixed;${this.config.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:100px;width:380px;max-width:92vw;height:520px;max-height:70vh;background:#0f0f1a;border-radius:20px;z-index:99999;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(${rgb},0.4);box-shadow:0 0 40px rgba(${rgb},0.2),0 20px 60px rgba(0,0,0,0.6);transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);font-family:system-ui,sans-serif}
 .ragina-panel.hidden{opacity:0;pointer-events:none;transform:translateY(30px) scale(0.95)}
@@ -174,9 +173,8 @@
     build() {
       this.injectStyles();
 
-      // Bubble icon: use avatarUrl if set, else bubbleIcon HTML, else emoji
       const bubbleContent = this.config.avatarUrl
-        ? `<img src="${this.config.avatarUrl}" alt="RAGina" style="width:44px;height:44px;border-radius:50%;">`
+        ? `<img src="${this.config.avatarUrl}" alt="RAGina" style="width:44px;height:44px;border-radius:50%;" onerror="this.parentElement.innerHTML='🔮'">`
         : (this.config.bubbleIcon || '🔮');
 
       this.bubble = document.createElement('button');
@@ -185,12 +183,11 @@
       this.bubble.innerHTML = bubbleContent;
       document.body.appendChild(this.bubble);
 
-      // Panel
       this.panel = document.createElement('div');
       this.panel.className = 'ragina-panel hidden';
       this.panel.innerHTML = `
         <div class="ragina-header">
-          ${this.config.avatarUrl ? `<img class="ragina-avatar" src="${this.config.avatarUrl}" alt="RAGina" style="object-fit:cover;">` : '<div class="ragina-avatar">🔮</div>'}
+          ${this.config.avatarUrl ? `<img class="ragina-avatar" src="${this.config.avatarUrl}" alt="RAGina" style="object-fit:cover;" onerror="this.outerHTML='<div class=\\'ragina-avatar\\'>🔮</div>'">` : '<div class="ragina-avatar">🔮</div>'}
           <div class="ragina-header-info">
             <div class="ragina-header-name">${this.config.title || 'RAGina'}</div>
             <div class="ragina-header-status">🧠 Mentalist Online</div>
@@ -297,7 +294,7 @@
         placeholder: 'Ask me anything...',
         topK: 3,
         model: 'openai',
-        avatarUrl: 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png', // ← DEFAULT LOGO
+        avatarUrl: 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png',
         bubbleIcon: null,
         title: 'RAGina',
         personality: 'sassy',
