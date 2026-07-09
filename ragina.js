@@ -1,5 +1,6 @@
 /*!
- * RAGina.js v2.0.6
+ * RAGina.js v2.0.7
+ * Now accepts enriched knowledge format (metadata + pages with chunks)
  * Created by suryasticsai@gmail.com | github.com/suryasticsai
  * ⭐ Star the repo: https://github.com/suryasticsai/RAGina
  * MIT License
@@ -7,7 +8,7 @@
 (function (global) {
   'use strict';
 
-  // ── Sassy quotes for the chat ─────────────────────────
+  // ── Sassy quotes ─────────────────────────────────────
   const QUOTES = {
     ready: [
       "Alright darling, I've read every file in this place. Ask away.",
@@ -47,7 +48,9 @@
 
     buildIndex(data, chunkSize = 200) {
       this.chunks = [];
-      for (const [label, doc] of Object.entries(data)) {
+      // Convert enriched format if needed
+      const flatData = convertToFlat(data);
+      for (const [label, doc] of Object.entries(flatData)) {
         const bodyText = doc.bodyText || doc.body || doc.content || '';
         if (!bodyText || bodyText.length < 30) continue;
 
@@ -96,6 +99,26 @@
     }
   }
 
+  // ── Format converter (enriched → flat) ──────────────
+  function convertToFlat(data) {
+    // If it already has a "pages" array, it's the enriched format
+    if (data && Array.isArray(data.pages)) {
+      const flat = {};
+      for (const page of data.pages) {
+        const url = page.url || 'unknown';
+        const chunks = page.chunks || [];
+        if (chunks.length === 0) {
+          if (page.content) flat[url] = { bodyText: page.content };
+          continue;
+        }
+        const combined = chunks.map(c => c.text || c.content || '').join('\n');
+        flat[url] = { bodyText: combined };
+      }
+      return flat;
+    }
+    return data;
+  }
+
   // ── AI proxy (Vercel) ─────────────────────────────────
   async function askLLM(prompt, model) {
     const res = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
@@ -109,7 +132,7 @@
     return data.text;
   }
 
-  // ── Chat UI (bubble + panel) ─────────────────────────
+  // ── Chat UI ───────────────────────────────────────────
   class RAGinaUI {
     constructor(engine, config) {
       this.engine = engine;
@@ -395,15 +418,13 @@
     autoStart();
   }
 
-  // ── BUILT‑IN FALLBACK: force‑load embedded index if engine isn't ready ──
+  // ── BUILT‑IN FALLBACK ──
   setTimeout(() => {
     if (window.RAGina && window.__RAGINA_INDEX__ && (!window.RAGina.engine || !window.RAGina.engine.isReady)) {
-      // Clean up any broken bubble / panel from a previous attempt
       var oldBubble = document.querySelector('.ragina-bubble');
       if (oldBubble) oldBubble.remove();
       var oldPanel = document.querySelector('.ragina-panel');
       if (oldPanel) oldPanel.remove();
-      // Fresh load of embedded knowledge
       RAGina.loadData(window.__RAGINA_INDEX__);
     }
   }, 500);
