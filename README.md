@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/ragina-logo.png" alt="RAGina" width="200"/>
+  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile.png" alt="RAGina" width="200"/>
 </p>
 
 <h1 align="center">🧠 RAGina – The Mentalist RAG</h1>
