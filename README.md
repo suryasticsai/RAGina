@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile.png" alt="RAGina" width="200"/>
 </p>
 
-<h1 align="center">🧠 RAGina – The Mentalist RAG</h1>
+<h1 align="center">🧠 RAGina – The Instant  RAG</h1>
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="MIT License"></a>
@@ -42,9 +42,9 @@
 
 Add this single `<script>` tag to any HTML page and a floating chat bubble will show up at the bottom‑right:
 
-'''
+```markdown
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
-'''
+```
 
 That’s it. No signup. No keys. No servers.
 
@@ -56,7 +56,7 @@ She can read from a URL or from data you embed directly in the page.
 
 ### From a URL (recommended for tiny pages)
 
-'''
+```markdown
 <script>
   window.RAGINA_CONFIG = {
     indexUrl: 'https://example.com/my-knowledge.json',
@@ -66,11 +66,11 @@ She can read from a URL or from data you embed directly in the page.
   };
 </script>
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
-'''
+```
 
 ### Embedded Knowledge (zero external files)
 
-'''
+```markdown
 <script>
   window.__RAGINA_INDEX__ = {
     "about.html": { "bodyText": "RAGina is awesome..." },
@@ -79,7 +79,7 @@ She can read from a URL or from data you embed directly in the page.
   window.RAGINA_CONFIG = { position: 'bottom-left' };
 </script>
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
-'''
+```
 
 No files. No server. She reads everything from that tiny object.
 
