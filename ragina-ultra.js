@@ -291,32 +291,20 @@
       this.wasPlayingBeforeMic = false;
     }
 
-    // ─── FIXED OPENDB – version 4 + fallback delete ──────────────────────
+    // ─── INDEXEDDB – Version 5 (fixes the error) ─────────────────────────
     async openDB() {
-      const dbName = 'RAGinaChatDB';
-      try {
-        return await new Promise((resolve, reject) => {
-          const request = indexedDB.open(dbName, 4);
-          request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('chat')) {
-              db.createObjectStore('chat', { keyPath: 'id' });
-            }
-          };
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-      } catch (err) {
-        // If version conflict occurs, delete the database and retry
-        console.warn('IndexedDB version conflict, deleting and recreating...', err);
-        await new Promise((resolve, reject) => {
-          const deleteRequest = indexedDB.deleteDatabase(dbName);
-          deleteRequest.onsuccess = resolve;
-          deleteRequest.onerror = reject;
-        });
-        // Retry with same version (now the database is fresh)
-        return this.openDB();
-      }
+      return new Promise((resolve, reject) => {
+        // Use version 5 to force upgrade
+        const request = indexedDB.open('RAGinaChatDB', 5);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('chat')) {
+            db.createObjectStore('chat', { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
     }
 
     // ─── INJECT HTML ──────────────────────────────────────────────────────
