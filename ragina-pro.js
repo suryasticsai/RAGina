@@ -1,7 +1,8 @@
 /**
  * RAGina Pro – Full Application (UI + Engine)
- * Version 2.3.4 – Fully fixed YouTube player
- * All-in-one, self-contained, no external dependencies except YouTube IFrame API.
+ * Version 2.3.5 – AI retry + fallback, improved selection handling
+ * 
+ * All‑in‑one, self‑contained. No external dependencies except YouTube IFrame API.
  */
 (function() {
     'use strict';
@@ -11,6 +12,8 @@
     const DEFAULT_INDEX_URL = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/demo-index.json';
     const DEFAULT_VOICE_ID = 'rachel';
     const DEFAULT_VOICE_SPEED = 1.0;
+    // Fallback AI endpoint (if primary fails)
+    const FALLBACK_AI_ENDPOINT = 'https://ragina-crawler-ragina.vercel.app/api/ask';
 
     // ─── READ CONFIG ──────────────────────────────────────────────────────
     const CONFIG = window.RAGINA_CONFIG || {};
@@ -1016,7 +1019,7 @@
             return false;
         }
 
-        // ─── AI-based music command parser ────────────────────────────
+        // ─── AI‑based music command parser ────────────────────────────
         async function parseMusicCommandWithAI(text) {
             const prompt = `You are a music command parser. Given the user's message, determine if they want to control music playback. If yes, respond with a JSON object containing "action" and optionally "song". Actions: "play", "pause", "resume", "stop", "change". If not a music command, respond with {"action": "none"}.
 
@@ -1048,6 +1051,95 @@
                 return { action: 'none' };
             } catch (e) {
                 return { action: 'none' };
+            }
+        }
+
+        // ─── Improved getSelectedText ──────────────────────────────────
+        function getSelectedText() {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed) return '';
+            const text = sel.toString().trim();
+            // Log the selection to help debugging
+            console.log('📌 Selected text:', text);
+            return text;
+        }
+
+        // ─── AI call with retry & fallback ──────────────────────────────
+        async function callAI(prompt) {
+            let attempts = 0;
+            const maxAttempts = 2;
+            let lastError = null;
+
+            while (attempts < maxAttempts) {
+                attempts++;
+                try {
+                    const res = await fetch(AI_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt })
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    if (data.error || !data.text?.trim()) throw new Error(data.error || 'Empty response');
+                    return data.text.trim();
+                } catch (err) {
+                    lastError = err;
+                    console.warn(`AI attempt ${attempts} failed:`, err.message);
+                    // If we have a fallback endpoint and it's the first attempt, try it next
+                    if (attempts === 1 && FALLBACK_AI_ENDPOINT && FALLBACK_AI_ENDPOINT !== AI_ENDPOINT) {
+                        try {
+                            const res = await fetch(FALLBACK_AI_ENDPOINT, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ prompt })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.text?.trim()) return data.text.trim();
+                            }
+                        } catch (e) {}
+                    }
+                    // Wait before retry
+                    if (attempts < maxAttempts) await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+            throw lastError || new Error('All AI attempts failed.');
+        }
+
+        // ─── Modified getAIAnswer to use callAI ──────────────────────
+        async function getAIAnswer(question, selectedText) {
+            let context = '';
+            if (selectedText) {
+                context = `The user has selected the following text on the page: "${selectedText}".\n\n`;
+            }
+            if (engine && typeof engine.retrieve === 'function') {
+                try {
+                    const chunks = engine.retrieve(question, 5) || [];
+                    const ragContext = chunks.map((c, i) => `[${i+1}] ${c.text}`).join('\n\n');
+                    if (ragContext) {
+                        context += 'Relevant context from knowledge base:\n' + ragContext + '\n\n';
+                    }
+                } catch (e) {}
+            }
+            const recentHistory = history.slice(-8)
+                .map(h => `${h.role === 'user' ? (userName || 'User') : 'RAGina'}: ${h.text}`)
+                .join('\n');
+            const prompt =
+                `You are RAGina — witty, warm, sharp-tongued AI with access to YouTube music. Talk like a real friend. You can play songs. If the user asks for music, say you'll play it. Only use context below if relevant. You're talking to ${userName || 'someone new'}.
+
+${context ? 'User provided selected text context:\n' + context : ''}
+
+Recent:
+${recentHistory}
+
+${userName || 'User'}: ${question}
+RAGina:`;
+
+            try {
+                return await callAI(prompt);
+            } catch (err) {
+                console.error('AI error:', err);
+                return "I'm having trouble connecting to my brain. Could you try again in a moment?";
             }
         }
 
@@ -1266,52 +1358,6 @@
             const word = m && m[1] ? m[1].trim().split(/\s+/)[0] : (text.split(/\s+/)[0] || text);
             const clean = word.replace(/[^a-zA-Z'-]/g, '');
             return clean ? clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase() : 'friend';
-        }
-
-        function getSelectedText() {
-            const sel = window.getSelection();
-            return sel ? sel.toString().trim() : '';
-        }
-
-        // ─── AI answer ──────────────────────────────────────────────────
-        async function getAIAnswer(question, selectedText) {
-            let context = '';
-            if (selectedText) {
-                context = `The user has selected the following text on the page: "${selectedText}".\n\n`;
-            }
-            if (engine && typeof engine.retrieve === 'function') {
-                try {
-                    const chunks = engine.retrieve(question, 5) || [];
-                    const ragContext = chunks.map((c, i) => `[${i+1}] ${c.text}`).join('\n\n');
-                    if (ragContext) {
-                        context += 'Relevant context from knowledge base:\n' + ragContext + '\n\n';
-                    }
-                } catch (e) {}
-            }
-            const recentHistory = history.slice(-8)
-                .map(h => `${h.role === 'user' ? (userName || 'User') : 'RAGina'}: ${h.text}`)
-                .join('\n');
-            const prompt =
-                `You are RAGina — witty, warm, sharp-tongued AI with access to YouTube music. Talk like a real friend. You can play songs. If the user asks for music, say you'll play it. Only use context below if relevant. You're talking to ${userName || 'someone new'}.
-
-${context ? 'User provided selected text context:\n' + context : ''}
-
-Recent:
-${recentHistory}
-
-${userName || 'User'}: ${question}
-RAGina:`;
-
-            try {
-                const res = await fetch(AI_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt }) });
-                if (!res.ok) throw new Error(`AI ${res.status}`);
-                const data = await res.json();
-                if (data.error || !data.text?.trim()) throw new Error('empty');
-                return data.text.trim();
-            } catch (e) {
-                return "Ugh, brain fog — my server's not answering. Give me a sec?";
-            }
         }
 
         // ─── Core sendMessage ──────────────────────────────────────────
