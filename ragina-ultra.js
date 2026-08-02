@@ -1,6 +1,6 @@
 /**
  * RAGina Ultra — Full Combined Version (Pro UI)
- * Uses IndexedDB version 10 to avoid conflicts.
+ * Uses localStorage for auto-save + optional GitHub Gist backup.
  *
  * Created by suryasticsai@gmail.com | github.com/suryasticsai
  * MIT License
@@ -160,7 +160,8 @@
     pause: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`,
     stop: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`,
     close: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
-    minimize: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>`
+    minimize: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>`,
+    gist: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.55 9.55 0 0 1 12 6.8c.85.01 1.71.12 2.51.34 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.16.58.67.5C19.13 20.17 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>`
   };
 
   // ─── STYLES ────────────────────────────────────────────────────────────────
@@ -279,41 +280,85 @@
       this.introDone = false;
       this.history = [];
       this.wasPlayingBeforeMic = false;
+      // localStorage key
+      this.STORAGE_KEY = 'ragina_chat_history';
     }
 
-    // ─── INDEXEDDB – Fixed with version 10 ──────────────────────────────────
-    async openDB() {
-      const dbName = 'RAGinaChatDB';
-      const version = 10;  // Bump to a high number to skip all old versions
-      console.log(`📦 Opening IndexedDB "${dbName}" version ${version}`);
+    // ─── LOCALSTORAGE HELPERS ──────────────────────────────────────────────
+    saveToLocalStorage() {
+      try {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.messageHistory));
+        this.chatStatus.textContent = 'Auto‑saved ✓';
+        this.chatStatus.style.color = '#6C63FF';
+      } catch (e) {
+        console.warn('localStorage save error:', e);
+        this.chatStatus.textContent = 'Save failed';
+        this.chatStatus.style.color = '#FF6584';
+      }
+    }
+
+    loadFromLocalStorage() {
+      try {
+        const data = localStorage.getItem(this.STORAGE_KEY);
+        return data ? JSON.parse(data) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    clearLocalStorage() {
+      try {
+        localStorage.removeItem(this.STORAGE_KEY);
+      } catch (e) {}
+    }
+
+    // ─── SAVE TO GIST ────────────────────────────────────────────────────────
+    async saveToGist() {
+      const token = prompt('Enter your GitHub Personal Access Token (with "gist" scope):');
+      if (!token) {
+        this.addMessage('Gist save cancelled – no token provided.', 'system');
+        return;
+      }
+      const description = prompt('Enter a description for this Gist:', 'RAGina Chat History');
+      if (description === null) {
+        this.addMessage('Gist save cancelled.', 'system');
+        return;
+      }
+      const filename = prompt('Enter a filename (e.g. chat.json):', 'ragina-chat.json');
+      if (!filename) {
+        this.addMessage('Gist save cancelled – no filename.', 'system');
+        return;
+      }
+
+      const content = JSON.stringify(this.messageHistory, null, 2);
+      const payload = {
+        description: description || 'RAGina Chat History',
+        public: false,
+        files: {
+          [filename]: { content }
+        }
+      };
 
       try {
-        return await new Promise((resolve, reject) => {
-          const request = indexedDB.open(dbName, version);
-          request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            console.log('🔄 Upgrading database to version', version);
-            if (!db.objectStoreNames.contains('chat')) {
-              db.createObjectStore('chat', { keyPath: 'id' });
-            }
-          };
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
+        const response = await fetch('https://api.github.com/gists', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'token ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
         });
-      } catch (err) {
-        console.warn('❌ Failed to open IndexedDB:', err);
-        // If a version error occurs, delete the entire database and try again.
-        if (err.name === 'VersionError') {
-          console.warn('🗑️ Deleting old database and recreating...');
-          await new Promise((resolve, reject) => {
-            const deleteRequest = indexedDB.deleteDatabase(dbName);
-            deleteRequest.onsuccess = resolve;
-            deleteRequest.onerror = reject;
-          });
-          // Retry opening with the same version (now fresh)
-          return this.openDB();
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'GitHub API error');
         }
-        throw err;
+        const result = await response.json();
+        this.addMessage(`✅ Chat saved to Gist! URL: ${result.html_url}`, 'system');
+        this.chatStatus.textContent = 'Gist saved ✓';
+        this.chatStatus.style.color = '#6C63FF';
+      } catch (err) {
+        this.addMessage(`❌ Failed to save Gist: ${err.message}`, 'system');
+        console.error(err);
       }
     }
 
@@ -350,6 +395,7 @@
           <button id="raginaLoadChat">📂 Load</button>
           <button id="raginaClearChat">🗑️ Clear</button>
           <button id="raginaUploadFolder">📁 Upload</button>
+          <button id="raginaSaveGist">${ICONS.gist} Gist</button>
           <span class="status" id="raginaChatStatus">Auto‑saved</span>
         </div>
         <input type="file" id="raginaFileInput" webkitdirectory directory multiple accept=".html,.htm" />
@@ -410,6 +456,7 @@
       document.getElementById('raginaClearChat').addEventListener('click', () => this.clearChat());
       document.getElementById('raginaUploadFolder').addEventListener('click', () => this.fileInput.click());
       this.fileInput.addEventListener('change', e => this.handleFolderUpload(e));
+      document.getElementById('raginaSaveGist').addEventListener('click', () => this.saveToGist());
 
       this.setReady(this.engine.isReady);
       console.log('🎯 RAGina Ultra Pro UI ready.');
@@ -495,7 +542,7 @@
       this.messages.appendChild(div);
       this.messages.scrollTop = this.messages.scrollHeight;
       this.messageHistory.push({ role: sender, text, sources });
-      this.saveChatHistory();
+      this.saveToLocalStorage();
       return div;
     }
 
@@ -777,48 +824,9 @@
       await this.speakText(intro);
     }
 
-    // ─── PERSISTENCE ──────────────────────────────────────────────────────
-    async saveChatHistory() {
-      try {
-        const db = await this.openDB();
-        const tx = db.transaction('chat', 'readwrite');
-        const store = tx.objectStore('chat');
-        store.put({ id: 'history', data: this.messageHistory });
-        await tx.done;
-        this.chatStatus.textContent = 'Auto‑saved ✓';
-        this.chatStatus.style.color = '#6C63FF';
-      } catch (e) {
-        console.warn('Save error:', e);
-      }
-    }
-
-    async loadChatHistory() {
-      try {
-        const db = await this.openDB();
-        const tx = db.transaction('chat', 'readonly');
-        const store = tx.objectStore('chat');
-        const request = store.get('history');
-        return new Promise(resolve => {
-          request.onsuccess = () => resolve(request.result ? request.result.data : null);
-          request.onerror = () => resolve(null);
-        });
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async clearChatHistory() {
-      try {
-        const db = await this.openDB();
-        const tx = db.transaction('chat', 'readwrite');
-        const store = tx.objectStore('chat');
-        store.delete('history');
-        await tx.done;
-      } catch (e) {}
-    }
-
-    async restoreChat() {
-      const saved = await this.loadChatHistory();
+    // ─── PERSISTENCE (localStorage) ──────────────────────────────────────
+    restoreChat() {
+      const saved = this.loadFromLocalStorage();
       if (saved && saved.length > 0) {
         this.messageHistory = saved;
         this.messages.innerHTML = '';
@@ -840,6 +848,14 @@
         this.messages.scrollTop = this.messages.scrollHeight;
         this.chatStatus.textContent = 'Loaded ' + saved.length + ' messages';
         this.chatStatus.style.color = '#6C63FF';
+        // Try to extract username from first bot message
+        const nameMsg = saved.find(m => m.role === 'ai' && m.text.includes('Nice to meet you'));
+        if (nameMsg) {
+          const match = nameMsg.text.match(/Nice to meet you, ([^!]+)/);
+          if (match) this.userName = match[1];
+          this.introDone = true;
+          this.awaitingName = false;
+        }
         return true;
       }
       return false;
@@ -888,7 +904,7 @@
                 this.messages.appendChild(div);
               });
               this.messages.scrollTop = this.messages.scrollHeight;
-              this.saveChatHistory();
+              this.saveToLocalStorage();
               this.chatStatus.textContent = 'Loaded ' + data.length + ' messages';
               this.chatStatus.style.color = '#6C63FF';
             }
@@ -905,7 +921,7 @@
       if (!confirm('Clear all chat history?')) return;
       this.messageHistory = [];
       this.messages.innerHTML = '';
-      await this.clearChatHistory();
+      this.clearLocalStorage();
       this.chatStatus.textContent = 'Cleared';
       this.chatStatus.style.color = '#FF6584';
       setTimeout(() => { this.chatStatus.textContent = 'Auto‑saved'; }, 3000);
@@ -936,7 +952,7 @@
       this.messages.innerHTML = '';
       this.messageHistory = [];
       this.addMessage(randomQuote(QUOTES.ready), 'ai');
-      this.saveChatHistory();
+      this.saveToLocalStorage();
       this.chatStatus.textContent = 'Loaded ' + htmlFiles.length + ' files';
     }
 
@@ -1004,8 +1020,9 @@
         this.ui.initYouTubePlayer();
       }
 
-      setTimeout(async () => {
-        const has = await this.ui.restoreChat();
+      // Restore from localStorage
+      setTimeout(() => {
+        const has = this.ui.restoreChat();
         if (!has) {
           if (this.engine.isReady) {
             this.ui.addMessage(randomQuote(QUOTES.ready), 'ai');
@@ -1051,6 +1068,7 @@
       this.ui.messages.innerHTML = '';
       this.ui.messageHistory = [];
       this.ui.addMessage(randomQuote(QUOTES.ready), 'ai');
+      this.ui.saveToLocalStorage();
     },
 
     async loadFolder(fileList) {
