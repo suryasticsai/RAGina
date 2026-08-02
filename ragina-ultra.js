@@ -1,11 +1,9 @@
 /**
- * RAGina Ultra v2.0 – The Ultimate Mentalist
- *
+ * RAGina Ultra v2.1 – The Ultimate Mentalist
  * All-in-one: RAG, chat, music, voice, selected-text, drag, minimise,
  * persistence, folder upload, export/import, sassy personality.
  *
  * CDN: https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-ultra.js
- * Instant: https://raw.githack.com/suryasticsai/RAGina/main/ragina-ultra.js
  */
 (function(global) {
   'use strict';
@@ -153,9 +151,18 @@
     return data.text;
   }
 
-  // ─── PRO UI (Music, Voice, Drag, Persistence, etc.) ────────────────────────
-  // This is a massive builder – we inline it all.
+  // ─── SVG ICONS ──────────────────────────────────────────────────────────────
+  const ICONS = {
+    mic: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 3.91c-2.84-.48-5-2.94-5-5.91h-2c0 3.83 2.82 6.93 6.5 7.48V21h3v-3.52c3.68-.55 6.5-3.65 6.5-7.48h-2c0 2.97-2.16 5.43-5 5.91z"/></svg>`,
+    send: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`,
+    play: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`,
+    pause: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`,
+    stop: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`,
+    close: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
+    minimize: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>`
+  };
 
+  // ─── STYLES ──────────────────────────────────────────────────────────────────
   function injectStyles() {
     if (document.getElementById('ragina-ultra-styles')) return;
     const primary = CONFIG.theme.primary || '#6C63FF';
@@ -164,8 +171,10 @@
       @keyframes ragina-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
       @keyframes ragina-pulse{0%,100%{box-shadow:0 0 0 0 rgba(${rgb},0.5)}50%{box-shadow:0 0 0 18px rgba(${rgb},0)}}
       @keyframes ragina-typing{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-8px);opacity:1}}
-      .ragina-bubble{position:fixed;${CONFIG.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:24px;width:60px;height:60px;border-radius:50%;background:transparent;border:2px solid ${primary};cursor:pointer;z-index:99999;font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;animation:ragina-float 4s ease-in-out infinite,ragina-pulse 2s infinite;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+      @keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(0,214,143,0.4)}50%{box-shadow:0 0 0 14px rgba(0,214,143,0)}}
+      .ragina-bubble{position:fixed;${CONFIG.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:24px;width:60px;height:60px;border-radius:50%;background:transparent;border:2px solid ${primary};cursor:grab;z-index:99999;font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;animation:ragina-float 4s ease-in-out infinite,ragina-pulse 2s infinite;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
       .ragina-bubble:hover{transform:scale(1.15) rotate(360deg);animation:none;border-color:${primary};box-shadow:0 0 25px rgba(${rgb},0.6)}
+      .ragina-bubble:active{cursor:grabbing}
       .ragina-bubble img{width:44px;height:44px;border-radius:50%}
       .ragina-panel{position:fixed;${CONFIG.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:100px;width:380px;max-width:92vw;height:520px;max-height:70vh;background:#0f0f1a;border-radius:20px;z-index:99999;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(${rgb},0.4);box-shadow:0 0 40px rgba(${rgb},0.2),0 20px 60px rgba(0,0,0,0.6);transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);font-family:system-ui,sans-serif}
       .ragina-panel.hidden{opacity:0;pointer-events:none;transform:translateY(30px) scale(0.95)}
@@ -175,6 +184,7 @@
       .ragina-header-name{font-weight:700;font-size:1.1rem}
       .ragina-header-status{font-size:0.7rem;opacity:0.8}
       .ragina-close{background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+      .ragina-close:hover{background:rgba(255,255,255,0.4)}
       .ragina-messages{flex:1;padding:16px;overflow-y:auto;background:linear-gradient(180deg,#0f0f1a 0%,#1a1a2e 100%)}
       .ragina-messages::-webkit-scrollbar{width:4px}
       .ragina-messages::-webkit-scrollbar-thumb{background:rgba(${rgb},0.4);border-radius:4px}
@@ -182,30 +192,36 @@
       .ragina-msg.user{align-items:flex-end}
       .ragina-msg.user .ragina-bubble-text{background:${primary};color:white;border-radius:18px 18px 4px 18px}
       .ragina-msg.ai .ragina-bubble-text{background:rgba(${rgb},0.1);color:#ddd;border:1px solid rgba(${rgb},0.3);border-radius:18px 18px 18px 4px}
+      .ragina-msg.system .ragina-bubble-text{background:rgba(255,255,255,0.05);color:#888;font-size:0.8rem;font-style:italic;border:1px dashed rgba(255,255,255,0.1);border-radius:12px}
       .ragina-bubble-text{max-width:82%;padding:10px 16px;font-size:0.9rem;line-height:1.5;word-break:break-word}
       .ragina-sources{font-size:0.65rem;color:rgba(${rgb},0.7);margin-top:4px;padding-left:8px;font-style:italic}
       .ragina-input-area{display:flex;padding:10px;border-top:1px solid rgba(${rgb},0.2);background:#0f0f1a;gap:8px;flex-wrap:wrap}
       .ragina-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(${rgb},0.3);border-radius:24px;padding:10px 16px;color:white;font-size:0.9rem;outline:none}
       .ragina-input::placeholder{color:rgba(255,255,255,0.3)}
-      .ragina-send{background:${primary};border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;color:white;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+      .ragina-input:disabled{opacity:0.4;cursor:not-allowed}
+      .ragina-send{background:${primary};border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
       .ragina-send:hover{box-shadow:0 0 15px rgba(${rgb},0.6)}
       .ragina-send:disabled{opacity:0.4;cursor:not-allowed}
+      .ragina-send svg{width:20px;height:20px;fill:currentColor}
       .ragina-typing{display:flex;gap:4px;padding:10px 16px}
       .ragina-typing span{width:8px;height:8px;border-radius:50%;background:rgba(${rgb},0.6);animation:ragina-typing 1.4s infinite}
       .ragina-typing span:nth-child(2){animation-delay:0.2s}
       .ragina-typing span:nth-child(3){animation-delay:0.4s}
       .ragina-toolbar{display:flex;gap:6px;padding:6px 14px;background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(${rgb},0.15);flex-wrap:wrap;align-items:center}
-      .ragina-toolbar button{background:rgba(${rgb},0.2);border:none;color:#ccc;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;transition:0.2s}
+      .ragina-toolbar button{background:rgba(${rgb},0.2);border:none;color:#ccc;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;transition:0.2s;display:flex;align-items:center;gap:4px}
       .ragina-toolbar button:hover{background:rgba(${rgb},0.4);color:#fff}
+      .ragina-toolbar button svg{width:14px;height:14px;fill:currentColor}
       .ragina-toolbar .status{flex:1;text-align:right;font-size:10px;color:#666}
-      .ragina-mic{background:transparent;border:2px solid rgba(${rgb},0.4);border-radius:50%;width:38px;height:38px;color:${primary};font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:0.2s}
+      .ragina-mic{background:transparent;border:2px solid rgba(${rgb},0.4);border-radius:50%;width:38px;height:38px;color:${primary};display:flex;align-items:center;justify-content:center;cursor:pointer;transition:0.2s}
+      .ragina-mic:hover{background:rgba(${rgb},0.1)}
       .ragina-mic.listening{background:#00d68f;border-color:#00d68f;color:#fff;animation:pulse-mic 1s infinite}
-      @keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(0,214,143,0.4)}50%{box-shadow:0 0 0 14px rgba(0,214,143,0)}}
+      .ragina-mic svg{width:20px;height:20px;fill:currentColor}
       .ragina-music{background:rgba(${rgb},0.15);border:1px solid rgba(${rgb},0.35);border-radius:12px;padding:6px 10px;margin:0 14px 8px;display:none;flex-direction:column;gap:4px}
       .ragina-music-row{display:flex;align-items:center;gap:6px}
       .ragina-music-label{flex:1;font-size:11px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .ragina-music-btn{background:rgba(255,255,255,0.1);border:none;color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+      .ragina-music-btn{background:rgba(255,255,255,0.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:0.2s}
       .ragina-music-btn:hover{background:rgba(255,255,255,0.25)}
+      .ragina-music-btn svg{width:16px;height:16px;fill:currentColor}
       .ragina-progress-row{display:flex;align-items:center;gap:6px}
       .ragina-progress-bar{flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;cursor:pointer}
       .ragina-progress-fill{height:100%;width:0%;background:${primary};border-radius:2px;transition:width 0.1s linear}
@@ -266,6 +282,22 @@
       this.wasPlayingBeforeMic = false;
     }
 
+    // ─── OPENDB (FIXED) ─────────────────────────────────────────────────────
+    async openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('RAGinaChatDB', 2);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('chat')) {
+            db.createObjectStore('chat', { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ─── INJECT HTML ────────────────────────────────────────────────────────
     injectHTML() {
       const primary = CONFIG.theme.primary || '#6C63FF';
       const bubbleContent = CONFIG.avatarUrl
@@ -278,6 +310,9 @@
       this.bubble.innerHTML = bubbleContent;
       document.body.appendChild(this.bubble);
 
+      // ─── DRAG ON BUBBLE (FIXED: drag even when minimized) ──────────────
+      this._makeDraggable(this.bubble);
+
       this.panel = document.createElement('div');
       this.panel.className = 'ragina-panel hidden';
       this.panel.innerHTML = `
@@ -287,13 +322,13 @@
             <div class="ragina-header-name">${CONFIG.title || 'RAGina'}</div>
             <div class="ragina-header-status" id="raginaStatus">🧠 Mentalist Online</div>
           </div>
-          <button class="ragina-close" id="raginaClose">✕</button>
+          <button class="ragina-close" id="raginaClose">${ICONS.close}</button>
         </div>
         <div class="ragina-toolbar">
-          <button id="raginaSaveChat">💾 Save Chat</button>
-          <button id="raginaLoadChat">📂 Load Chat</button>
-          <button id="raginaClearChat">🗑️ Clear Chat</button>
-          <button id="raginaUploadFolder">📁 Upload Folder</button>
+          <button id="raginaSaveChat">💾 Save</button>
+          <button id="raginaLoadChat">📂 Load</button>
+          <button id="raginaClearChat">🗑️ Clear</button>
+          <button id="raginaUploadFolder">📁 Upload</button>
           <span class="status" id="raginaChatStatus">Auto‑saved</span>
         </div>
         <input type="file" id="raginaFileInput" webkitdirectory directory multiple accept=".html,.htm" />
@@ -301,8 +336,8 @@
         <div class="ragina-music" id="raginaMusic">
           <div class="ragina-music-row">
             <span class="ragina-music-label" id="raginaSongLabel">🎵</span>
-            <button class="ragina-music-btn" id="raginaPlayPause">▶️</button>
-            <button class="ragina-music-btn" id="raginaStop">⏹</button>
+            <button class="ragina-music-btn" id="raginaPlayPause">${ICONS.play}</button>
+            <button class="ragina-music-btn" id="raginaStop">${ICONS.stop}</button>
           </div>
           <div class="ragina-progress-row">
             <span class="ragina-time-label" id="raginaTimeCurrent">0:00</span>
@@ -311,9 +346,9 @@
           </div>
         </div>
         <div class="ragina-input-area">
-          <button class="ragina-mic" id="raginaMic" title="Click to speak">🎤</button>
+          <button class="ragina-mic" id="raginaMic" title="Click to speak">${ICONS.mic}</button>
           <input type="text" class="ragina-input" id="raginaInput" placeholder="${CONFIG.placeholder || 'Ask me anything…'}" autocomplete="off">
-          <button class="ragina-send" id="raginaSend">➤</button>
+          <button class="ragina-send" id="raginaSend">${ICONS.send}</button>
         </div>
       `;
       document.body.appendChild(this.panel);
@@ -335,6 +370,10 @@
       this.fileInput = document.getElementById('raginaFileInput');
       this.chatStatus = document.getElementById('raginaChatStatus');
 
+      // ─── DRAG ON PANEL HEADER ────────────────────────────────────────────
+      const header = this.panel.querySelector('.ragina-header');
+      this._makeDraggable(this.panel, header);
+
       // Events
       this.bubble.addEventListener('click', () => this.toggle());
       document.getElementById('raginaClose').addEventListener('click', () => this.minimize());
@@ -350,22 +389,25 @@
       document.getElementById('raginaClearChat').addEventListener('click', () => this.clearChat());
       document.getElementById('raginaUploadFolder').addEventListener('click', () => this.fileInput.click());
       this.fileInput.addEventListener('change', e => this.handleFolderUpload(e));
-
-      // Drag
-      this.enableDrag();
     }
 
-    enableDrag() {
+    // ─── DRAGGABLE HELPER ──────────────────────────────────────────────────
+    _makeDraggable(element, handle = element) {
       let dragActive = false, startX, startY, startLeft, startTop;
       const onStart = (e) => {
         if (e.target.closest('button') || e.target.closest('input')) return;
-        const rect = this.panel.getBoundingClientRect();
+        const rect = element.getBoundingClientRect();
         startLeft = rect.left; startTop = rect.top;
         const clientX = e.clientX || (e.touches && e.touches[0].clientX);
         const clientY = e.clientY || (e.touches && e.touches[0].clientY);
         startX = clientX; startY = clientY;
         dragActive = true;
-        this.panel.style.transition = 'none';
+        element.style.transition = 'none';
+        element.style.position = 'fixed';
+        element.style.left = startLeft + 'px';
+        element.style.top = startTop + 'px';
+        element.style.right = 'auto';
+        element.style.bottom = 'auto';
         e.preventDefault();
       };
       const onMove = (e) => {
@@ -374,27 +416,26 @@
         const clientY = e.clientY || (e.touches && e.touches[0].clientY);
         const dx = clientX - startX;
         const dy = clientY - startY;
-        this.panel.style.left = (startLeft + dx) + 'px';
-        this.panel.style.top = (startTop + dy) + 'px';
-        this.panel.style.right = 'auto';
-        this.panel.style.bottom = 'auto';
+        element.style.left = (startLeft + dx) + 'px';
+        element.style.top = (startTop + dy) + 'px';
+        element.style.right = 'auto';
+        element.style.bottom = 'auto';
       };
       const onEnd = () => { dragActive = false; };
-      const header = this.panel.querySelector('.ragina-header');
-      header.addEventListener('mousedown', onStart);
-      header.addEventListener('touchstart', onStart, { passive: false });
+      handle.addEventListener('mousedown', onStart);
+      handle.addEventListener('touchstart', onStart, { passive: false });
       document.addEventListener('mousemove', onMove);
       document.addEventListener('touchmove', onMove, { passive: false });
       document.addEventListener('mouseup', onEnd);
       document.addEventListener('touchend', onEnd);
     }
 
+    // ─── TOGGLE / MINIMIZE ─────────────────────────────────────────────────
     toggle() {
       this.panel.classList.toggle('hidden');
       if (!this.panel.classList.contains('hidden')) {
         this.input.focus();
         this.isMinimized = false;
-        // If intro not done and no name, trigger intro
         if (!this.introDone && !this.userName) this.introduce();
       } else {
         this.isMinimized = true;
@@ -408,15 +449,16 @@
 
     setReady(ready) {
       this.isReady = ready;
-      this.input.disabled = !ready;
-      this.sendBtn.disabled = !ready;
+      this.input.disabled = false; // always enabled
+      this.sendBtn.disabled = false;
       if (ready) {
         this.statusEl.textContent = '🧠 Mentalist Online';
       } else {
-        this.statusEl.textContent = '⏳ Loading knowledge…';
+        this.statusEl.textContent = '📁 Upload a folder to give me knowledge';
       }
     }
 
+    // ─── MESSAGES ───────────────────────────────────────────────────────────
     addMessage(text, sender, sources = []) {
       const div = document.createElement('div');
       div.className = `ragina-msg ${sender}`;
@@ -432,7 +474,6 @@
       }
       this.messages.appendChild(div);
       this.messages.scrollTop = this.messages.scrollHeight;
-      // Save to history
       this.messageHistory.push({ role: sender, text, sources });
       this.saveChatHistory();
       return div;
@@ -447,13 +488,13 @@
       return div;
     }
 
+    // ─── SEND MESSAGE ──────────────────────────────────────────────────────
     async handleSend(question) {
       const q = question || this.input.value.trim();
-      if (!q || !this.isReady) return;
+      if (!q) return;
       this.input.value = '';
       this.sendBtn.disabled = true;
 
-      // If awaiting name, handle it
       if (this.awaitingName) {
         this.awaitingName = false;
         this.userName = q.split(' ')[0];
@@ -466,13 +507,11 @@
         return;
       }
 
-      // Check for selected text
       const selected = this.getSelectedText();
       if (selected) {
-        this.addMessage('system', `📝 Selected: "${selected}"`);
+        this.addMessage(`📝 Selected: "${selected}"`, 'system');
       }
 
-      // Check for music commands first
       if (this.handleMusicCommand(q)) {
         this.addMessage(q, 'user');
         this.sendBtn.disabled = false;
@@ -482,8 +521,7 @@
       this.addMessage(q, 'user');
       const typing = this.showTyping();
 
-      // Retrieve relevant chunks
-      const topChunks = this.engine.retrieve(q, CONFIG.topK || 3);
+      const topChunks = this.engine.isReady ? this.engine.retrieve(q, CONFIG.topK || 3) : [];
       const context = topChunks.length > 0
         ? topChunks.map((c, i) => `[${i+1}] ${c.source}\n${c.text}`).join('\n\n')
         : 'No relevant documents found.';
@@ -526,7 +564,6 @@
         if (this.recognition) this.recognition.stop();
         return;
       }
-      // Pause music if playing
       if (this.musicPlaying) {
         this.wasPlayingBeforeMic = true;
         this.pauseMusic();
@@ -590,16 +627,16 @@
     handleMusicCommand(text) {
       const lower = text.toLowerCase().trim();
       if (/\b(?:pause|hold)\s+(?:the\s+)?(?:song|music)\b/i.test(lower) || lower === 'pause') {
-        if (this.musicPlaying) { this.pauseMusic(); this.addMessage('system', '⏸️ Paused.'); } else this.addMessage('system', 'No song playing.');
+        if (this.musicPlaying) { this.pauseMusic(); this.addMessage('⏸️ Paused.', 'system'); } else this.addMessage('No song playing.', 'system');
         return true;
       }
       if (/\b(?:resume|continue)\s+(?:the\s+)?(?:song|music)\b/i.test(lower) || lower === 'resume') {
-        if (this.currentVideoId && !this.musicPlaying) { this.resumeMusic(); this.addMessage('system', '▶️ Resumed.'); } else this.addMessage('system', 'No paused song.');
+        if (this.currentVideoId && !this.musicPlaying) { this.resumeMusic(); this.addMessage('▶️ Resumed.', 'system'); } else this.addMessage('No paused song.', 'system');
         return true;
       }
       if (/\b(?:stop|end)\s+(?:the\s+)?(?:song|music)\b/i.test(lower) || lower === 'stop') {
         this.stopMusic();
-        this.addMessage('system', '⏹️ Stopped.');
+        this.addMessage('⏹️ Stopped.', 'system');
         return true;
       }
       const playMatch = lower.match(/^(?:play|play me|can you play|put on)\s+(.+)/i) || lower.match(/^(.+)\s+(?:song|music|track)$/i);
@@ -620,20 +657,19 @@
         if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
         if (!data.success || !data.items || data.items.length === 0) {
-          this.addMessage('system', `Couldn't find "${query}".`);
+          this.addMessage(`Couldn't find "${query}".`, 'system');
           return;
         }
         const song = data.items[0];
         await this.loadVideo(song.id, song.title);
-        this.addMessage('system', `🎵 Playing: ${song.title}`);
+        this.addMessage(`🎵 Playing: ${song.title}`, 'system');
       } catch (e) {
-        this.addMessage('system', `Couldn't play "${query}".`);
+        this.addMessage(`Couldn't play "${query}".`, 'system');
       }
     }
 
     async loadVideo(videoId, title) {
       if (!this.youtubePlayer) {
-        // Wait for player to be ready
         await this.playerReadyPromise;
       }
       if (!this.youtubePlayer) {
@@ -647,7 +683,7 @@
         this.youtubePlayer.loadVideoById(videoId);
         this.youtubePlayer.playVideo();
         this.musicPlaying = true;
-        this.playPauseBtn.textContent = '⏸️';
+        this.playPauseBtn.innerHTML = ICONS.pause;
         if (this.musicInterval) clearInterval(this.musicInterval);
         this.musicInterval = setInterval(() => this.updateProgress(), 500);
       } catch (e) {
@@ -658,20 +694,20 @@
     pauseMusic() {
       if (this.youtubePlayer && this.playerReady) this.youtubePlayer.pauseVideo();
       this.musicPlaying = false;
-      this.playPauseBtn.textContent = '▶️';
+      this.playPauseBtn.innerHTML = ICONS.play;
     }
 
     resumeMusic() {
       if (this.youtubePlayer && this.playerReady) this.youtubePlayer.playVideo();
       this.musicPlaying = true;
-      this.playPauseBtn.textContent = '⏸️';
+      this.playPauseBtn.innerHTML = ICONS.pause;
     }
 
     stopMusic() {
       if (this.youtubePlayer && this.playerReady) this.youtubePlayer.stopVideo();
       this.musicPlaying = false;
       this.currentVideoId = null;
-      this.playPauseBtn.textContent = '▶️';
+      this.playPauseBtn.innerHTML = ICONS.play;
       this.musicContainer.style.display = 'none';
       if (this.musicInterval) clearInterval(this.musicInterval);
       this.musicDuration = 0;
@@ -730,21 +766,6 @@
     }
 
     // ─── PERSISTENCE (IndexedDB) ─────────────────────────────────────────
-    // FIX: Use version 2 to force upgrade and create the store.
-    async openDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open('RAGinaChatDB', 2); // Version bumped to 2
-        request.onupgradeneeded = (e) => {
-          const db = e.target.result;
-          if (!db.objectStoreNames.contains('chat')) {
-            db.createObjectStore('chat', { keyPath: 'id' });
-          }
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
     async saveChatHistory() {
       try {
         const db = await this.openDB();
@@ -756,7 +777,6 @@
         this.chatStatus.style.color = '#6C63FF';
       } catch (e) {
         console.warn('Save error:', e);
-        // Fallback: try to recreate the store by deleting and reopening? Not needed with version bump.
       }
     }
 
@@ -877,7 +897,6 @@
       this.chatStatus.textContent = 'Cleared';
       this.chatStatus.style.color = '#FF6584';
       setTimeout(() => { this.chatStatus.textContent = 'Auto‑saved'; }, 3000);
-      // Reset intro state
       this.userName = null;
       this.awaitingName = false;
       this.introDone = false;
@@ -890,7 +909,7 @@
       if (!files.length) return;
       const htmlFiles = [...files].filter(f => f.name.endsWith('.html') || f.name.endsWith('.htm'));
       if (!htmlFiles.length) {
-        this.addMessage('system', 'No HTML files found in the folder.');
+        this.addMessage('No HTML files found in the folder.', 'system');
         return;
       }
       const data = {};
@@ -925,21 +944,20 @@
             onStateChange: (e) => {
               if (e.data === YT.PlayerState.PLAYING) {
                 this.musicPlaying = true;
-                this.playPauseBtn.textContent = '⏸️';
+                this.playPauseBtn.innerHTML = ICONS.pause;
                 if (this.musicInterval) clearInterval(this.musicInterval);
                 this.musicInterval = setInterval(() => this.updateProgress(), 500);
               } else if (e.data === YT.PlayerState.PAUSED) {
                 this.musicPlaying = false;
-                this.playPauseBtn.textContent = '▶️';
+                this.playPauseBtn.innerHTML = ICONS.play;
               } else if (e.data === YT.PlayerState.ENDED) {
                 this.stopMusic();
-                this.addMessage('system', 'Song finished!');
+                this.addMessage('Song finished!', 'system');
               }
             },
-            onError: () => { this.stopMusic(); this.addMessage('system', 'Error playing song.'); }
+            onError: () => { this.stopMusic(); this.addMessage('Error playing song.', 'system'); }
           }
         });
-        // Append the player container to body (hidden)
         const container = document.createElement('div');
         container.style.display = 'none';
         document.body.appendChild(container);
@@ -962,7 +980,6 @@
       this.ui = new RAGinaUltraUI(this.engine);
       this.ui.injectHTML();
 
-      // Load YouTube API
       if (!window.YT || !window.YT.Player) {
         const script = document.createElement('script');
         script.src = 'https://www.youtube.com/iframe_api';
@@ -975,36 +992,30 @@
         this.ui.initYouTubePlayer();
       }
 
-      // Restore chat history
       setTimeout(async () => {
         const has = await this.ui.restoreChat();
         if (!has) {
-          // No history, but if we have index, show ready quote
           if (this.engine.isReady) {
             this.ui.addMessage(randomQuote(QUOTES.ready), 'ai');
           } else {
             this.ui.addMessage("I'm ready! Upload some files or load an index to get started.", 'ai');
           }
         } else {
-          // If we have history, we also have some context.
           if (this.engine.isReady) this.ui.setReady(true);
         }
         this.ui.setReady(this.engine.isReady);
-        this.ui.minimize(); // start minimized
+        this.ui.minimize();
       }, 100);
 
-      // Check for index
       this._loadIndex();
     },
 
     _loadIndex() {
-      // Embedded index first
       if (window.__RAGINA_INDEX__ && Object.keys(window.__RAGINA_INDEX__).length > 0) {
         this.engine.buildIndex(window.__RAGINA_INDEX__, CONFIG.chunkSize || 200);
         this.ui.setReady(true);
         return;
       }
-      // URL index
       if (CONFIG.indexUrl) {
         fetch(CONFIG.indexUrl)
           .then(res => res.json())
@@ -1058,7 +1069,6 @@
     autoStart();
   }
 
-  // Expose to global
   global.RAGina = RAGinaUltra;
 
 })(typeof window !== 'undefined' ? window : this);
