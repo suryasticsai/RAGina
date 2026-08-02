@@ -209,7 +209,7 @@ Check it out: [github.com/suryasticsai/sensycilva](https://github.com/suryastics
 
 ## 📜 License
 
-MIT – use freely, modify, distribute. Credit is appreciated but not required.
+MIT – use freely, modify, distribute. Credit is appreciated.
 
 ---
 
