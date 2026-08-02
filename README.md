@@ -142,7 +142,7 @@ She can read from a URL or from data you embed directly in the page.
   window.RAGINA_CONFIG = { position: 'bottom-left' };
 </script>
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
-'''
+```
 
 No files. No server. She reads everything from that tiny object.
 
