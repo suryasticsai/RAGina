@@ -1,13 +1,6 @@
 /**
- * RAGina Ultra — Full Combined Version
- * Merges:
- *   - RAGina core engine (TF-IDF retrieval + index/folder loading)
- *   - RAGina Pro full app UI (chat, voice, YouTube music, memory)
- *
- * One file. One widget. All powers.
- *
- * Usage: include this ONE file instead of ragina.js + ragina-pro.js.
- * Configure via window.RAGINA_CONFIG and/or window.__RAGINA_INDEX__ as before.
+ * RAGina Ultra — Full Combined Version (Pro UI)
+ * Uses IndexedDB version 10 to avoid conflicts.
  *
  * Created by suryasticsai@gmail.com | github.com/suryasticsai
  * MIT License
@@ -35,7 +28,6 @@
     voiceSpeed: 1.0
   };
 
-  // ─── MERGE CONFIG ──────────────────────────────────────────────────────────
   let CONFIG = { ...DEFAULT_CONFIG };
   if (global.RAGINA_CONFIG) {
     CONFIG = { ...CONFIG, ...global.RAGINA_CONFIG };
@@ -207,10 +199,8 @@
       .ragina-input-area{display:flex;padding:10px;border-top:1px solid rgba(${rgb},0.2);background:#0f0f1a;gap:8px;flex-wrap:wrap}
       .ragina-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(${rgb},0.3);border-radius:24px;padding:10px 16px;color:white;font-size:0.9rem;outline:none}
       .ragina-input::placeholder{color:rgba(255,255,255,0.3)}
-      .ragina-input:disabled{opacity:0.4;cursor:not-allowed}
       .ragina-send{background:${primary};border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
       .ragina-send:hover{box-shadow:0 0 15px rgba(${rgb},0.6)}
-      .ragina-send:disabled{opacity:0.4;cursor:not-allowed}
       .ragina-send svg{width:20px;height:20px;fill:currentColor}
       .ragina-typing{display:flex;gap:4px;padding:10px 16px}
       .ragina-typing span{width:8px;height:8px;border-radius:50%;background:rgba(${rgb},0.6);animation:ragina-typing 1.4s infinite}
@@ -249,7 +239,7 @@
     return result ? `${parseInt(result[1],16)}, ${parseInt(result[2],16)}, ${parseInt(result[3],16)}` : '108,99,255';
   }
 
-  // ─── UI CLASS ──────────────────────────────────────────────────────────────
+  // ─── PRO UI CLASS ──────────────────────────────────────────────────────────
   class RAGinaUltraUI {
     constructor(engine) {
       this.engine = engine;
@@ -291,25 +281,45 @@
       this.wasPlayingBeforeMic = false;
     }
 
-    // ─── INDEXEDDB – Version 5 (fixes the error) ─────────────────────────
+    // ─── INDEXEDDB – Fixed with version 10 ──────────────────────────────────
     async openDB() {
-      return new Promise((resolve, reject) => {
-        // Use version 5 to force upgrade
-        const request = indexedDB.open('RAGinaChatDB', 5);
-        request.onupgradeneeded = (e) => {
-          const db = e.target.result;
-          if (!db.objectStoreNames.contains('chat')) {
-            db.createObjectStore('chat', { keyPath: 'id' });
-          }
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
+      const dbName = 'RAGinaChatDB';
+      const version = 10;  // Bump to a high number to skip all old versions
+      console.log(`📦 Opening IndexedDB "${dbName}" version ${version}`);
+
+      try {
+        return await new Promise((resolve, reject) => {
+          const request = indexedDB.open(dbName, version);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            console.log('🔄 Upgrading database to version', version);
+            if (!db.objectStoreNames.contains('chat')) {
+              db.createObjectStore('chat', { keyPath: 'id' });
+            }
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      } catch (err) {
+        console.warn('❌ Failed to open IndexedDB:', err);
+        // If a version error occurs, delete the entire database and try again.
+        if (err.name === 'VersionError') {
+          console.warn('🗑️ Deleting old database and recreating...');
+          await new Promise((resolve, reject) => {
+            const deleteRequest = indexedDB.deleteDatabase(dbName);
+            deleteRequest.onsuccess = resolve;
+            deleteRequest.onerror = reject;
+          });
+          // Retry opening with the same version (now fresh)
+          return this.openDB();
+        }
+        throw err;
+      }
     }
 
-    // ─── INJECT HTML ──────────────────────────────────────────────────────
+    // ─── INJECT PRO UI ──────────────────────────────────────────────────────
     injectHTML() {
-      console.log('🔮 RAGina Ultra: Injecting UI...');
+      console.log('🔮 RAGina Ultra: Injecting Pro UI...');
       const primary = CONFIG.theme.primary || '#6C63FF';
       const bubbleContent = CONFIG.avatarUrl
         ? `<img src="${CONFIG.avatarUrl}" alt="RAGina" style="width:44px;height:44px;border-radius:50%;" onerror="this.parentElement.innerHTML='🔮'">`
@@ -322,7 +332,6 @@
       document.body.appendChild(this.bubble);
       console.log('✅ Bubble injected');
 
-      // ─── DRAG ON BUBBLE ────────────────────────────────────────────────
       this._makeDraggable(this.bubble);
 
       this.panel = document.createElement('div');
@@ -383,7 +392,6 @@
       this.fileInput = document.getElementById('raginaFileInput');
       this.chatStatus = document.getElementById('raginaChatStatus');
 
-      // ─── DRAG ON PANEL HEADER ──────────────────────────────────────────
       const header = this.panel.querySelector('.ragina-header');
       this._makeDraggable(this.panel, header);
 
@@ -403,12 +411,11 @@
       document.getElementById('raginaUploadFolder').addEventListener('click', () => this.fileInput.click());
       this.fileInput.addEventListener('change', e => this.handleFolderUpload(e));
 
-      // Initial state
       this.setReady(this.engine.isReady);
-      console.log('🎯 RAGina Ultra UI ready.');
+      console.log('🎯 RAGina Ultra Pro UI ready.');
     }
 
-    // ─── DRAGGABLE HELPER ──────────────────────────────────────────────────
+    // ─── DRAGGABLE ──────────────────────────────────────────────────────────
     _makeDraggable(element, handle = element) {
       let dragActive = false, startX, startY, startLeft, startTop;
       const onStart = (e) => {
@@ -447,7 +454,7 @@
       document.addEventListener('touchend', onEnd);
     }
 
-    // ─── TOGGLE / MINIMIZE ─────────────────────────────────────────────────
+    // ─── UI TOGGLES ────────────────────────────────────────────────────────
     toggle() {
       this.panel.classList.toggle('hidden');
       if (!this.panel.classList.contains('hidden')) {
@@ -468,11 +475,7 @@
       this.isReady = ready;
       this.input.disabled = false;
       this.sendBtn.disabled = false;
-      if (ready) {
-        this.statusEl.textContent = '🧠 Mentalist Online';
-      } else {
-        this.statusEl.textContent = '📁 Upload a folder to give me knowledge';
-      }
+      this.statusEl.textContent = ready ? '🧠 Mentalist Online' : '📁 Upload a folder to give me knowledge';
     }
 
     // ─── MESSAGES ───────────────────────────────────────────────────────────
@@ -525,9 +528,7 @@
       }
 
       const selected = this.getSelectedText();
-      if (selected) {
-        this.addMessage(`📝 Selected: "${selected}"`, 'system');
-      }
+      if (selected) this.addMessage(`📝 Selected: "${selected}"`, 'system');
 
       if (this.handleMusicCommand(q)) {
         this.addMessage(q, 'user');
@@ -543,8 +544,7 @@
         ? topChunks.map((c, i) => `[${i+1}] ${c.source}\n${c.text}`).join('\n\n')
         : 'No relevant documents found.';
 
-      const personality = CONFIG.personality || 'sassy';
-      const prompt = personality === 'professional'
+      const prompt = CONFIG.personality === 'professional'
         ? `Answer the question using ONLY the context below. If the answer cannot be found, say "I don't have enough information to answer that."\n\nContext:\n${context}\n\nQuestion: ${q}\nAnswer:`
         : `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.\n\nContext:\n${context}\n\nQuestion: ${q}\nAnswer (as RAGina, with sass):`;
 
@@ -686,13 +686,8 @@
     }
 
     async loadVideo(videoId, title) {
-      if (!this.youtubePlayer) {
-        await this.playerReadyPromise;
-      }
-      if (!this.youtubePlayer) {
-        console.error('YouTube player not available');
-        return;
-      }
+      if (!this.youtubePlayer) await this.playerReadyPromise;
+      if (!this.youtubePlayer) return;
       this.currentVideoId = videoId;
       this.songLabel.textContent = '🎵 ' + title;
       this.musicContainer.style.display = 'flex';
@@ -782,7 +777,7 @@
       await this.speakText(intro);
     }
 
-    // ─── PERSISTENCE (IndexedDB) ─────────────────────────────────────────
+    // ─── PERSISTENCE ──────────────────────────────────────────────────────
     async saveChatHistory() {
       try {
         const db = await this.openDB();
@@ -997,7 +992,6 @@
       this.ui = new RAGinaUltraUI(this.engine);
       this.ui.injectHTML();
 
-      // Load YouTube API
       if (!window.YT || !window.YT.Player) {
         const script = document.createElement('script');
         script.src = 'https://www.youtube.com/iframe_api';
@@ -1010,7 +1004,6 @@
         this.ui.initYouTubePlayer();
       }
 
-      // Restore chat history and load index
       setTimeout(async () => {
         const has = await this.ui.restoreChat();
         if (!has) {
