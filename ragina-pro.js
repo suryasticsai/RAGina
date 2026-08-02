@@ -1,20 +1,40 @@
 /**
- * RAGina Pro – Self‑contained CDN
- * Injects styles, UI, and full logic (chat, music, voice, drag, persistence).
- * Load this script after defining window.RAGINA_CONFIG.
+ * RAGina Pro – Full Application (UI + Engine)
+ * Version 2.3.1
+ *
+ * Hardcoded defaults (can be overridden via window.RAGINA_CONFIG):
+ *   - apiBaseUrl : 'https://sensycilva.suryasticsai.workers.dev'
+ *   - indexUrl   : 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/demo-index.json'
+ *   - voiceId    : 'rachel'
+ *   - voiceSpeed : 1.0
+ *
+ * All endpoints are derived from apiBaseUrl:
+ *   /api/ask          – AI chat
+ *   /api/tts          – text‑to‑speech
+ *   /api/youtube/search – music search
  */
 (function() {
     'use strict';
 
-    // ─── CONFIG ──────────────────────────────────────────────────────────────
-    const CONFIG = window.RAGINA_CONFIG || {};
-    const AI_ENDPOINT = 'https://ragina-crawler-ragina.vercel.app/api/ask';
-    const YT_SEARCH_URL = 'https://sensycilva.suryasticsai.workers.dev/api/youtube/search?q=';
-    const VOICE_URL = CONFIG.voiceUrl || 'https://sensycilva.suryasticsai.workers.dev/api/tts';
-    const VOICE_ID = CONFIG.voiceId || 'rachel';
-    const VOICE_SPEED = CONFIG.voiceSpeed || 1.0;
+    // ─── HARDCODED DEFAULTS ──────────────────────────────────────────────
+    const DEFAULT_BASE_URL = 'https://sensycilva.suryasticsai.workers.dev';
+    const DEFAULT_INDEX_URL = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/demo-index.json';
+    const DEFAULT_VOICE_ID = 'rachel';
+    const DEFAULT_VOICE_SPEED = 1.0;
 
-    // ─── INJECT STYLES ──────────────────────────────────────────────────────
+    // ─── READ CONFIG (overrides) ──────────────────────────────────────────
+    const CONFIG = window.RAGINA_CONFIG || {};
+    const BASE_URL = CONFIG.apiBaseUrl || DEFAULT_BASE_URL;
+    const INDEX_URL = CONFIG.indexUrl || DEFAULT_INDEX_URL;
+    const VOICE_ID = CONFIG.voiceId || DEFAULT_VOICE_ID;
+    const VOICE_SPEED = CONFIG.voiceSpeed || DEFAULT_VOICE_SPEED;
+
+    // Derived endpoints
+    const AI_ENDPOINT = BASE_URL + '/api/ask';
+    const YT_SEARCH_URL = BASE_URL + '/api/youtube/search?q=';
+    const VOICE_URL = BASE_URL + '/api/tts';
+
+    // ─── INJECT STYLES ──────────────────────────────────────────────────
     const styles = `
         /* ─── Reset & Base ─── */
         * {
@@ -487,7 +507,7 @@
         }
     `;
 
-    // ─── INJECT HTML STRUCTURE ──────────────────────────────────────────────
+    // ─── INJECT HTML STRUCTURE ──────────────────────────────────────────
     const appHTML = `
         <div class="ragina-app minimized" id="raginaApp">
             <div class="ragina-header" id="raginaHeader">
@@ -554,25 +574,20 @@
         <div id="youtubePlayerContainer"></div>
     `;
 
-    // ─── INJECT ──────────────────────────────────────────────────────────────
+    // ─── INJECT ──────────────────────────────────────────────────────────
     function injectApp() {
-        // 1. Add styles
         const styleEl = document.createElement('style');
         styleEl.textContent = styles;
         document.head.appendChild(styleEl);
 
-        // 2. Add HTML (append to body)
         const container = document.createElement('div');
         container.innerHTML = appHTML;
-        // Move all children to body
         while (container.firstChild) {
             document.body.appendChild(container.firstChild);
         }
     }
 
-    // ─── APP LOGIC ──────────────────────────────────────────────────────────
-    // (All the logic from the previous version, but using the DOM refs after injection)
-    // We need to wait for DOM to be ready, then get refs and start.
+    // ─── APP LOGIC ────────────────────────────────────────────────────────
     function initApp() {
         // DOM refs
         const app = document.getElementById('raginaApp');
@@ -603,7 +618,7 @@
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-        // ─── State ──────────────────────────────────────────────────────────
+        // ─── State ──────────────────────────────────────────────────────
         let engine = null;
         let voiceActive = true;
         let currentAudio = null;
@@ -626,7 +641,7 @@
         let messageHistory = [];
         let introDone = false;
 
-        // ─── IndexedDB ──────────────────────────────────────────────────────
+        // ─── IndexedDB ──────────────────────────────────────────────────
         const DB_NAME = 'RAGinaChatDB';
         const STORE_NAME = 'chatHistory';
         const DB_VERSION = 1;
@@ -686,7 +701,7 @@
             } catch (e) {}
         }
 
-        // ─── Render messages ──────────────────────────────────────────────
+        // ─── Render messages ──────────────────────────────────────────
         function renderMessages(msgs) {
             messages.innerHTML = '';
             msgs.forEach(msg => {
@@ -733,7 +748,7 @@
             return false;
         }
 
-        // ─── YouTube Player ────────────────────────────────────────────────
+        // ─── YouTube Player ────────────────────────────────────────────
         function initYouTubePlayer() {
             if (window.YT && window.YT.Player) {
                 youtubePlayer = new YT.Player('youtubePlayerContainer', {
@@ -885,7 +900,7 @@
             timeDuration.textContent = formatTime(musicDuration);
         }
 
-        // ─── Music command execution ──────────────────────────────────────
+        // ─── Music command execution ──────────────────────────────────
         function executeMusicAction(action, song) {
             switch (action) {
                 case 'play':
@@ -1040,7 +1055,7 @@
         function escapeHTML(str) { const d = document.createElement('div');
             d.textContent = str; return d.innerHTML; }
 
-        // ─── Button controls (music) ──────────────────────────────────────
+        // ─── Button controls (music) ──────────────────────────────────
         btnPlayPause.addEventListener('click', () => {
             if (musicPlaying) {
                 pauseSong();
@@ -1070,7 +1085,7 @@
             }
         });
 
-        // ─── Drag / Click ──────────────────────────────────────────────────
+        // ─── Drag / Click ──────────────────────────────────────────────
         let dragActive = false;
         let dragStartX = 0,
             dragStartY = 0;
@@ -1160,7 +1175,7 @@
             e.stopPropagation();
         });
 
-        // ─── Minimize / Close ──────────────────────────────────────────────
+        // ─── Minimize / Close ──────────────────────────────────────────
         function setMinimized(min) {
             isMinimized = min;
             app.classList.toggle('minimized', min);
@@ -1184,7 +1199,7 @@
             setMinimized(true);
         });
 
-        // ─── Intro & name ──────────────────────────────────────────────────
+        // ─── Intro & name ──────────────────────────────────────────────
         async function introduce() {
             if (introDone) return;
             introDone = true;
@@ -1196,7 +1211,7 @@
             if (voiceActive) await speakText(introText);
         }
 
-        // ─── AI helpers ────────────────────────────────────────────────────
+        // ─── AI helpers ────────────────────────────────────────────────
         function waitForEngine(timeoutMs) {
             return new Promise(resolve => {
                 const start = Date.now();
@@ -1226,7 +1241,7 @@
             return sel ? sel.toString().trim() : '';
         }
 
-        // ─── AI answer ──────────────────────────────────────────────────────
+        // ─── AI answer ──────────────────────────────────────────────────
         async function getAIAnswer(question, selectedText) {
             let context = '';
             if (selectedText) {
@@ -1267,7 +1282,7 @@ RAGina:`;
             }
         }
 
-        // ─── Core sendMessage ──────────────────────────────────────────────
+        // ─── Core sendMessage ──────────────────────────────────────────
         async function sendMessage(rawText) {
             const text = (rawText || '').trim();
             if (!text) return;
@@ -1328,7 +1343,7 @@ RAGina:`;
             }
         }
 
-        // ─── TTS ────────────────────────────────────────────────────────────
+        // ─── TTS ────────────────────────────────────────────────────────
         async function speakText(text) {
             if (!voiceActive) return;
             stopAudio();
@@ -1379,7 +1394,7 @@ RAGina:`;
             ttsLoading = false;
         }
 
-        // ─── Mic ────────────────────────────────────────────────────────────
+        // ─── Mic ────────────────────────────────────────────────────────
         function startListening() {
             if (!voiceActive || !SpeechRecognition) return;
             if (currentAudio) return;
@@ -1516,7 +1531,7 @@ RAGina:`;
             if (e.key === 'Enter') sendMessage(chatInput.value);
         });
 
-        // ─── Export / Import / Clear ──────────────────────────────────────
+        // ─── Export / Import / Clear ──────────────────────────────────
         saveChatBtn.addEventListener('click', () => {
             const data = JSON.stringify(messageHistory, null, 2);
             const blob = new Blob([data], { type: 'application/json' });
@@ -1602,7 +1617,7 @@ RAGina:`;
             }
         });
 
-        // ─── Typing / transcript ──────────────────────────────────────────
+        // ─── Typing / transcript ──────────────────────────────────────
         function setLiveTranscript(text, interim = false) {
             liveTranscript.textContent = text || '';
             liveTranscript.classList.toggle('interim', interim);
@@ -1623,7 +1638,7 @@ RAGina:`;
                 typingEl = null; }
         }
 
-        // ─── Boot ──────────────────────────────────────────────────────────
+        // ─── Boot ──────────────────────────────────────────────────────
         (async function init() {
             // Load YouTube API if not present
             if (!window.YT || !window.YT.Player) {
@@ -1631,7 +1646,6 @@ RAGina:`;
                 script.src = 'https://www.youtube.com/iframe_api';
                 script.async = true;
                 document.head.appendChild(script);
-                // Wait for API to be ready
                 await new Promise(resolve => {
                     const check = () => {
                         if (window.YT && window.YT.Player) {
@@ -1659,20 +1673,15 @@ RAGina:`;
             setMinimized(true);
         })();
 
-        // ─── Expose YouTube callback ──────────────────────────────────────
+        // ─── Expose YouTube callback ──────────────────────────────────
         window.onYouTubeIframeAPIReady = function() {
             if (!youtubePlayer && window.YT && window.YT.Player) {
                 initYouTubePlayer();
             }
         };
-
-        // ─── Also add test content? (optional) ────────────────────────────
-        // We could add a small sample content to demonstrate selection feature,
-        // but we'll skip to keep it clean.
     }
 
-    // ─── EXECUTE ─────────────────────────────────────────────────────────────
-    // Wait for DOM then inject and init
+    // ─── EXECUTE ──────────────────────────────────────────────────────────
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             injectApp();
