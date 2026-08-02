@@ -1,11 +1,11 @@
 /**
- * RAGina Pro v2.0.7+ – The Ultimate Mentalist
+ * RAGina Ultra v2.0 – The Ultimate Mentalist
  *
  * All-in-one: RAG, chat, music, voice, selected-text, drag, minimise,
  * persistence, folder upload, export/import, sassy personality.
  *
- * CDN: https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.js
- * Instant: https://raw.githack.com/suryasticsai/RAGina/main/ragina-pro.js
+ * CDN: https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-ultra.js
+ * Instant: https://raw.githack.com/suryasticsai/RAGina/main/ragina-ultra.js
  */
 (function(global) {
   'use strict';
@@ -18,7 +18,7 @@
     placeholder: 'Ask me anything…',
     topK: 3,
     model: 'openai',
-    personality: 'sassy',               // 'sassy' or 'professional'
+    personality: 'sassy',
     avatarUrl: 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png',
     bubbleIcon: null,
     title: 'RAGina',
@@ -157,7 +157,7 @@
   // This is a massive builder – we inline it all.
 
   function injectStyles() {
-    if (document.getElementById('ragina-pro-styles')) return;
+    if (document.getElementById('ragina-ultra-styles')) return;
     const primary = CONFIG.theme.primary || '#6C63FF';
     const rgb = hexToRgb(primary);
     const css = `
@@ -214,7 +214,7 @@
       @media(max-width:480px){.ragina-panel{right:8px;left:8px;bottom:80px;width:auto;height:60vh}}
     `;
     const style = document.createElement('style');
-    style.id = 'ragina-pro-styles';
+    style.id = 'ragina-ultra-styles';
     style.textContent = css;
     document.head.appendChild(style);
   }
@@ -225,7 +225,7 @@
   }
 
   // ─── UI CLASS ──────────────────────────────────────────────────────────────────
-  class RAGinaProUI {
+  class RAGinaUltraUI {
     constructor(engine) {
       this.engine = engine;
       this.bubble = null;
@@ -263,6 +263,7 @@
       this.awaitingName = false;
       this.introDone = false;
       this.history = [];
+      this.wasPlayingBeforeMic = false;
     }
 
     injectHTML() {
@@ -723,12 +724,27 @@
       if (this.introDone) return;
       this.introDone = true;
       const intro = "Hey there! I'm RAGina, your personal mentalist. I can chat, answer questions, and even play music. What's your name?";
-      this.addMessage('ai', intro);
+      this.addMessage(intro, 'ai');
       this.awaitingName = true;
       await this.speakText(intro);
     }
 
     // ─── PERSISTENCE (IndexedDB) ─────────────────────────────────────────
+    // FIX: Use version 2 to force upgrade and create the store.
+    async openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('RAGinaChatDB', 2); // Version bumped to 2
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('chat')) {
+            db.createObjectStore('chat', { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
     async saveChatHistory() {
       try {
         const db = await this.openDB();
@@ -740,6 +756,7 @@
         this.chatStatus.style.color = '#6C63FF';
       } catch (e) {
         console.warn('Save error:', e);
+        // Fallback: try to recreate the store by deleting and reopening? Not needed with version bump.
       }
     }
 
@@ -766,20 +783,6 @@
         store.delete('history');
         await tx.done;
       } catch (e) {}
-    }
-
-    openDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open('RAGinaChatDB', 1);
-        request.onupgradeneeded = (e) => {
-          const db = e.target.result;
-          if (!db.objectStoreNames.contains('chat')) {
-            db.createObjectStore('chat', { keyPath: 'id' });
-          }
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
     }
 
     async restoreChat() {
@@ -948,7 +951,7 @@
   }
 
   // ─── PUBLIC API ──────────────────────────────────────────────────────────
-  const RAGinaPro = {
+  const RAGinaUltra = {
     engine: null,
     ui: null,
 
@@ -956,7 +959,7 @@
       if (config) CONFIG = { ...CONFIG, ...config };
       injectStyles();
       this.engine = new RAGEngine();
-      this.ui = new RAGinaProUI(this.engine);
+      this.ui = new RAGinaUltraUI(this.engine);
       this.ui.injectHTML();
 
       // Load YouTube API
@@ -1041,11 +1044,11 @@
   // ─── AUTO‑INIT ──────────────────────────────────────────────────────────
   const autoStart = () => {
     if (global.RAGINA_CONFIG) {
-      RAGinaPro.init(global.RAGINA_CONFIG);
+      RAGinaUltra.init(global.RAGINA_CONFIG);
     } else if (global.__RAGINA_INDEX__) {
-      RAGinaPro.init({ indexData: global.__RAGINA_INDEX__ });
+      RAGinaUltra.init({ indexData: global.__RAGINA_INDEX__ });
     } else {
-      RAGinaPro.init();
+      RAGinaUltra.init();
     }
   };
 
@@ -1056,6 +1059,6 @@
   }
 
   // Expose to global
-  global.RAGina = RAGinaPro;
+  global.RAGina = RAGinaUltra;
 
 })(typeof window !== 'undefined' ? window : this);
