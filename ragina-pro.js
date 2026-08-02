@@ -1,6 +1,7 @@
 /**
  * RAGina Pro – Full Application (UI + Engine)
- * Version 2.3.2 – Music search fix with better error handling
+ * Version 2.3.3 – Fixed YouTube player initialization
+ * All-in-one, self-contained, no external dependencies except YouTube IFrame API.
  */
 (function() {
     'use strict';
@@ -23,7 +24,7 @@
     const YT_SEARCH_URL = BASE_URL + '/api/youtube/search?q=';
     const VOICE_URL = BASE_URL + '/api/tts';
 
-    // ─── INJECT STYLES ──────────────────────────────────────────────────
+    // ─── STYLES ──────────────────────────────────────────────────────────
     const styles = `
         /* ─── Reset & Base ─── */
         * {
@@ -496,7 +497,7 @@
         }
     `;
 
-    // ─── INJECT HTML STRUCTURE ──────────────────────────────────────────
+    // ─── HTML STRUCTURE ──────────────────────────────────────────────────
     const appHTML = `
         <div class="ragina-app minimized" id="raginaApp">
             <div class="ragina-header" id="raginaHeader">
@@ -603,7 +604,6 @@
         const loadChatBtn = document.getElementById('loadChatBtn');
         const clearChatBtn = document.getElementById('clearChatBtn');
         const fileInput = document.getElementById('fileInput');
-        const playerContainer = document.getElementById('youtubePlayerContainer');
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -627,6 +627,10 @@
         let ttsLoading = false;
         let youtubePlayer = null;
         let playerReady = false;
+        let playerReadyResolve = null;
+        const playerReadyPromise = new Promise(resolve => {
+            playerReadyResolve = resolve;
+        });
         let messageHistory = [];
         let introDone = false;
 
@@ -740,24 +744,26 @@
         // ─── YouTube Player ────────────────────────────────────────────
         function initYouTubePlayer() {
             if (window.YT && window.YT.Player) {
-                youtubePlayer = new YT.Player('youtubePlayerContainer', {
-                    height: '0',
-                    width: '0',
-                    videoId: '',
-                    playerVars: {
-                        autoplay: 0,
-                        controls: 0,
-                        modestbranding: 1,
-                        rel: 0,
-                        showinfo: 0,
-                        iv_load_policy: 3
-                    },
-                    events: {
-                        onReady: onPlayerReady,
-                        onStateChange: onPlayerStateChange,
-                        onError: onPlayerError
-                    }
-                });
+                if (!youtubePlayer) {
+                    youtubePlayer = new YT.Player('youtubePlayerContainer', {
+                        height: '0',
+                        width: '0',
+                        videoId: '',
+                        playerVars: {
+                            autoplay: 0,
+                            controls: 0,
+                            modestbranding: 1,
+                            rel: 0,
+                            showinfo: 0,
+                            iv_load_policy: 3
+                        },
+                        events: {
+                            onReady: onPlayerReady,
+                            onStateChange: onPlayerStateChange,
+                            onError: onPlayerError
+                        }
+                    });
+                }
             } else {
                 setTimeout(initYouTubePlayer, 500);
             }
@@ -765,6 +771,7 @@
 
         function onPlayerReady(event) {
             playerReady = true;
+            if (playerReadyResolve) playerReadyResolve();
             if (currentVideoId) {
                 youtubePlayer.loadVideoById(currentVideoId);
                 if (musicPlaying) {
@@ -812,24 +819,37 @@
             } catch (e) {}
         }
 
-        function loadVideo(videoId, title) {
+        // ─── loadVideo with waiting ──────────────────────────────────
+        async function loadVideo(videoId, title) {
+            if (!playerReady) {
+                await playerReadyPromise;
+            }
+            if (!youtubePlayer) {
+                console.error('YouTube player not available');
+                addMessage('bot', 'Sorry, the music player is not ready.');
+                return;
+            }
             currentVideoId = videoId;
             currentSongTitle = title;
-            if (youtubePlayer && playerReady) {
+            try {
                 youtubePlayer.loadVideoById(videoId);
                 youtubePlayer.playVideo();
+                musicPlaying = true;
+                musicDuration = 0;
+                musicCurrentTime = 0;
+                updatePlayPauseBtn(true);
+                showMusicController();
+                songLabel.textContent = '🎵 ' + title;
+                updateProgressUI();
+                if (musicProgressInterval) clearInterval(musicProgressInterval);
+                musicProgressInterval = setInterval(updateProgressFromPlayer, 500);
+            } catch (err) {
+                console.error('loadVideo error:', err);
+                addMessage('bot', 'Sorry, I couldn\'t play that song.');
             }
-            musicPlaying = true;
-            musicDuration = 0;
-            musicCurrentTime = 0;
-            updatePlayPauseBtn(true);
-            showMusicController();
-            songLabel.textContent = '🎵 ' + title;
-            updateProgressUI();
-            if (musicProgressInterval) clearInterval(musicProgressInterval);
-            musicProgressInterval = setInterval(updateProgressFromPlayer, 500);
         }
 
+        // ─── Other music functions ──────────────────────────────────────
         function pauseSong() {
             if (youtubePlayer && playerReady) {
                 youtubePlayer.pauseVideo();
@@ -935,6 +955,7 @@
             return true;
         }
 
+        // ─── Fast music command matching ──────────────────────────────
         function handleMusicCommandFast(text) {
             const lower = text.toLowerCase().trim();
 
@@ -985,6 +1006,7 @@
             return false;
         }
 
+        // ─── AI-based music command parser ────────────────────────────
         async function parseMusicCommandWithAI(text) {
             const prompt = `You are a music command parser. Given the user's message, determine if they want to control music playback. If yes, respond with a JSON object containing "action" and optionally "song". Actions: "play", "pause", "resume", "stop", "change". If not a music command, respond with {"action": "none"}.
 
@@ -1019,7 +1041,7 @@
             }
         }
 
-        // ─── FIXED: searchAndPlay with better error handling ──────────
+        // ─── searchAndPlay with better error handling ──────────────────
         async function searchAndPlay(query) {
             if (!query || query.length < 2) {
                 addMessage('bot', "Could you be more specific? What song would you like?");
@@ -1037,13 +1059,13 @@
                 console.log('📦 Data received:', data);
                 if (!data.success || !data.items || data.items.length === 0) {
                     // Fallback: direct YouTube search link
-                    addMessage('bot', `Couldn't find "${query}" through the API. Trying direct YouTube...`);
+                    addMessage('bot', `Couldn't find "${query}" through the API.`);
                     const fallbackUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-                    addMessage('bot', `Please open this link to play: <a href="${fallbackUrl}" target="_blank">${query} on YouTube</a>`);
+                    addMessage('bot', `Open this link to play: <a href="${fallbackUrl}" target="_blank">${query} on YouTube</a>`);
                     return;
                 }
                 const song = data.items[0];
-                loadVideo(song.id, song.title);
+                await loadVideo(song.id, song.title);
                 addMessage('bot', `🎵 Playing: <strong>${escapeHTML(song.title)}</strong>`);
                 if (voiceActive && !musicPlaying) await speakText(`Playing ${song.title}.`);
             } catch (err) {
