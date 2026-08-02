@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile.png" alt="RAGina" width="200"/>
 </p>
 
-<h1 align="center">🧠 RAGina – The Instant  RAG</h1>
+<h1 align="center">🧠 RAGina – The Instant RAG</h1>
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="MIT License"></a>
@@ -19,12 +19,13 @@
 
 <p align="center">
   <b>One <code>&lt;script&gt;</code> tag. Zero API keys. Zero servers. Zero cost.</b><br>
-  Turn any website, repo, or document into an AI‑powered Q&A chatbot in seconds.
+  Turn any website, repo, or document into an AI‑powered Q&A chatbot in seconds.<br>
+  <b>And now she hears you. She talks back. She remembers everything.</b>
 </p>
 
 ---
 
-## ✨ What She Can Do
+## ✨ What She Can Do (Core – `ragina.js`)
 
 | Power | Description |
 |-------|-------------|
@@ -38,11 +39,43 @@
 
 ---
 
-## 🚀 One Line – She Appears
+## 🧠 RAGina Pro – A Living, Breathing AI Brain
 
-Add this single `<script>` tag to any HTML page and a floating chat bubble will show up at the bottom‑right:
+Now, **RAGina Pro** takes it to the next level. She’s not just a chatbot – she’s a **full‑bodied AI assistant** that can **see, speak, and remember**.
 
-```markdown
+### 🧠 She Has a Brain
+- **Retrieval-Augmented Memory** – She stores every conversation and can recall it later.
+- **Contextual Awareness** – She knows what you just said, what you highlighted, and what she said before.
+- **Flawless Persistence** – Her memory survives page reloads and even browser restarts (IndexedDB storage).
+
+### 🎤 She Speaks and Listens
+- **Text-to-Speech (TTS)** – She reads her answers out loud with a natural voice.
+- **Speech Recognition** – Click the microphone and talk to her; she understands you instantly.
+- **Live Transcript** – See your voice turned into text in real time, right above the chat.
+
+### 🎵 She Plays Music
+- **YouTube Integration** – Say “play Shape of You” and she finds it instantly.
+- **Full Controls** – Pause, resume, skip, stop – all by voice or on‑screen buttons.
+- **Progress Bar & Time** – See exactly where you are in the song.
+
+### 📝 She Reads Your Screen
+- **Selected‑Text Awareness** – Highlight any text on the page and ask, “What does this mean?” – she reads the selection and answers intelligently.
+
+### 🖱️ She Drags and Fits Anywhere
+- **Draggable Orb** – Move her anywhere on the screen.
+- **Minimise / Expand** – Collapse her to a tiny orb or expand to a full chat window.
+
+### 💾 She Forgets Nothing
+- **Auto‑Save** – Every message is saved to IndexedDB instantly.
+- **Export / Import** – Download your entire chat history as a JSON file and load it back anytime.
+
+---
+
+## 🚀 One Line – She Appears (Core)
+
+Add this single `<script>` tag and a floating chat bubble appears:
+
+```
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
 ```
 
@@ -50,13 +83,43 @@ That’s it. No signup. No keys. No servers.
 
 ---
 
-## 📚 Give Her Knowledge
+## 🚀 Pro in One Line – Full AI Brain with Voice & Memory
+
+Just add this script and the full RAGina Pro experience is live:
+
+```
+<script>
+  window.RAGINA_CONFIG = {
+    apiBaseUrl: 'https://your-worker.com',  // optional, defaults to our free proxy
+    indexUrl: 'https://your-knowledge.json' // optional, for RAG
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.js"></script>
+```
+
+No additional HTML, no CSS, no setup. She injects everything automatically.
+
+### Pro CDN Links
+
+```
+<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.js"></script>
+```
+
+Or instant via raw.githack:
+
+```
+<script src="https://raw.githack.com/suryasticsai/RAGina/main/ragina-pro.js"></script>
+```
+
+---
+
+## 📚 Give Her Knowledge (Core & Pro)
 
 She can read from a URL or from data you embed directly in the page.
 
-### From a URL (recommended for tiny pages)
+### From a URL (recommended)
 
-```markdown
+```
 <script>
   window.RAGINA_CONFIG = {
     indexUrl: 'https://example.com/my-knowledge.json',
@@ -70,7 +133,7 @@ She can read from a URL or from data you embed directly in the page.
 
 ### Embedded Knowledge (zero external files)
 
-```markdown
+```
 <script>
   window.__RAGINA_INDEX__ = {
     "about.html": { "bodyText": "RAGina is awesome..." },
@@ -79,7 +142,7 @@ She can read from a URL or from data you embed directly in the page.
   window.RAGINA_CONFIG = { position: 'bottom-left' };
 </script>
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
-```
+'''
 
 No files. No server. She reads everything from that tiny object.
 
@@ -96,23 +159,10 @@ No files. No server. She reads everything from that tiny object.
 On the full app you can:
 
 - **Explore & Scrape** – Enter a website or GitHub repo, pick pages, and scrape them.
-- **Save to Gist** – Optionally login with GitHub and save the knowledge as a public Gist (get a raw URL).
+- **Save to Gist** – Login with GitHub and save the knowledge as a public Gist.
 - **Chat** – Ask questions immediately.
 - **Edit the KB** – Modify the knowledge base JSON right inside the app.
 - **Raise a PR** – For repos, she can inject the chatbot snippet and open a Pull Request.
-
----
-
-## 📦 Generate a Standalone Chatbot
-
-Inside the same app, switch to the **Generator** tab:
-
-1. Enter a product name
-2. Upload HTML files or paste Q&A pairs
-3. Choose accent colour & position
-4. Click **Generate** → download a complete `ragina-chatbot.html`
-
-The downloaded file already includes your custom knowledge and the RAGina CDN. Host it anywhere and start chatting.
 
 ---
 
@@ -151,8 +201,8 @@ Check it out: [github.com/suryasticsai/sensycilva](https://github.com/suryastics
 
 ## 👤 Creator
 
-**Sai Varakala (Surya)**
-- GitHub: [@suryasticsai](https://github.com/suryasticsai)
+**Sai Varakala (Surya)**  
+- GitHub: [@suryasticsai](https://github.com/suryasticsai)  
 - Email: [suryasticsai@gmail.com](mailto:suryasticsai@gmail.com)
 
 ---
@@ -163,4 +213,5 @@ MIT – use freely, modify, distribute. Credit is appreciated but not required.
 
 ---
 
-**RAGina – She penetrates walls. She reads chaos. She forgets nothing. 🔮**
+**RAGina – She penetrates walls. She reads chaos. She forgets nothing. 🔮**  
+**Now she speaks, she listens, and she remembers everything. The future of AI is here.**
