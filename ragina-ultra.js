@@ -1,14 +1,10 @@
-/*!
+/**
  * RAGina Ultra — Full Combined Version
  * Merges:
- *   - RAGina core engine (TF-IDF retrieval + index/folder loading)   [from ragina.js]
- *   - RAGina Pro full app UI (chat, voice, YouTube music, memory)    [from ragina-pro.js]
+ *   - RAGina core engine (TF-IDF retrieval + index/folder loading)
+ *   - RAGina Pro full app UI (chat, voice, YouTube music, memory)
  *
- * The core engine runs headless (no bubble/panel UI of its own) and simply
- * builds the searchable index. The Pro app supplies the single visible
- * widget and automatically pulls retrieval context from the core engine
- * via window.RAGina.getEngine() — so you get one widget with both the
- * indexing/retrieval features AND the full interactive experience.
+ * One file. One widget. All powers.
  *
  * Usage: include this ONE file instead of ragina.js + ragina-pro.js.
  * Configure via window.RAGINA_CONFIG and/or window.__RAGINA_INDEX__ as before.
@@ -17,12 +13,64 @@
  * MIT License
  */
 
-/* ======================================================================
- * PART 1 — RAGina Core Engine (headless: index building + TF-IDF search)
- * ==================================================================== */
 (function (global) {
   'use strict';
 
+  // ─── CONFIGURATION ──────────────────────────────────────────────────────────
+  const DEFAULT_CONFIG = {
+    indexUrl: null,
+    indexData: null,
+    position: 'bottom-right',
+    placeholder: 'Ask me anything…',
+    topK: 3,
+    model: 'openai',
+    personality: 'sassy',
+    avatarUrl: 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png',
+    bubbleIcon: null,
+    title: 'RAGina',
+    theme: { primary: '#6C63FF' },
+    chunkSize: 200,
+    apiBaseUrl: 'https://sensycilva.suryasticsai.workers.dev',
+    voiceId: 'rachel',
+    voiceSpeed: 1.0
+  };
+
+  // ─── MERGE CONFIG ──────────────────────────────────────────────────────────
+  let CONFIG = { ...DEFAULT_CONFIG };
+  if (global.RAGINA_CONFIG) {
+    CONFIG = { ...CONFIG, ...global.RAGINA_CONFIG };
+  }
+
+  // ─── SASSY QUOTES ──────────────────────────────────────────────────────────
+  const QUOTES = {
+    ready: [
+      "Alright darling, I've read every file in this place. Ask away.",
+      "Mind palace is set. These documents have no secrets from me now.",
+      "I've penetrated every folder. What do you want to know?"
+    ],
+    thinking: [
+      "Scanning the memory palace… hold tight.",
+      "I can see the answer forming in the chaos…",
+      "Give me a second, I'm reading through walls here."
+    ],
+    found: [
+      "Found it. It was hiding in plain sight.",
+      "Knew exactly where that was. I'm a mentalist, remember?",
+      "Piece of cake. Your files can't hide from me."
+    ],
+    confused: [
+      "Even I can't find that in your mess. Organize better, human.",
+      "Your files are silent on this one. And I hear everything.",
+      "Nothing. Zip. Your documents don't know either."
+    ],
+    error: [
+      "Something broke. Not my fault — I blame the network.",
+      "The mind palace glitched. Give me a moment."
+    ]
+  };
+  const randomQuote = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  // ─── TF‑IDF RETRIEVAL ENGINE ──────────────────────────────────────────────
   class RAGEngine {
     constructor() {
       this.chunks = [];
@@ -32,12 +80,10 @@
 
     buildIndex(data, chunkSize = 200) {
       this.chunks = [];
-      // Convert enriched format if needed
-      const flatData = convertToFlat(data);
+      const flatData = this._convertToFlat(data);
       for (const [label, doc] of Object.entries(flatData)) {
         const bodyText = doc.bodyText || doc.body || doc.content || '';
         if (!bodyText || bodyText.length < 30) continue;
-
         const sentences = bodyText.split(/\n+|(?<=[.!?])\s+/);
         let current = '';
         for (const s of sentences) {
@@ -49,7 +95,6 @@
         }
         if (current.trim()) this.chunks.push({ text: current.trim(), source: label });
       }
-
       this.idf = {};
       const total = this.chunks.length || 1;
       for (const ch of this.chunks) {
@@ -60,6 +105,24 @@
         this.idf[w] = Math.log(total / (1 + this.idf[w]));
       }
       this.isReady = true;
+    }
+
+    _convertToFlat(data) {
+      if (data && Array.isArray(data.pages)) {
+        const flat = {};
+        for (const page of data.pages) {
+          const url = page.url || 'unknown';
+          const chunks = page.chunks || [];
+          if (chunks.length === 0) {
+            if (page.content) flat[url] = { bodyText: page.content };
+            continue;
+          }
+          const combined = chunks.map(c => c.text || c.content || '').join('\n');
+          flat[url] = { bodyText: combined };
+        }
+        return flat;
+      }
+      return data;
     }
 
     retrieve(query, topK = 3) {
@@ -83,89 +146,938 @@
     }
   }
 
-  // ── Format converter (enriched → flat) ──────────────
-  function convertToFlat(data) {
-    // If it already has a "pages" array, it's the enriched format
-    if (data && Array.isArray(data.pages)) {
-      const flat = {};
-      for (const page of data.pages) {
-        const url = page.url || 'unknown';
-        const chunks = page.chunks || [];
-        if (chunks.length === 0) {
-          if (page.content) flat[url] = { bodyText: page.content };
-          continue;
-        }
-        const combined = chunks.map(c => c.text || c.content || '').join('\n');
-        flat[url] = { bodyText: combined };
-      }
-      return flat;
-    }
-    return data;
+  // ─── AI PROXY ──────────────────────────────────────────────────────────────
+  async function askLLM(prompt) {
+    const url = CONFIG.apiBaseUrl + '/api/ask';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    if (!res.ok) throw new Error(`LLM error: ${res.status}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.text;
   }
 
-  // ── Public API (engine-only; the Pro UI below is the visible widget) ──
-  const RAGina = {
-    engine: null,
-    config: {},
+  // ─── SVG ICONS ─────────────────────────────────────────────────────────────
+  const ICONS = {
+    mic: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 3.91c-2.84-.48-5-2.94-5-5.91h-2c0 3.83 2.82 6.93 6.5 7.48V21h3v-3.52c3.68-.55 6.5-3.65 6.5-7.48h-2c0 2.97-2.16 5.43-5 5.91z"/></svg>`,
+    send: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`,
+    play: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`,
+    pause: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`,
+    stop: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`,
+    close: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
+    minimize: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>`
+  };
 
-    init(config = {}) {
-      const defaultConfig = {
-        indexUrl: null,
-        chunkSize: 200,
+  // ─── STYLES ────────────────────────────────────────────────────────────────
+  function injectStyles() {
+    if (document.getElementById('ragina-ultra-styles')) return;
+    const primary = CONFIG.theme.primary || '#6C63FF';
+    const rgb = hexToRgb(primary);
+    const css = `
+      @keyframes ragina-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+      @keyframes ragina-pulse{0%,100%{box-shadow:0 0 0 0 rgba(${rgb},0.5)}50%{box-shadow:0 0 0 18px rgba(${rgb},0)}}
+      @keyframes ragina-typing{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-8px);opacity:1}}
+      @keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(0,214,143,0.4)}50%{box-shadow:0 0 0 14px rgba(0,214,143,0)}}
+      .ragina-bubble{position:fixed;${CONFIG.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:24px;width:60px;height:60px;border-radius:50%;background:transparent;border:2px solid ${primary};cursor:grab;z-index:99999;font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;animation:ragina-float 4s ease-in-out infinite,ragina-pulse 2s infinite;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+      .ragina-bubble:hover{transform:scale(1.15) rotate(360deg);animation:none;border-color:${primary};box-shadow:0 0 25px rgba(${rgb},0.6)}
+      .ragina-bubble:active{cursor:grabbing}
+      .ragina-bubble img{width:44px;height:44px;border-radius:50%}
+      .ragina-panel{position:fixed;${CONFIG.position==='bottom-left'?'left:24px;':'right:24px;'}bottom:100px;width:380px;max-width:92vw;height:520px;max-height:70vh;background:#0f0f1a;border-radius:20px;z-index:99999;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(${rgb},0.4);box-shadow:0 0 40px rgba(${rgb},0.2),0 20px 60px rgba(0,0,0,0.6);transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);font-family:system-ui,sans-serif}
+      .ragina-panel.hidden{opacity:0;pointer-events:none;transform:translateY(30px) scale(0.95)}
+      .ragina-header{background:linear-gradient(135deg,${primary},#8b7cff);padding:14px 18px;display:flex;align-items:center;gap:12px}
+      .ragina-avatar{width:40px;height:40px;border-radius:50%;border:2px solid white;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px}
+      .ragina-header-info{flex:1;color:white}
+      .ragina-header-name{font-weight:700;font-size:1.1rem}
+      .ragina-header-status{font-size:0.7rem;opacity:0.8}
+      .ragina-close{background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+      .ragina-close:hover{background:rgba(255,255,255,0.4)}
+      .ragina-messages{flex:1;padding:16px;overflow-y:auto;background:linear-gradient(180deg,#0f0f1a 0%,#1a1a2e 100%)}
+      .ragina-messages::-webkit-scrollbar{width:4px}
+      .ragina-messages::-webkit-scrollbar-thumb{background:rgba(${rgb},0.4);border-radius:4px}
+      .ragina-msg{margin-bottom:14px;display:flex;flex-direction:column}
+      .ragina-msg.user{align-items:flex-end}
+      .ragina-msg.user .ragina-bubble-text{background:${primary};color:white;border-radius:18px 18px 4px 18px}
+      .ragina-msg.ai .ragina-bubble-text{background:rgba(${rgb},0.1);color:#ddd;border:1px solid rgba(${rgb},0.3);border-radius:18px 18px 18px 4px}
+      .ragina-msg.system .ragina-bubble-text{background:rgba(255,255,255,0.05);color:#888;font-size:0.8rem;font-style:italic;border:1px dashed rgba(255,255,255,0.1);border-radius:12px}
+      .ragina-bubble-text{max-width:82%;padding:10px 16px;font-size:0.9rem;line-height:1.5;word-break:break-word}
+      .ragina-sources{font-size:0.65rem;color:rgba(${rgb},0.7);margin-top:4px;padding-left:8px;font-style:italic}
+      .ragina-input-area{display:flex;padding:10px;border-top:1px solid rgba(${rgb},0.2);background:#0f0f1a;gap:8px;flex-wrap:wrap}
+      .ragina-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(${rgb},0.3);border-radius:24px;padding:10px 16px;color:white;font-size:0.9rem;outline:none}
+      .ragina-input::placeholder{color:rgba(255,255,255,0.3)}
+      .ragina-input:disabled{opacity:0.4;cursor:not-allowed}
+      .ragina-send{background:${primary};border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+      .ragina-send:hover{box-shadow:0 0 15px rgba(${rgb},0.6)}
+      .ragina-send:disabled{opacity:0.4;cursor:not-allowed}
+      .ragina-send svg{width:20px;height:20px;fill:currentColor}
+      .ragina-typing{display:flex;gap:4px;padding:10px 16px}
+      .ragina-typing span{width:8px;height:8px;border-radius:50%;background:rgba(${rgb},0.6);animation:ragina-typing 1.4s infinite}
+      .ragina-typing span:nth-child(2){animation-delay:0.2s}
+      .ragina-typing span:nth-child(3){animation-delay:0.4s}
+      .ragina-toolbar{display:flex;gap:6px;padding:6px 14px;background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(${rgb},0.15);flex-wrap:wrap;align-items:center}
+      .ragina-toolbar button{background:rgba(${rgb},0.2);border:none;color:#ccc;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;transition:0.2s;display:flex;align-items:center;gap:4px}
+      .ragina-toolbar button:hover{background:rgba(${rgb},0.4);color:#fff}
+      .ragina-toolbar button svg{width:14px;height:14px;fill:currentColor}
+      .ragina-toolbar .status{flex:1;text-align:right;font-size:10px;color:#666}
+      .ragina-mic{background:transparent;border:2px solid rgba(${rgb},0.4);border-radius:50%;width:38px;height:38px;color:${primary};display:flex;align-items:center;justify-content:center;cursor:pointer;transition:0.2s}
+      .ragina-mic:hover{background:rgba(${rgb},0.1)}
+      .ragina-mic.listening{background:#00d68f;border-color:#00d68f;color:#fff;animation:pulse-mic 1s infinite}
+      .ragina-mic svg{width:20px;height:20px;fill:currentColor}
+      .ragina-music{background:rgba(${rgb},0.15);border:1px solid rgba(${rgb},0.35);border-radius:12px;padding:6px 10px;margin:0 14px 8px;display:none;flex-direction:column;gap:4px}
+      .ragina-music-row{display:flex;align-items:center;gap:6px}
+      .ragina-music-label{flex:1;font-size:11px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ragina-music-btn{background:rgba(255,255,255,0.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:0.2s}
+      .ragina-music-btn:hover{background:rgba(255,255,255,0.25)}
+      .ragina-music-btn svg{width:16px;height:16px;fill:currentColor}
+      .ragina-progress-row{display:flex;align-items:center;gap:6px}
+      .ragina-progress-bar{flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;cursor:pointer}
+      .ragina-progress-fill{height:100%;width:0%;background:${primary};border-radius:2px;transition:width 0.1s linear}
+      .ragina-time-label{font-size:9px;color:#888;min-width:28px;text-align:center}
+      #ragina-fileInput{display:none}
+      @media(max-width:480px){.ragina-panel{right:8px;left:8px;bottom:80px;width:auto;height:60vh}}
+    `;
+    const style = document.createElement('style');
+    style.id = 'ragina-ultra-styles';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `${parseInt(result[1],16)}, ${parseInt(result[2],16)}, ${parseInt(result[3],16)}` : '108,99,255';
+  }
+
+  // ─── UI CLASS ──────────────────────────────────────────────────────────────
+  class RAGinaUltraUI {
+    constructor(engine) {
+      this.engine = engine;
+      this.bubble = null;
+      this.panel = null;
+      this.messages = null;
+      this.input = null;
+      this.sendBtn = null;
+      this.micBtn = null;
+      this.statusEl = null;
+      this.musicContainer = null;
+      this.songLabel = null;
+      this.playPauseBtn = null;
+      this.stopBtn = null;
+      this.progressFill = null;
+      this.timeCurrent = null;
+      this.timeDuration = null;
+      this.progressBar = null;
+      this.fileInput = null;
+      this.isReady = false;
+      this.isListening = false;
+      this.recognition = null;
+      this.currentAudio = null;
+      this.isMinimized = true;
+      this.musicPlaying = false;
+      this.currentVideoId = null;
+      this.musicInterval = null;
+      this.musicDuration = 0;
+      this.musicCurrentTime = 0;
+      this.youtubePlayer = null;
+      this.playerReady = false;
+      this.playerReadyResolve = null;
+      this.playerReadyPromise = new Promise(r => this.playerReadyResolve = r);
+      this.messageHistory = [];
+      this.userName = null;
+      this.awaitingName = false;
+      this.introDone = false;
+      this.history = [];
+      this.wasPlayingBeforeMic = false;
+    }
+
+    // ─── OPENDB (with version bump) ──────────────────────────────────────
+    async openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('RAGinaChatDB', 3);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('chat')) {
+            db.createObjectStore('chat', { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ─── INJECT HTML ──────────────────────────────────────────────────────
+    injectHTML() {
+      console.log('🔮 RAGina Ultra: Injecting UI...');
+      const primary = CONFIG.theme.primary || '#6C63FF';
+      const bubbleContent = CONFIG.avatarUrl
+        ? `<img src="${CONFIG.avatarUrl}" alt="RAGina" style="width:44px;height:44px;border-radius:50%;" onerror="this.parentElement.innerHTML='🔮'">`
+        : (CONFIG.bubbleIcon || '🔮');
+
+      this.bubble = document.createElement('button');
+      this.bubble.className = 'ragina-bubble';
+      this.bubble.title = CONFIG.title || 'RAGina – Your Mentalist RAG';
+      this.bubble.innerHTML = bubbleContent;
+      document.body.appendChild(this.bubble);
+      console.log('✅ Bubble injected');
+
+      // ─── DRAG ON BUBBLE ────────────────────────────────────────────────
+      this._makeDraggable(this.bubble);
+
+      this.panel = document.createElement('div');
+      this.panel.className = 'ragina-panel hidden';
+      this.panel.innerHTML = `
+        <div class="ragina-header">
+          ${CONFIG.avatarUrl ? `<img class="ragina-avatar" src="${CONFIG.avatarUrl}" alt="RAGina" style="object-fit:cover;" onerror="this.outerHTML='<div class=\\'ragina-avatar\\'>🔮</div>'">` : '<div class="ragina-avatar">🔮</div>'}
+          <div class="ragina-header-info">
+            <div class="ragina-header-name">${CONFIG.title || 'RAGina'}</div>
+            <div class="ragina-header-status" id="raginaStatus">🧠 Mentalist Online</div>
+          </div>
+          <button class="ragina-close" id="raginaClose">${ICONS.close}</button>
+        </div>
+        <div class="ragina-toolbar">
+          <button id="raginaSaveChat">💾 Save</button>
+          <button id="raginaLoadChat">📂 Load</button>
+          <button id="raginaClearChat">🗑️ Clear</button>
+          <button id="raginaUploadFolder">📁 Upload</button>
+          <span class="status" id="raginaChatStatus">Auto‑saved</span>
+        </div>
+        <input type="file" id="raginaFileInput" webkitdirectory directory multiple accept=".html,.htm" />
+        <div class="ragina-messages" id="raginaMessages"></div>
+        <div class="ragina-music" id="raginaMusic">
+          <div class="ragina-music-row">
+            <span class="ragina-music-label" id="raginaSongLabel">🎵</span>
+            <button class="ragina-music-btn" id="raginaPlayPause">${ICONS.play}</button>
+            <button class="ragina-music-btn" id="raginaStop">${ICONS.stop}</button>
+          </div>
+          <div class="ragina-progress-row">
+            <span class="ragina-time-label" id="raginaTimeCurrent">0:00</span>
+            <div class="ragina-progress-bar" id="raginaProgressBar"><div class="ragina-progress-fill" id="raginaProgressFill"></div></div>
+            <span class="ragina-time-label" id="raginaTimeDuration">0:00</span>
+          </div>
+        </div>
+        <div class="ragina-input-area">
+          <button class="ragina-mic" id="raginaMic" title="Click to speak">${ICONS.mic}</button>
+          <input type="text" class="ragina-input" id="raginaInput" placeholder="${CONFIG.placeholder || 'Ask me anything…'}" autocomplete="off">
+          <button class="ragina-send" id="raginaSend">${ICONS.send}</button>
+        </div>
+      `;
+      document.body.appendChild(this.panel);
+      console.log('✅ Panel injected');
+
+      // DOM refs
+      this.messages = document.getElementById('raginaMessages');
+      this.input = document.getElementById('raginaInput');
+      this.sendBtn = document.getElementById('raginaSend');
+      this.micBtn = document.getElementById('raginaMic');
+      this.statusEl = document.getElementById('raginaStatus');
+      this.musicContainer = document.getElementById('raginaMusic');
+      this.songLabel = document.getElementById('raginaSongLabel');
+      this.playPauseBtn = document.getElementById('raginaPlayPause');
+      this.stopBtn = document.getElementById('raginaStop');
+      this.progressFill = document.getElementById('raginaProgressFill');
+      this.timeCurrent = document.getElementById('raginaTimeCurrent');
+      this.timeDuration = document.getElementById('raginaTimeDuration');
+      this.progressBar = document.getElementById('raginaProgressBar');
+      this.fileInput = document.getElementById('raginaFileInput');
+      this.chatStatus = document.getElementById('raginaChatStatus');
+
+      // ─── DRAG ON PANEL HEADER ──────────────────────────────────────────
+      const header = this.panel.querySelector('.ragina-header');
+      this._makeDraggable(this.panel, header);
+
+      // Events
+      this.bubble.addEventListener('click', () => this.toggle());
+      document.getElementById('raginaClose').addEventListener('click', () => this.minimize());
+      this.sendBtn.addEventListener('click', () => this.handleSend());
+      this.input.addEventListener('keypress', e => { if (e.key === 'Enter') this.handleSend(); });
+      this.micBtn.addEventListener('click', () => this.toggleMic());
+      this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+      this.stopBtn.addEventListener('click', () => this.stopMusic());
+      this.progressBar.addEventListener('click', e => this.seekMusic(e));
+
+      document.getElementById('raginaSaveChat').addEventListener('click', () => this.exportChat());
+      document.getElementById('raginaLoadChat').addEventListener('click', () => this.importChat());
+      document.getElementById('raginaClearChat').addEventListener('click', () => this.clearChat());
+      document.getElementById('raginaUploadFolder').addEventListener('click', () => this.fileInput.click());
+      this.fileInput.addEventListener('change', e => this.handleFolderUpload(e));
+
+      // Initial state
+      this.setReady(this.engine.isReady);
+      console.log('🎯 RAGina Ultra UI ready.');
+    }
+
+    // ─── DRAGGABLE HELPER ──────────────────────────────────────────────────
+    _makeDraggable(element, handle = element) {
+      let dragActive = false, startX, startY, startLeft, startTop;
+      const onStart = (e) => {
+        if (e.target.closest('button') || e.target.closest('input')) return;
+        const rect = element.getBoundingClientRect();
+        startLeft = rect.left; startTop = rect.top;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        startX = clientX; startY = clientY;
+        dragActive = true;
+        element.style.transition = 'none';
+        element.style.position = 'fixed';
+        element.style.left = startLeft + 'px';
+        element.style.top = startTop + 'px';
+        element.style.right = 'auto';
+        element.style.bottom = 'auto';
+        e.preventDefault();
       };
-      this.config = { ...defaultConfig, ...config };
-      this.engine = new RAGEngine();
+      const onMove = (e) => {
+        if (!dragActive) return;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        element.style.left = (startLeft + dx) + 'px';
+        element.style.top = (startTop + dy) + 'px';
+        element.style.right = 'auto';
+        element.style.bottom = 'auto';
+      };
+      const onEnd = () => { dragActive = false; };
+      handle.addEventListener('mousedown', onStart);
+      handle.addEventListener('touchstart', onStart, { passive: false });
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('mouseup', onEnd);
+      document.addEventListener('touchend', onEnd);
+    }
 
-      // Check for embedded index first
-      if (window.__RAGINA_INDEX__ && typeof window.__RAGINA_INDEX__ === 'object' && Object.keys(window.__RAGINA_INDEX__).length > 0) {
-        this.engine.buildIndex(window.__RAGINA_INDEX__, this.config.chunkSize);
+    // ─── TOGGLE / MINIMIZE ─────────────────────────────────────────────────
+    toggle() {
+      this.panel.classList.toggle('hidden');
+      if (!this.panel.classList.contains('hidden')) {
+        this.input.focus();
+        this.isMinimized = false;
+        if (!this.introDone && !this.userName) this.introduce();
+      } else {
+        this.isMinimized = true;
+      }
+    }
+
+    minimize() {
+      this.panel.classList.add('hidden');
+      this.isMinimized = true;
+    }
+
+    setReady(ready) {
+      this.isReady = ready;
+      this.input.disabled = false;
+      this.sendBtn.disabled = false;
+      if (ready) {
+        this.statusEl.textContent = '🧠 Mentalist Online';
+      } else {
+        this.statusEl.textContent = '📁 Upload a folder to give me knowledge';
+      }
+    }
+
+    // ─── MESSAGES ───────────────────────────────────────────────────────────
+    addMessage(text, sender, sources = []) {
+      const div = document.createElement('div');
+      div.className = `ragina-msg ${sender}`;
+      const bubble = document.createElement('div');
+      bubble.className = 'ragina-bubble-text';
+      bubble.textContent = text;
+      div.appendChild(bubble);
+      if (sources.length > 0) {
+        const src = document.createElement('div');
+        src.className = 'ragina-sources';
+        src.textContent = '📌 ' + sources.map(s => (s.source || '').split('/').pop() + '…').join(' · ');
+        div.appendChild(src);
+      }
+      this.messages.appendChild(div);
+      this.messages.scrollTop = this.messages.scrollHeight;
+      this.messageHistory.push({ role: sender, text, sources });
+      this.saveChatHistory();
+      return div;
+    }
+
+    showTyping() {
+      const div = document.createElement('div');
+      div.className = 'ragina-msg ai';
+      div.innerHTML = '<div class="ragina-typing"><span></span><span></span><span></span></div>';
+      this.messages.appendChild(div);
+      this.messages.scrollTop = this.messages.scrollHeight;
+      return div;
+    }
+
+    // ─── SEND MESSAGE ──────────────────────────────────────────────────────
+    async handleSend(question) {
+      const q = question || this.input.value.trim();
+      if (!q) return;
+      this.input.value = '';
+      this.sendBtn.disabled = true;
+
+      if (this.awaitingName) {
+        this.awaitingName = false;
+        this.userName = q.split(' ')[0];
+        this.addMessage(q, 'user');
+        const greet = `Nice to meet you, ${this.userName}! What can I help you with?`;
+        this.addMessage(greet, 'ai');
+        await this.speakText(greet);
+        this.sendBtn.disabled = false;
+        this.input.focus();
         return;
       }
 
-      // Otherwise fetch from URL
-      if (this.config.indexUrl) {
-        fetch(this.config.indexUrl)
-          .then(res => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.json();
+      const selected = this.getSelectedText();
+      if (selected) {
+        this.addMessage(`📝 Selected: "${selected}"`, 'system');
+      }
+
+      if (this.handleMusicCommand(q)) {
+        this.addMessage(q, 'user');
+        this.sendBtn.disabled = false;
+        return;
+      }
+
+      this.addMessage(q, 'user');
+      const typing = this.showTyping();
+
+      const topChunks = this.engine.isReady ? this.engine.retrieve(q, CONFIG.topK || 3) : [];
+      const context = topChunks.length > 0
+        ? topChunks.map((c, i) => `[${i+1}] ${c.source}\n${c.text}`).join('\n\n')
+        : 'No relevant documents found.';
+
+      const personality = CONFIG.personality || 'sassy';
+      const prompt = personality === 'professional'
+        ? `Answer the question using ONLY the context below. If the answer cannot be found, say "I don't have enough information to answer that."\n\nContext:\n${context}\n\nQuestion: ${q}\nAnswer:`
+        : `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.\n\nContext:\n${context}\n\nQuestion: ${q}\nAnswer (as RAGina, with sass):`;
+
+      try {
+        const answer = await askLLM(prompt);
+        typing.remove();
+        this.addMessage(answer, 'ai', topChunks);
+        this.history.push({ role: 'user', text: q }, { role: 'bot', text: answer });
+        if (CONFIG.voiceEnabled !== false) await this.speakText(answer);
+      } catch (err) {
+        typing.remove();
+        this.addMessage(randomQuote(QUOTES.error) + ' ' + err.message, 'ai');
+      }
+      this.sendBtn.disabled = false;
+      this.input.focus();
+    }
+
+    // ─── SELECTED TEXT ────────────────────────────────────────────────────
+    getSelectedText() {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed) return '';
+      const text = sel.toString().trim();
+      console.log('📌 Selected text:', text);
+      return text;
+    }
+
+    // ─── VOICE ────────────────────────────────────────────────────────────
+    toggleMic() {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        alert('Speech recognition not supported in this browser.');
+        return;
+      }
+      if (this.isListening) {
+        if (this.recognition) this.recognition.stop();
+        return;
+      }
+      if (this.musicPlaying) {
+        this.wasPlayingBeforeMic = true;
+        this.pauseMusic();
+      }
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      this.recognition = new SpeechRecognition();
+      this.recognition.lang = 'en-US';
+      this.recognition.interimResults = true;
+      this.recognition.continuous = false;
+      let final = '';
+
+      this.recognition.addEventListener('result', (e) => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) final += e.results[i][0].transcript;
+          else interim += e.results[i][0].transcript;
+        }
+        this.input.value = final + interim;
+      });
+
+      this.recognition.addEventListener('end', () => {
+        this.isListening = false;
+        this.micBtn.classList.remove('listening');
+        if (final.trim()) {
+          this.input.value = final.trim();
+          this.handleSend(final.trim());
+        }
+        if (this.wasPlayingBeforeMic && this.currentVideoId) {
+          this.wasPlayingBeforeMic = false;
+          this.resumeMusic();
+        }
+      });
+
+      this.recognition.start();
+      this.isListening = true;
+      this.micBtn.classList.add('listening');
+    }
+
+    async speakText(text) {
+      if (CONFIG.voiceEnabled === false) return;
+      try {
+        const url = CONFIG.apiBaseUrl + '/api/tts';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, language: 'en-US', voice_id: CONFIG.voiceId || 'rachel', speed: CONFIG.voiceSpeed || 1.0 })
+        });
+        const blob = await res.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        this.currentAudio = new Audio(audioUrl);
+        this.currentAudio.play();
+        return new Promise(resolve => {
+          this.currentAudio.onended = resolve;
+        });
+      } catch (e) {
+        console.warn('TTS failed:', e);
+      }
+    }
+
+    // ─── MUSIC ────────────────────────────────────────────────────────────
+    handleMusicCommand(text) {
+      const lower = text.toLowerCase().trim();
+      if (/\b(?:pause|hold)\s+(?:the\s+)?(?:song|music)\b/i.test(lower) || lower === 'pause') {
+        if (this.musicPlaying) { this.pauseMusic(); this.addMessage('⏸️ Paused.', 'system'); } else this.addMessage('No song playing.', 'system');
+        return true;
+      }
+      if (/\b(?:resume|continue)\s+(?:the\s+)?(?:song|music)\b/i.test(lower) || lower === 'resume') {
+        if (this.currentVideoId && !this.musicPlaying) { this.resumeMusic(); this.addMessage('▶️ Resumed.', 'system'); } else this.addMessage('No paused song.', 'system');
+        return true;
+      }
+      if (/\b(?:stop|end)\s+(?:the\s+)?(?:song|music)\b/i.test(lower) || lower === 'stop') {
+        this.stopMusic();
+        this.addMessage('⏹️ Stopped.', 'system');
+        return true;
+      }
+      const playMatch = lower.match(/^(?:play|play me|can you play|put on)\s+(.+)/i) || lower.match(/^(.+)\s+(?:song|music|track)$/i);
+      if (playMatch) {
+        const query = playMatch[1].trim();
+        if (query && query.length > 2) {
+          this.searchAndPlay(query);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    async searchAndPlay(query) {
+      try {
+        const url = CONFIG.apiBaseUrl + '/api/youtube/search?q=' + encodeURIComponent(query);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        if (!data.success || !data.items || data.items.length === 0) {
+          this.addMessage(`Couldn't find "${query}".`, 'system');
+          return;
+        }
+        const song = data.items[0];
+        await this.loadVideo(song.id, song.title);
+        this.addMessage(`🎵 Playing: ${song.title}`, 'system');
+      } catch (e) {
+        this.addMessage(`Couldn't play "${query}".`, 'system');
+      }
+    }
+
+    async loadVideo(videoId, title) {
+      if (!this.youtubePlayer) {
+        await this.playerReadyPromise;
+      }
+      if (!this.youtubePlayer) {
+        console.error('YouTube player not available');
+        return;
+      }
+      this.currentVideoId = videoId;
+      this.songLabel.textContent = '🎵 ' + title;
+      this.musicContainer.style.display = 'flex';
+      try {
+        this.youtubePlayer.loadVideoById(videoId);
+        this.youtubePlayer.playVideo();
+        this.musicPlaying = true;
+        this.playPauseBtn.innerHTML = ICONS.pause;
+        if (this.musicInterval) clearInterval(this.musicInterval);
+        this.musicInterval = setInterval(() => this.updateProgress(), 500);
+      } catch (e) {
+        console.warn('loadVideo error:', e);
+      }
+    }
+
+    pauseMusic() {
+      if (this.youtubePlayer && this.playerReady) this.youtubePlayer.pauseVideo();
+      this.musicPlaying = false;
+      this.playPauseBtn.innerHTML = ICONS.play;
+    }
+
+    resumeMusic() {
+      if (this.youtubePlayer && this.playerReady) this.youtubePlayer.playVideo();
+      this.musicPlaying = true;
+      this.playPauseBtn.innerHTML = ICONS.pause;
+    }
+
+    stopMusic() {
+      if (this.youtubePlayer && this.playerReady) this.youtubePlayer.stopVideo();
+      this.musicPlaying = false;
+      this.currentVideoId = null;
+      this.playPauseBtn.innerHTML = ICONS.play;
+      this.musicContainer.style.display = 'none';
+      if (this.musicInterval) clearInterval(this.musicInterval);
+      this.musicDuration = 0;
+      this.musicCurrentTime = 0;
+      this.progressFill.style.width = '0%';
+      this.timeCurrent.textContent = '0:00';
+      this.timeDuration.textContent = '0:00';
+    }
+
+    togglePlayPause() {
+      if (this.musicPlaying) this.pauseMusic();
+      else if (this.currentVideoId) this.resumeMusic();
+    }
+
+    seekMusic(e) {
+      if (!this.youtubePlayer || !this.playerReady || !this.currentVideoId) return;
+      const rect = this.progressBar.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const duration = this.youtubePlayer.getDuration();
+      if (duration && duration > 0) {
+        this.youtubePlayer.seekTo(x * duration, true);
+      }
+    }
+
+    updateProgress() {
+      if (!this.youtubePlayer || !this.playerReady) return;
+      try {
+        const current = this.youtubePlayer.getCurrentTime();
+        const duration = this.youtubePlayer.getDuration();
+        if (duration && duration > 0) {
+          this.musicDuration = duration;
+          this.musicCurrentTime = current;
+          const pct = (current / duration) * 100;
+          this.progressFill.style.width = pct + '%';
+          this.timeCurrent.textContent = this.formatTime(current);
+          this.timeDuration.textContent = this.formatTime(duration);
+        }
+      } catch (e) {}
+    }
+
+    formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '0:00';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    // ─── INTRO ────────────────────────────────────────────────────────────
+    async introduce() {
+      if (this.introDone) return;
+      this.introDone = true;
+      const intro = "Hey there! I'm RAGina, your personal mentalist. I can chat, answer questions, and even play music. What's your name?";
+      this.addMessage(intro, 'ai');
+      this.awaitingName = true;
+      await this.speakText(intro);
+    }
+
+    // ─── PERSISTENCE (IndexedDB) ─────────────────────────────────────────
+    async saveChatHistory() {
+      try {
+        const db = await this.openDB();
+        const tx = db.transaction('chat', 'readwrite');
+        const store = tx.objectStore('chat');
+        store.put({ id: 'history', data: this.messageHistory });
+        await tx.done;
+        this.chatStatus.textContent = 'Auto‑saved ✓';
+        this.chatStatus.style.color = '#6C63FF';
+      } catch (e) {
+        console.warn('Save error:', e);
+      }
+    }
+
+    async loadChatHistory() {
+      try {
+        const db = await this.openDB();
+        const tx = db.transaction('chat', 'readonly');
+        const store = tx.objectStore('chat');
+        const request = store.get('history');
+        return new Promise(resolve => {
+          request.onsuccess = () => resolve(request.result ? request.result.data : null);
+          request.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async clearChatHistory() {
+      try {
+        const db = await this.openDB();
+        const tx = db.transaction('chat', 'readwrite');
+        const store = tx.objectStore('chat');
+        store.delete('history');
+        await tx.done;
+      } catch (e) {}
+    }
+
+    async restoreChat() {
+      const saved = await this.loadChatHistory();
+      if (saved && saved.length > 0) {
+        this.messageHistory = saved;
+        this.messages.innerHTML = '';
+        saved.forEach(msg => {
+          const div = document.createElement('div');
+          div.className = 'ragina-msg ' + msg.role;
+          const bubble = document.createElement('div');
+          bubble.className = 'ragina-bubble-text';
+          bubble.textContent = msg.text;
+          div.appendChild(bubble);
+          if (msg.sources && msg.sources.length) {
+            const src = document.createElement('div');
+            src.className = 'ragina-sources';
+            src.textContent = '📌 ' + msg.sources.map(s => (s.source || '').split('/').pop() + '…').join(' · ');
+            div.appendChild(src);
+          }
+          this.messages.appendChild(div);
+        });
+        this.messages.scrollTop = this.messages.scrollHeight;
+        this.chatStatus.textContent = 'Loaded ' + saved.length + ' messages';
+        this.chatStatus.style.color = '#6C63FF';
+        return true;
+      }
+      return false;
+    }
+
+    exportChat() {
+      const data = JSON.stringify(this.messageHistory, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ragina-chat-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.chatStatus.textContent = 'Exported ✓';
+      setTimeout(() => { this.chatStatus.textContent = 'Auto‑saved'; }, 3000);
+    }
+
+    importChat() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            if (Array.isArray(data)) {
+              this.messageHistory = data;
+              this.messages.innerHTML = '';
+              data.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'ragina-msg ' + msg.role;
+                const bubble = document.createElement('div');
+                bubble.className = 'ragina-bubble-text';
+                bubble.textContent = msg.text;
+                div.appendChild(bubble);
+                if (msg.sources && msg.sources.length) {
+                  const src = document.createElement('div');
+                  src.className = 'ragina-sources';
+                  src.textContent = '📌 ' + msg.sources.map(s => (s.source || '').split('/').pop() + '…').join(' · ');
+                  div.appendChild(src);
+                }
+                this.messages.appendChild(div);
+              });
+              this.messages.scrollTop = this.messages.scrollHeight;
+              this.saveChatHistory();
+              this.chatStatus.textContent = 'Loaded ' + data.length + ' messages';
+              this.chatStatus.style.color = '#6C63FF';
+            }
+          } catch (err) {
+            alert('Invalid file.');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    async clearChat() {
+      if (!confirm('Clear all chat history?')) return;
+      this.messageHistory = [];
+      this.messages.innerHTML = '';
+      await this.clearChatHistory();
+      this.chatStatus.textContent = 'Cleared';
+      this.chatStatus.style.color = '#FF6584';
+      setTimeout(() => { this.chatStatus.textContent = 'Auto‑saved'; }, 3000);
+      this.userName = null;
+      this.awaitingName = false;
+      this.introDone = false;
+      if (!this.panel.classList.contains('hidden')) this.introduce();
+    }
+
+    // ─── FOLDER UPLOAD ────────────────────────────────────────────────────
+    async handleFolderUpload(e) {
+      const files = e.target.files;
+      if (!files.length) return;
+      const htmlFiles = [...files].filter(f => f.name.endsWith('.html') || f.name.endsWith('.htm'));
+      if (!htmlFiles.length) {
+        this.addMessage('No HTML files found in the folder.', 'system');
+        return;
+      }
+      const data = {};
+      for (const file of htmlFiles) {
+        const text = await file.text();
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        const bodyText = (doc.body?.textContent || '').trim();
+        data[file.webkitRelativePath || file.name] = { bodyText };
+      }
+      this.engine.buildIndex(data, CONFIG.chunkSize || 200);
+      this.setReady(true);
+      this.messages.innerHTML = '';
+      this.messageHistory = [];
+      this.addMessage(randomQuote(QUOTES.ready), 'ai');
+      this.saveChatHistory();
+      this.chatStatus.textContent = 'Loaded ' + htmlFiles.length + ' files';
+    }
+
+    // ─── YOUTUBE PLAYER INIT ─────────────────────────────────────────────
+    initYouTubePlayer() {
+      if (window.YT && window.YT.Player) {
+        this.youtubePlayer = new YT.Player(document.createElement('div'), {
+          height: '0',
+          width: '0',
+          videoId: '',
+          playerVars: { autoplay: 0, controls: 0, modestbranding: 1, rel: 0, showinfo: 0, iv_load_policy: 3 },
+          events: {
+            onReady: () => {
+              this.playerReady = true;
+              if (this.playerReadyResolve) this.playerReadyResolve();
+            },
+            onStateChange: (e) => {
+              if (e.data === YT.PlayerState.PLAYING) {
+                this.musicPlaying = true;
+                this.playPauseBtn.innerHTML = ICONS.pause;
+                if (this.musicInterval) clearInterval(this.musicInterval);
+                this.musicInterval = setInterval(() => this.updateProgress(), 500);
+              } else if (e.data === YT.PlayerState.PAUSED) {
+                this.musicPlaying = false;
+                this.playPauseBtn.innerHTML = ICONS.play;
+              } else if (e.data === YT.PlayerState.ENDED) {
+                this.stopMusic();
+                this.addMessage('Song finished!', 'system');
+              }
+            },
+            onError: () => { this.stopMusic(); this.addMessage('Error playing song.', 'system'); }
+          }
+        });
+        const container = document.createElement('div');
+        container.style.display = 'none';
+        document.body.appendChild(container);
+        container.appendChild(this.youtubePlayer.getIframe());
+      } else {
+        setTimeout(() => this.initYouTubePlayer(), 500);
+      }
+    }
+  }
+
+  // ─── PUBLIC API ──────────────────────────────────────────────────────────
+  const RAGinaUltra = {
+    engine: null,
+    ui: null,
+
+    init(config) {
+      if (config) CONFIG = { ...CONFIG, ...config };
+      injectStyles();
+      this.engine = new RAGEngine();
+      this.ui = new RAGinaUltraUI(this.engine);
+      this.ui.injectHTML();
+
+      // Load YouTube API
+      if (!window.YT || !window.YT.Player) {
+        const script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        script.async = true;
+        document.head.appendChild(script);
+        window.onYouTubeIframeAPIReady = () => {
+          this.ui.initYouTubePlayer();
+        };
+      } else {
+        this.ui.initYouTubePlayer();
+      }
+
+      // Restore chat history and load index
+      setTimeout(async () => {
+        const has = await this.ui.restoreChat();
+        if (!has) {
+          if (this.engine.isReady) {
+            this.ui.addMessage(randomQuote(QUOTES.ready), 'ai');
+          } else {
+            this.ui.addMessage("I'm ready! Upload some files or load an index to get started.", 'ai');
+          }
+        } else {
+          if (this.engine.isReady) this.ui.setReady(true);
+        }
+        this.ui.setReady(this.engine.isReady);
+        this.ui.minimize();
+      }, 100);
+
+      this._loadIndex();
+    },
+
+    _loadIndex() {
+      if (window.__RAGINA_INDEX__ && Object.keys(window.__RAGINA_INDEX__).length > 0) {
+        this.engine.buildIndex(window.__RAGINA_INDEX__, CONFIG.chunkSize || 200);
+        this.ui.setReady(true);
+        return;
+      }
+      if (CONFIG.indexUrl) {
+        fetch(CONFIG.indexUrl)
+          .then(res => res.json())
+          .then(data => {
+            this.engine.buildIndex(data, CONFIG.chunkSize || 200);
+            this.ui.setReady(true);
+            if (this.ui.messages.children.length === 0) {
+              this.ui.addMessage(randomQuote(QUOTES.ready), 'ai');
+            }
           })
-          .then(data => this.engine.buildIndex(data, this.config.chunkSize))
-          .catch(err => console.warn('RAGina: Could not load index from URL.', err.message));
+          .catch(err => {
+            console.warn('Index load failed:', err);
+            this.ui.addMessage("Couldn't load index. I'm still here, but I have no knowledge.", 'ai');
+          });
       }
     },
 
     loadData(data) {
-      if (!this.engine) this.engine = new RAGEngine();
-      this.engine.buildIndex(data, this.config.chunkSize || 200);
+      this.engine.buildIndex(data, CONFIG.chunkSize || 200);
+      this.ui.setReady(true);
+      this.ui.messages.innerHTML = '';
+      this.ui.messageHistory = [];
+      this.ui.addMessage(randomQuote(QUOTES.ready), 'ai');
     },
 
     async loadFolder(fileList) {
-      const files = [...fileList].filter(f => f.name.endsWith('.html') || f.name.endsWith('.htm'));
-      const data = {};
-      for (const file of files) {
-        const text = await file.text();
-        const doc = new DOMParser().parseFromString(text, 'text/html');
-        data[file.webkitRelativePath || file.name] = {
-          bodyText: (doc.body?.textContent || '').trim()
-        };
-      }
-      this.loadData(data);
+      await this.ui.handleFolderUpload({ target: { files: fileList } });
     },
 
-    getEngine() { return this.engine; }
+    getEngine() { return this.engine; },
+
+    ask(question) {
+      if (this.ui) this.ui.handleSend(question);
+    }
   };
 
-  global.RAGina = RAGina;
-
-  // ── Auto‑init (engine only — Pro app below renders the actual UI) ──
+  // ─── AUTO‑INIT ──────────────────────────────────────────────────────────
   const autoStart = () => {
-    if (window.__RAGINA_INDEX__ && typeof window.__RAGINA_INDEX__ === 'object' && Object.keys(window.__RAGINA_INDEX__).length > 0) {
-      const cfg = window.RAGINA_CONFIG || {};
-      RAGina.init({ ...cfg, indexUrl: null });
-      return;
-    }
-    if (window.RAGINA_CONFIG) {
-      RAGina.init(window.RAGINA_CONFIG);
+    if (global.RAGINA_CONFIG) {
+      RAGinaUltra.init(global.RAGINA_CONFIG);
+    } else if (global.__RAGINA_INDEX__) {
+      RAGinaUltra.init({ indexData: global.__RAGINA_INDEX__ });
+    } else {
+      RAGinaUltra.init();
     }
   };
 
@@ -175,1783 +1087,6 @@
     autoStart();
   }
 
+  global.RAGina = RAGinaUltra;
+
 })(typeof window !== 'undefined' ? window : this);
-
-/* ======================================================================
- * PART 2 — RAGina Pro: Full App UI (chat, voice, YouTube music, memory)
- * Automatically detects and uses the engine from Part 1 above via
- * window.RAGina.getEngine() for retrieval-augmented answers.
- * ==================================================================== */
-/**
- * RAGina Pro – Full Application (UI + Engine)
- * Version 2.3.5 – AI retry + fallback, improved selection handling
- * 
- * All‑in‑one, self‑contained. No external dependencies except YouTube IFrame API.
- */
-(function() {
-    'use strict';
-
-    // ─── HARDCODED DEFAULTS (can be overridden via window.RAGINA_CONFIG) ──
-    const DEFAULT_BASE_URL = 'https://sensycilva.suryasticsai.workers.dev';
-    const DEFAULT_INDEX_URL = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/demo-index.json';
-    const DEFAULT_VOICE_ID = 'rachel';
-    const DEFAULT_VOICE_SPEED = 1.0;
-    // Fallback AI endpoint (if primary fails)
-    const FALLBACK_AI_ENDPOINT = 'https://ragina-crawler-ragina.vercel.app/api/ask';
-
-    // ─── READ CONFIG ──────────────────────────────────────────────────────
-    const CONFIG = window.RAGINA_CONFIG || {};
-    const BASE_URL = CONFIG.apiBaseUrl || DEFAULT_BASE_URL;
-    const INDEX_URL = CONFIG.indexUrl || DEFAULT_INDEX_URL;
-    const VOICE_ID = CONFIG.voiceId || DEFAULT_VOICE_ID;
-    const VOICE_SPEED = CONFIG.voiceSpeed || DEFAULT_VOICE_SPEED;
-
-    // Derived endpoints
-    const AI_ENDPOINT = BASE_URL + '/api/ask';
-    const YT_SEARCH_URL = BASE_URL + '/api/youtube/search?q=';
-    const VOICE_URL = BASE_URL + '/api/tts';
-
-    // ─── STYLES ──────────────────────────────────────────────────────────
-    const styles = `
-        /* ─── Reset & Base ─── */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: radial-gradient(circle at 30% 20%, #1a1a2e, #0f0f1a 70%);
-            min-height: 100vh;
-            color: #f0f0f0;
-            padding: 20px;
-        }
-
-        /* ─── Test content (optional) ─── */
-        .ragina-test-content {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 30px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 16px;
-            border: 1px solid rgba(108, 99, 255, 0.15);
-            color: #c0c0e0;
-            line-height: 1.8;
-            font-size: 16px;
-            user-select: text;
-        }
-        .ragina-test-content h1 {
-            color: #6C63FF;
-            font-weight: 300;
-            font-size: 28px;
-            margin-bottom: 12px;
-        }
-        .ragina-test-content h1 span {
-            background: linear-gradient(90deg, #6C63FF, #FF6584);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .ragina-test-content .highlight {
-            background: rgba(108, 99, 255, 0.15);
-            padding: 2px 6px;
-            border-radius: 4px;
-            border-left: 3px solid #6C63FF;
-        }
-        .ragina-test-content .instruction {
-            background: rgba(255, 101, 132, 0.1);
-            border-left: 3px solid #FF6584;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin: 16px 0;
-        }
-        .ragina-test-content p {
-            margin-bottom: 14px;
-        }
-
-        /* ─── RAGina App ─── */
-        .ragina-app {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 380px;
-            max-width: 95vw;
-            z-index: 99999;
-            transition: none;
-        }
-        .ragina-app.minimized {
-            width: 70px;
-            height: 70px;
-        }
-        .ragina-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(20, 20, 38, 0.96);
-            border: 1px solid rgba(108, 99, 255, 0.35);
-            border-radius: 20px 20px 0 0;
-            padding: 10px 16px;
-            cursor: move;
-            flex-shrink: 0;
-            backdrop-filter: blur(12px);
-            user-select: none;
-        }
-        .ragina-app.minimized .ragina-header {
-            border-radius: 50%;
-            padding: 0;
-            width: 70px;
-            height: 70px;
-            justify-content: center;
-            border-bottom: 1px solid rgba(108, 99, 255, 0.35);
-        }
-        .ragina-header .logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: url('https://ragina-crawler-ragina.vercel.app/ragina-logo.png') center/cover;
-            border: 2px solid #6C63FF;
-            flex-shrink: 0;
-            cursor: pointer;
-        }
-        .ragina-app.minimized .ragina-header .logo {
-            width: 56px;
-            height: 56px;
-            margin: 0;
-        }
-        .ragina-header .title-area {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            margin: 0 10px;
-            overflow: hidden;
-        }
-        .ragina-app.minimized .title-area {
-            display: none;
-        }
-        .ragina-header .title {
-            font-weight: 700;
-            font-size: 16px;
-            background: linear-gradient(90deg, #6C63FF, #FF6584);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            white-space: nowrap;
-        }
-        .ragina-header .live-transcript {
-            font-size: 13px;
-            color: #d0d0f0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            flex: 1;
-            min-width: 0;
-        }
-        .ragina-header .live-transcript.interim {
-            color: #b0b0e0;
-            font-style: italic;
-        }
-        .ragina-header .actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .ragina-app.minimized .actions {
-            display: none;
-        }
-        .ragina-header .btn-icon {
-            background: none;
-            border: none;
-            color: #ccc;
-            cursor: pointer;
-            padding: 4px;
-            transition: color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-        }
-        .ragina-header .btn-icon:hover {
-            color: #fff;
-        }
-        .ragina-header .btn-icon.voice-off {
-            color: #FF6584;
-        }
-        .ragina-header .btn-icon svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
-        }
-        .ragina-body {
-            background: rgba(15, 15, 30, 0.97);
-            border: 1px solid rgba(108, 99, 255, 0.3);
-            border-top: none;
-            border-radius: 0 0 20px 20px;
-            display: flex;
-            flex-direction: column;
-            height: 440px;
-            overflow: hidden;
-        }
-        .ragina-app.minimized .ragina-body {
-            display: none;
-        }
-        .chat-toolbar {
-            display: flex;
-            gap: 8px;
-            padding: 6px 14px;
-            background: rgba(0, 0, 0, 0.25);
-            border-bottom: 1px solid rgba(108, 99, 255, 0.15);
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .chat-toolbar button {
-            background: rgba(108, 99, 255, 0.2);
-            border: none;
-            color: #ccc;
-            padding: 4px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: 0.2s;
-            font-family: inherit;
-        }
-        .chat-toolbar button:hover {
-            background: rgba(108, 99, 255, 0.4);
-            color: #fff;
-        }
-        .chat-toolbar .status {
-            flex: 1;
-            text-align: right;
-            font-size: 11px;
-            color: #666;
-        }
-        .ragina-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .msg {
-            max-width: 85%;
-            padding: 9px 13px;
-            border-radius: 14px;
-            font-size: 14px;
-            line-height: 1.5;
-            word-break: break-word;
-        }
-        .msg.user {
-            align-self: flex-end;
-            background: #6C63FF;
-            color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-        .msg.bot {
-            align-self: flex-start;
-            background: rgba(108, 99, 255, 0.18);
-            color: #f0f0ff;
-            border-bottom-left-radius: 4px;
-            border: 1px solid rgba(108, 99, 255, 0.25);
-        }
-        .msg.system {
-            align-self: center;
-            background: transparent;
-            color: #9e9ec0;
-            font-size: 12px;
-            font-style: italic;
-        }
-        .typing-dots {
-            align-self: flex-start;
-            display: flex;
-            gap: 4px;
-            padding: 10px 13px;
-            background: rgba(108, 99, 255, 0.12);
-            border-radius: 14px;
-            border-bottom-left-radius: 4px;
-        }
-        .typing-dots span {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #8b83ff;
-            animation: blink 1.2s infinite;
-        }
-        .typing-dots span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        .typing-dots span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        @keyframes blink {
-            0%,
-            80%,
-            100% {
-                opacity: 0.25;
-            }
-            40% {
-                opacity: 1;
-            }
-        }
-        .music-controller {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            background: rgba(108, 99, 255, 0.15);
-            border: 1px solid rgba(108, 99, 255, 0.35);
-            border-radius: 12px;
-            padding: 8px 10px;
-            margin: 0 14px 8px;
-        }
-        .music-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .music-controller .song-label {
-            flex: 1;
-            font-size: 11px;
-            color: #ccc;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .music-controller button {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: #fff;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: background 0.2s;
-        }
-        .music-controller button:hover {
-            background: rgba(255, 255, 255, 0.25);
-        }
-        .music-controller button svg {
-            width: 14px;
-            height: 14px;
-            fill: currentColor;
-        }
-        .progress-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .progress-bar {
-            flex: 1;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
-            cursor: pointer;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: #6C63FF;
-            border-radius: 2px;
-            transition: width 0.1s linear;
-        }
-        .time-label {
-            font-size: 10px;
-            color: #888;
-            min-width: 32px;
-            text-align: center;
-        }
-        .ragina-input-row {
-            display: flex;
-            gap: 8px;
-            padding: 10px;
-            border-top: 1px solid rgba(108, 99, 255, 0.25);
-            align-items: center;
-        }
-        .ragina-input-row input {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(108, 99, 255, 0.3);
-            border-radius: 10px;
-            padding: 9px 12px;
-            color: #f0f0f0;
-            font-size: 13.5px;
-            outline: none;
-        }
-        .ragina-input-row input:focus {
-            border-color: #6C63FF;
-        }
-        .mic-orb {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: transparent;
-            border: 2px solid rgba(108, 99, 255, 0.45);
-            color: #b0a0ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: all 0.2s;
-        }
-        .mic-orb svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-        .mic-orb.listening {
-            background: #00d68f;
-            border-color: #00d68f;
-            color: #fff;
-            animation: pulse-mic 1s infinite;
-        }
-        @keyframes pulse-mic {
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(0, 214, 143, 0.4);
-            }
-            50% {
-                box-shadow: 0 0 0 14px rgba(0, 214, 143, 0);
-            }
-        }
-        .send-btn {
-            background: #6C63FF;
-            border: none;
-            border-radius: 10px;
-            color: #fff;
-            padding: 0 16px;
-            cursor: pointer;
-            font-weight: 600;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13.5px;
-        }
-        .send-btn:hover {
-            background: #5a52d5;
-        }
-        .send-btn svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
-        }
-        #youtubePlayerContainer {
-            position: fixed;
-            top: -9999px;
-            left: -9999px;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
-        }
-        #fileInput {
-            display: none;
-        }
-        @media (max-width: 480px) {
-            .ragina-app {
-                right: 8px;
-                left: 8px;
-                bottom: 16px;
-                width: auto;
-            }
-            .ragina-app.minimized {
-                left: auto;
-                width: 70px;
-            }
-            .ragina-body {
-                height: 360px;
-            }
-            .ragina-test-content {
-                padding: 16px;
-                margin: 10px;
-            }
-            .chat-toolbar {
-                padding: 4px 10px;
-                gap: 4px;
-            }
-            .chat-toolbar button {
-                font-size: 10px;
-                padding: 2px 6px;
-            }
-        }
-        .ragina-bubble,
-        .ragina-panel {
-            display: none !important;
-        }
-    `;
-
-    // ─── HTML STRUCTURE ──────────────────────────────────────────────────
-    const appHTML = `
-        <div class="ragina-app minimized" id="raginaApp">
-            <div class="ragina-header" id="raginaHeader">
-                <div class="logo" id="raginaLogo"></div>
-                <div class="title-area">
-                    <span class="title">RAGina</span>
-                    <span class="live-transcript" id="liveTranscript"></span>
-                </div>
-                <div class="actions">
-                    <button class="btn-icon" id="voiceToggleBtn" title="Toggle voice">
-                        <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-                    </button>
-                    <button class="btn-icon" id="minimizeBtn" title="Minimize">
-                        <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
-                    </button>
-                    <button class="btn-icon" id="closeBtn" title="Close (minimize)">
-                        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                    </button>
-                </div>
-            </div>
-            <div class="ragina-body" id="raginaBody">
-                <div class="chat-toolbar">
-                    <button id="saveChatBtn">💾 Save Chat</button>
-                    <button id="loadChatBtn">📂 Load Chat</button>
-                    <button id="clearChatBtn">🗑️ Clear Chat</button>
-                    <span class="status" id="chatStatus">Auto‑saved</span>
-                </div>
-                <input type="file" id="fileInput" accept=".json" />
-                <div class="ragina-messages" id="raginaMessages"></div>
-                <div class="music-controller" id="musicController" style="display:none;">
-                    <div class="music-row">
-                        <span class="song-label" id="songLabel">🎵</span>
-                        <button id="btnPrev" title="Previous">
-                            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-                        </button>
-                        <button id="btnPlayPause" title="Play/Pause">
-                            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        </button>
-                        <button id="btnStop" title="Stop">
-                            <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-                        </button>
-                        <button id="btnNext" title="Next">
-                            <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-                        </button>
-                    </div>
-                    <div class="progress-row">
-                        <span class="time-label" id="timeCurrent">0:00</span>
-                        <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
-                        <span class="time-label" id="timeDuration">0:00</span>
-                    </div>
-                </div>
-                <div class="ragina-input-row">
-                    <button class="mic-orb" id="micOrb" title="Click to speak">
-                        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 3.91c-2.84-.48-5-2.94-5-5.91h-2c0 3.83 2.82 6.93 6.5 7.48V21h3v-3.52c3.68-.55 6.5-3.65 6.5-7.48h-2c0 2.97-2.16 5.43-5 5.91z"/></svg>
-                    </button>
-                    <input type="text" id="chatInput" placeholder="Type or speak…" autocomplete="off">
-                    <button class="send-btn" id="sendBtn">
-                        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                        Send
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div id="youtubePlayerContainer"></div>
-    `;
-
-    // ─── INJECT ──────────────────────────────────────────────────────────
-    function injectApp() {
-        const styleEl = document.createElement('style');
-        styleEl.textContent = styles;
-        document.head.appendChild(styleEl);
-
-        const container = document.createElement('div');
-        container.innerHTML = appHTML;
-        while (container.firstChild) {
-            document.body.appendChild(container.firstChild);
-        }
-    }
-
-    // ─── APP LOGIC ────────────────────────────────────────────────────────
-    function initApp() {
-        // DOM refs
-        const app = document.getElementById('raginaApp');
-        const header = document.getElementById('raginaHeader');
-        const logo = document.getElementById('raginaLogo');
-        const liveTranscript = document.getElementById('liveTranscript');
-        const messages = document.getElementById('raginaMessages');
-        const chatInput = document.getElementById('chatInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const micOrb = document.getElementById('micOrb');
-        const voiceToggleBtn = document.getElementById('voiceToggleBtn');
-        const minimizeBtn = document.getElementById('minimizeBtn');
-        const closeBtn = document.getElementById('closeBtn');
-        const musicController = document.getElementById('musicController');
-        const songLabel = document.getElementById('songLabel');
-        const btnPlayPause = document.getElementById('btnPlayPause');
-        const btnStop = document.getElementById('btnStop');
-        const progressFill = document.getElementById('progressFill');
-        const timeCurrent = document.getElementById('timeCurrent');
-        const timeDuration = document.getElementById('timeDuration');
-        const progressBar = document.getElementById('progressBar');
-        const chatStatus = document.getElementById('chatStatus');
-        const saveChatBtn = document.getElementById('saveChatBtn');
-        const loadChatBtn = document.getElementById('loadChatBtn');
-        const clearChatBtn = document.getElementById('clearChatBtn');
-        const fileInput = document.getElementById('fileInput');
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        // ─── State ──────────────────────────────────────────────────────
-        let engine = null;
-        let voiceActive = true;
-        let currentAudio = null;
-        let conversationActive = false;
-        let recognition = null;
-        let userName = null;
-        let awaitingName = false;
-        let history = [];
-        let isMinimized = true;
-        let musicPlaying = false;
-        let currentVideoId = null;
-        let currentSongTitle = '';
-        let musicProgressInterval = null;
-        let musicDuration = 0;
-        let musicCurrentTime = 0;
-        let wasPlayingBeforeMic = false;
-        let ttsLoading = false;
-        let youtubePlayer = null;
-        let playerReady = false;
-        let playerReadyResolve = null;
-        const playerReadyPromise = new Promise(resolve => {
-            playerReadyResolve = resolve;
-        });
-        let messageHistory = [];
-        let introDone = false;
-
-        // ─── IndexedDB ──────────────────────────────────────────────────
-        const DB_NAME = 'RAGinaChatDB';
-        const STORE_NAME = 'chatHistory';
-        const DB_VERSION = 1;
-
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                    }
-                };
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        async function saveToIndexedDB(data) {
-            try {
-                const db = await openDB();
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                store.put({ id: 'history', data });
-                await tx.done;
-                chatStatus.textContent = 'Auto‑saved ✓';
-                chatStatus.style.color = '#6C63FF';
-            } catch (e) {
-                console.warn('IndexedDB save error:', e);
-                chatStatus.textContent = 'Save failed';
-                chatStatus.style.color = '#FF6584';
-            }
-        }
-
-        async function loadFromIndexedDB() {
-            try {
-                const db = await openDB();
-                const tx = db.transaction(STORE_NAME, 'readonly');
-                const store = tx.objectStore(STORE_NAME);
-                const request = store.get('history');
-                return new Promise((resolve) => {
-                    request.onsuccess = () => resolve(request.result ? request.result.data : null);
-                    request.onerror = () => resolve(null);
-                });
-            } catch (e) {
-                return null;
-            }
-        }
-
-        async function clearIndexedDB() {
-            try {
-                const db = await openDB();
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                store.delete('history');
-                await tx.done;
-            } catch (e) {}
-        }
-
-        // ─── Render messages ──────────────────────────────────────────
-        function renderMessages(msgs) {
-            messages.innerHTML = '';
-            msgs.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = 'msg ' + (msg.role || 'system');
-                div.innerHTML = msg.text || msg.html || '';
-                messages.appendChild(div);
-            });
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        function addMessage(role, text, extraHtml = '') {
-            const fullText = text + extraHtml;
-            const entry = { role, text: fullText };
-            messageHistory.push(entry);
-            const div = document.createElement('div');
-            div.className = 'msg ' + role;
-            div.innerHTML = fullText;
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
-            saveToIndexedDB(messageHistory);
-            return div;
-        }
-
-        async function restoreChat() {
-            const saved = await loadFromIndexedDB();
-            if (saved && saved.length > 0) {
-                messageHistory = saved;
-                renderMessages(saved);
-                const nameMsg = saved.find(m => m.role === 'system' && m.text.includes('Welcome back'));
-                if (nameMsg) {
-                    const match = nameMsg.text.match(/Welcome back, ([^!]+)/);
-                    if (match) userName = match[1];
-                }
-                introDone = true;
-                conversationActive = true;
-                if (userName) {
-                    try { localStorage.setItem('ragina_user_name', userName); } catch(e) {}
-                }
-                chatStatus.textContent = `Loaded ${saved.length} messages`;
-                chatStatus.style.color = '#6C63FF';
-                return true;
-            }
-            return false;
-        }
-
-        // ─── YouTube Player ────────────────────────────────────────────
-        function initYouTubePlayer() {
-            if (window.YT && window.YT.Player) {
-                if (youtubePlayer) return;
-                youtubePlayer = new YT.Player('youtubePlayerContainer', {
-                    height: '0',
-                    width: '0',
-                    videoId: '',
-                    playerVars: {
-                        autoplay: 0,
-                        controls: 0,
-                        modestbranding: 1,
-                        rel: 0,
-                        showinfo: 0,
-                        iv_load_policy: 3
-                    },
-                    events: {
-                        onReady: onPlayerReady,
-                        onStateChange: onPlayerStateChange,
-                        onError: onPlayerError
-                    }
-                });
-            } else {
-                setTimeout(initYouTubePlayer, 500);
-            }
-        }
-
-        function onPlayerReady(event) {
-            youtubePlayer = event.target;
-            playerReady = true;
-            if (playerReadyResolve) playerReadyResolve();
-            if (currentVideoId) {
-                try {
-                    youtubePlayer.loadVideoById(currentVideoId);
-                    if (musicPlaying) {
-                        youtubePlayer.playVideo();
-                    }
-                } catch (e) {
-                    console.warn('Failed to load pending video:', e);
-                }
-            }
-        }
-
-        function onPlayerStateChange(event) {
-            const state = event.data;
-            if (state === YT.PlayerState.PLAYING) {
-                musicPlaying = true;
-                updatePlayPauseBtn(true);
-                if (!musicProgressInterval) {
-                    musicProgressInterval = setInterval(updateProgressFromPlayer, 500);
-                }
-            } else if (state === YT.PlayerState.PAUSED) {
-                musicPlaying = false;
-                updatePlayPauseBtn(false);
-            } else if (state === YT.PlayerState.ENDED) {
-                stopSong();
-                addMessage('bot', 'Song finished!');
-                if (voiceActive && conversationActive && !currentAudio && !ttsLoading) {
-                    setTimeout(startListening, 500);
-                }
-            }
-        }
-
-        function onPlayerError(event) {
-            console.warn('YouTube player error:', event.data);
-            addMessage('bot', 'Sorry, there was an error playing that song.');
-        }
-
-        function updateProgressFromPlayer() {
-            if (!youtubePlayer || !playerReady) return;
-            try {
-                const current = youtubePlayer.getCurrentTime();
-                const duration = youtubePlayer.getDuration();
-                if (duration && duration > 0) {
-                    musicDuration = duration;
-                    musicCurrentTime = current;
-                    updateProgressUI();
-                }
-            } catch (e) {}
-        }
-
-        // ─── loadVideo with robust waiting ────────────────────────────
-        async function loadVideo(videoId, title) {
-            if (!playerReady) {
-                console.log('⏳ Waiting for YouTube player...');
-                await playerReadyPromise;
-                console.log('✅ YouTube player ready.');
-            }
-            if (!youtubePlayer || typeof youtubePlayer.loadVideoById !== 'function') {
-                console.warn('⚠️ YouTube player not fully initialized. Re-initializing...');
-                playerReady = false;
-                initYouTubePlayer();
-                await playerReadyPromise;
-                if (!youtubePlayer || typeof youtubePlayer.loadVideoById !== 'function') {
-                    addMessage('bot', 'Sorry, the music player is not available. Please try again.');
-                    return;
-                }
-            }
-            currentVideoId = videoId;
-            currentSongTitle = title;
-            try {
-                youtubePlayer.loadVideoById(videoId);
-                youtubePlayer.playVideo();
-                musicPlaying = true;
-                musicDuration = 0;
-                musicCurrentTime = 0;
-                updatePlayPauseBtn(true);
-                showMusicController();
-                songLabel.textContent = '🎵 ' + title;
-                updateProgressUI();
-                if (musicProgressInterval) clearInterval(musicProgressInterval);
-                musicProgressInterval = setInterval(updateProgressFromPlayer, 500);
-            } catch (err) {
-                console.error('loadVideo error:', err);
-                addMessage('bot', 'Sorry, I couldn\'t play that song.');
-            }
-        }
-
-        // ─── Other music functions ──────────────────────────────────────
-        function pauseSong() {
-            if (youtubePlayer && playerReady) {
-                youtubePlayer.pauseVideo();
-            }
-            musicPlaying = false;
-            updatePlayPauseBtn(false);
-        }
-
-        function resumeSong() {
-            if (youtubePlayer && playerReady) {
-                youtubePlayer.playVideo();
-            }
-            musicPlaying = true;
-            updatePlayPauseBtn(true);
-        }
-
-        function stopSong() {
-            if (youtubePlayer && playerReady) {
-                youtubePlayer.stopVideo();
-            }
-            musicPlaying = false;
-            currentVideoId = null;
-            currentSongTitle = '';
-            updatePlayPauseBtn(false);
-            hideMusicController();
-            if (musicProgressInterval) {
-                clearInterval(musicProgressInterval);
-                musicProgressInterval = null;
-            }
-            musicCurrentTime = 0;
-            musicDuration = 0;
-            updateProgressUI();
-        }
-
-        function showMusicController() { musicController.style.display = 'flex'; }
-        function hideMusicController() { musicController.style.display = 'none'; }
-
-        function updatePlayPauseBtn(playing) {
-            if (playing) {
-                btnPlayPause.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
-            } else {
-                btnPlayPause.innerHTML = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
-            }
-        }
-
-        function formatTime(seconds) {
-            if (!seconds || isNaN(seconds)) return '0:00';
-            const m = Math.floor(seconds / 60);
-            const s = Math.floor(seconds % 60);
-            return m + ':' + (s < 10 ? '0' : '') + s;
-        }
-
-        function updateProgressUI() {
-            const pct = (musicDuration > 0) ? (musicCurrentTime / musicDuration) * 100 : 0;
-            progressFill.style.width = pct + '%';
-            timeCurrent.textContent = formatTime(musicCurrentTime);
-            timeDuration.textContent = formatTime(musicDuration);
-        }
-
-        // ─── Music command execution ──────────────────────────────────
-        function executeMusicAction(action, song) {
-            switch (action) {
-                case 'play':
-                    if (song) {
-                        searchAndPlay(song);
-                    } else {
-                        addMessage('bot', "What song would you like to play?");
-                    }
-                    break;
-                case 'pause':
-                    if (musicPlaying) {
-                        pauseSong();
-                        addMessage('bot', '⏸️ Music paused.');
-                    } else {
-                        addMessage('bot', 'No song is playing right now.');
-                    }
-                    break;
-                case 'resume':
-                    if (currentVideoId && !musicPlaying) {
-                        resumeSong();
-                        addMessage('bot', '▶️ Resuming music.');
-                    } else if (musicPlaying) {
-                        addMessage('bot', 'Music is already playing.');
-                    } else {
-                        addMessage('bot', 'No song is paused or stopped.');
-                    }
-                    break;
-                case 'stop':
-                    stopSong();
-                    addMessage('bot', '⏹️ Music stopped.');
-                    break;
-                case 'change':
-                    if (currentVideoId) {
-                        stopSong();
-                        addMessage('bot', "⏭️ Song changed. What would you like to hear next?");
-                    } else {
-                        addMessage('bot', "No song is currently playing. Just tell me what you'd like to hear!");
-                    }
-                    break;
-                default:
-                    return false;
-            }
-            return true;
-        }
-
-        // ─── Fast music command matching ──────────────────────────────
-        function handleMusicCommandFast(text) {
-            const lower = text.toLowerCase().trim();
-
-            if (/\b(?:not\s+this|some\s+other|different)\s+(?:song|music|track)\b/i.test(lower) ||
-                /\b(?:change|skip|next)\s+(?:this|the)?\s*(?:song|music|track)\b/i.test(lower) ||
-                lower === 'skip' || lower === 'next' || lower === 'change') {
-                executeMusicAction('change');
-                return true;
-            }
-
-            let playMatch = lower.match(/^(?:play|play me|can you play|put on)\s+(.+)/i);
-            if (playMatch) {
-                const query = playMatch[1].trim();
-                const fillerWords = ['not this', 'some other', 'different', 'another', 'something else'];
-                if (query.length <= 2 || fillerWords.some(w => query.includes(w))) {
-                    executeMusicAction('change');
-                    return true;
-                }
-                searchAndPlay(query);
-                return true;
-            }
-
-            let songMatch = lower.match(/^(.+)\s+(?:song|music|track)$/i);
-            if (songMatch) {
-                const query = songMatch[1].trim();
-                const fillerWords = ['not this', 'some other', 'different', 'another', 'something else'];
-                if (query.length <= 2 || fillerWords.some(w => query.includes(w))) {
-                    executeMusicAction('change');
-                    return true;
-                }
-                searchAndPlay(query);
-                return true;
-            }
-
-            if (/\b(?:pause|hold)\s+(?:the\s+)?(?:song|music|track)\b/i.test(lower) || lower === 'pause') {
-                executeMusicAction('pause');
-                return true;
-            }
-            if (/\b(?:resume|continue|unpause)\s+(?:the\s+)?(?:song|music|track)\b/i.test(lower) || lower === 'resume') {
-                executeMusicAction('resume');
-                return true;
-            }
-            if (/\b(?:stop|end|finish)\s+(?:the\s+)?(?:song|music|track)\b/i.test(lower) || lower === 'stop') {
-                executeMusicAction('stop');
-                return true;
-            }
-
-            return false;
-        }
-
-        // ─── AI‑based music command parser ────────────────────────────
-        async function parseMusicCommandWithAI(text) {
-            const prompt = `You are a music command parser. Given the user's message, determine if they want to control music playback. If yes, respond with a JSON object containing "action" and optionally "song". Actions: "play", "pause", "resume", "stop", "change". If not a music command, respond with {"action": "none"}.
-
-            Important: Only set action to "play" if the user specifically asks for a song by name or artist. If they say things like "not this song", "some other song", "different song", "change", "skip", "next", then action should be "change". If they are just chatting, action should be "none".
-
-            User: "${text}"
-            Response:`;
-
-            try {
-                const res = await fetch(AI_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
-                });
-                if (!res.ok) throw new Error(`AI ${res.status}`);
-                const data = await res.json();
-                const jsonMatch = data.text.match(/\{.*\}/s);
-                if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    if (parsed.action === 'play') {
-                        const song = (parsed.song || '').trim();
-                        const filler = ['not this', 'some other', 'different', 'another', 'something else', 'change', 'skip'];
-                        if (!song || song.length <= 2 || filler.some(w => song.toLowerCase().includes(w))) {
-                            return { action: 'change' };
-                        }
-                    }
-                    return parsed;
-                }
-                return { action: 'none' };
-            } catch (e) {
-                return { action: 'none' };
-            }
-        }
-
-        // ─── Improved getSelectedText ──────────────────────────────────
-        function getSelectedText() {
-            const sel = window.getSelection();
-            if (!sel || sel.isCollapsed) return '';
-            const text = sel.toString().trim();
-            // Log the selection to help debugging
-            console.log('📌 Selected text:', text);
-            return text;
-        }
-
-        // ─── AI call with retry & fallback ──────────────────────────────
-        async function callAI(prompt) {
-            let attempts = 0;
-            const maxAttempts = 2;
-            let lastError = null;
-
-            while (attempts < maxAttempts) {
-                attempts++;
-                try {
-                    const res = await fetch(AI_ENDPOINT, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt })
-                    });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const data = await res.json();
-                    if (data.error || !data.text?.trim()) throw new Error(data.error || 'Empty response');
-                    return data.text.trim();
-                } catch (err) {
-                    lastError = err;
-                    console.warn(`AI attempt ${attempts} failed:`, err.message);
-                    // If we have a fallback endpoint and it's the first attempt, try it next
-                    if (attempts === 1 && FALLBACK_AI_ENDPOINT && FALLBACK_AI_ENDPOINT !== AI_ENDPOINT) {
-                        try {
-                            const res = await fetch(FALLBACK_AI_ENDPOINT, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ prompt })
-                            });
-                            if (res.ok) {
-                                const data = await res.json();
-                                if (data.text?.trim()) return data.text.trim();
-                            }
-                        } catch (e) {}
-                    }
-                    // Wait before retry
-                    if (attempts < maxAttempts) await new Promise(r => setTimeout(r, 2000));
-                }
-            }
-            throw lastError || new Error('All AI attempts failed.');
-        }
-
-        // ─── Modified getAIAnswer to use callAI ──────────────────────
-        async function getAIAnswer(question, selectedText) {
-            let context = '';
-            if (selectedText) {
-                context = `The user has selected the following text on the page: "${selectedText}".\n\n`;
-            }
-            if (engine && typeof engine.retrieve === 'function') {
-                try {
-                    const chunks = engine.retrieve(question, 5) || [];
-                    const ragContext = chunks.map((c, i) => `[${i+1}] ${c.text}`).join('\n\n');
-                    if (ragContext) {
-                        context += 'Relevant context from knowledge base:\n' + ragContext + '\n\n';
-                    }
-                } catch (e) {}
-            }
-            const recentHistory = history.slice(-8)
-                .map(h => `${h.role === 'user' ? (userName || 'User') : 'RAGina'}: ${h.text}`)
-                .join('\n');
-            const prompt =
-                `You are RAGina — witty, warm, sharp-tongued AI with access to YouTube music. Talk like a real friend. You can play songs. If the user asks for music, say you'll play it. Only use context below if relevant. You're talking to ${userName || 'someone new'}.
-
-${context ? 'User provided selected text context:\n' + context : ''}
-
-Recent:
-${recentHistory}
-
-${userName || 'User'}: ${question}
-RAGina:`;
-
-            try {
-                return await callAI(prompt);
-            } catch (err) {
-                console.error('AI error:', err);
-                return "I'm having trouble connecting to my brain. Could you try again in a moment?";
-            }
-        }
-
-        // ─── searchAndPlay with better error handling ──────────────────
-        async function searchAndPlay(query) {
-            if (!query || query.length < 2) {
-                addMessage('bot', "Could you be more specific? What song would you like?");
-                return;
-            }
-            try {
-                const url = YT_SEARCH_URL + encodeURIComponent(query);
-                console.log('🔍 Searching for:', url);
-                const res = await fetch(url);
-                console.log('📡 Response status:', res.status);
-                if (!res.ok) {
-                    throw new Error(`Worker returned ${res.status}`);
-                }
-                const data = await res.json();
-                console.log('📦 Data received:', data);
-                if (!data.success || !data.items || data.items.length === 0) {
-                    // Fallback: direct YouTube search link
-                    addMessage('bot', `Couldn't find "${query}" through the API.`);
-                    const fallbackUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-                    addMessage('bot', `Open this link to play: <a href="${fallbackUrl}" target="_blank">${query} on YouTube</a>`);
-                    return;
-                }
-                const song = data.items[0];
-                await loadVideo(song.id, song.title);
-                addMessage('bot', `🎵 Playing: <strong>${escapeHTML(song.title)}</strong>`);
-                if (voiceActive && !musicPlaying) await speakText(`Playing ${song.title}.`);
-            } catch (err) {
-                console.error('❌ Search error:', err);
-                addMessage('bot', `Oops, I couldn't play that right now. Error: ${err.message || 'unknown'}`);
-            }
-        }
-
-        function escapeHTML(str) { const d = document.createElement('div');
-            d.textContent = str; return d.innerHTML; }
-
-        // ─── Button controls (music) ──────────────────────────────────
-        btnPlayPause.addEventListener('click', () => {
-            if (musicPlaying) {
-                pauseSong();
-                addMessage('bot', '⏸️ Paused.');
-            } else if (currentVideoId) {
-                resumeSong();
-                addMessage('bot', '▶️ Resumed.');
-            } else {
-                addMessage('bot', 'No song loaded. Tell me what to play!');
-            }
-        });
-
-        btnStop.addEventListener('click', () => {
-            stopSong();
-            addMessage('bot', '⏹️ Stopped.');
-        });
-
-        progressBar.addEventListener('click', (e) => {
-            if (!youtubePlayer || !playerReady || !currentVideoId) return;
-            const rect = progressBar.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const duration = youtubePlayer.getDuration();
-            if (duration && duration > 0) {
-                const seekTo = x * duration;
-                youtubePlayer.seekTo(seekTo, true);
-                updateProgressFromPlayer();
-            }
-        });
-
-        // ─── Drag / Click ──────────────────────────────────────────────
-        let dragActive = false;
-        let dragStartX = 0,
-            dragStartY = 0;
-        let pointerDownX = 0,
-            pointerDownY = 0;
-        let startLeft = 0,
-            startTop = 0;
-        let isClick = false;
-
-        function onPointerDown(e) {
-            if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.btn-icon')) {
-                return;
-            }
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            pointerDownX = clientX;
-            pointerDownY = clientY;
-            dragStartX = clientX;
-            dragStartY = clientY;
-            dragActive = true;
-            isClick = true;
-            const rect = app.getBoundingClientRect();
-            startLeft = rect.left;
-            startTop = rect.top;
-            app.style.transition = 'none';
-            e.preventDefault();
-        }
-
-        function onPointerMove(e) {
-            if (!dragActive) return;
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            const dx = clientX - dragStartX;
-            const dy = clientY - dragStartY;
-            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                isClick = false;
-            }
-            app.style.left = (startLeft + dx) + 'px';
-            app.style.top = (startTop + dy) + 'px';
-            app.style.right = 'auto';
-            app.style.bottom = 'auto';
-        }
-
-        function onPointerUp(e) {
-            if (!dragActive) return;
-            dragActive = false;
-            if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.btn-icon')) {
-                return;
-            }
-            const clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
-            const clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
-            const dx = clientX - pointerDownX;
-            const dy = clientY - pointerDownY;
-            if (Math.abs(dx) < 5 && Math.abs(dy) < 5 && isClick) {
-                handleClick(e);
-            }
-            isClick = false;
-        }
-
-        function handleClick(e) {
-            if (isMinimized) {
-                setMinimized(false);
-                if (!introDone) introduce();
-            } else {
-                const target = e.target;
-                if (target.closest && target.closest('.logo')) {
-                    if (!introDone) introduce();
-                    e.stopPropagation();
-                }
-            }
-        }
-
-        header.addEventListener('mousedown', onPointerDown);
-        header.addEventListener('touchstart', onPointerDown, { passive: false });
-        document.addEventListener('mousemove', onPointerMove);
-        document.addEventListener('touchmove', onPointerMove, { passive: false });
-        document.addEventListener('mouseup', onPointerUp);
-        document.addEventListener('touchend', onPointerUp);
-
-        logo.addEventListener('click', (e) => {
-            if (isMinimized) {
-                setMinimized(false);
-                if (!introDone) introduce();
-            } else if (!introDone) {
-                introduce();
-            }
-            e.stopPropagation();
-        });
-
-        // ─── Minimize / Close ──────────────────────────────────────────
-        function setMinimized(min) {
-            isMinimized = min;
-            app.classList.toggle('minimized', min);
-            if (min) {
-                minimizeBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>`;
-            } else {
-                minimizeBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>`;
-            }
-            if (!min && !musicPlaying) {
-                chatInput.focus();
-            }
-        }
-
-        minimizeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            setMinimized(!isMinimized);
-        });
-
-        closeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            setMinimized(true);
-        });
-
-        // ─── Intro & name ──────────────────────────────────────────────
-        async function introduce() {
-            if (introDone) return;
-            introDone = true;
-            const introText =
-                "Hey there! I'm RAGina, your personal mentalist. I can chat, answer questions, and even play music. What's your name?";
-            addMessage('bot', introText);
-            awaitingName = true;
-            conversationActive = true;
-            if (voiceActive) await speakText(introText);
-        }
-
-        // ─── AI helpers ────────────────────────────────────────────────
-        function waitForEngine(timeoutMs) {
-            return new Promise(resolve => {
-                const start = Date.now();
-                (function poll() {
-                    if (window.RAGina && window.RAGina.getEngine) {
-                        try { resolve(window.RAGina.getEngine()); return; } catch (e) {}
-                    }
-                    if (Date.now() - start > timeoutMs) { resolve(null); return; }
-                    setTimeout(poll, 200);
-                })();
-            });
-        }
-
-        async function loadName() { try { return localStorage.getItem('ragina_user_name'); } catch (e) { return null; } }
-        async function saveName(name) { try { localStorage.setItem('ragina_user_name', name); } catch (e) {} }
-
-        function extractName(raw) {
-            const text = raw.trim();
-            const m = text.match(/(?:my name is|i am|i'm|im|call me|it's|its)\s+([a-z][a-z '-]{0,24})/i);
-            const word = m && m[1] ? m[1].trim().split(/\s+/)[0] : (text.split(/\s+/)[0] || text);
-            const clean = word.replace(/[^a-zA-Z'-]/g, '');
-            return clean ? clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase() : 'friend';
-        }
-
-        // ─── Core sendMessage ──────────────────────────────────────────
-        async function sendMessage(rawText) {
-            const text = (rawText || '').trim();
-            if (!text) return;
-            chatInput.value = '';
-
-            const selected = getSelectedText();
-
-            if (awaitingName) {
-                awaitingName = false;
-                userName = extractName(text);
-                await saveName(userName);
-                addMessage('user', text);
-                const greet = `Nice to meet you, ${userName}! What can I help you with today?`;
-                history.push({ role: 'user', text }, { role: 'bot', text: greet });
-                addMessage('bot', greet);
-                if (voiceActive) await speakText(greet);
-                if (!musicPlaying && !currentAudio && !ttsLoading) {
-                    setTimeout(startListening, 500);
-                }
-                return;
-            }
-
-            if (selected) {
-                addMessage('system', `📝 Selected: "${selected}"`);
-            }
-
-            if (handleMusicCommandFast(text)) {
-                addMessage('user', text);
-                return;
-            }
-
-            const aiCommand = await parseMusicCommandWithAI(text);
-            if (aiCommand.action && aiCommand.action !== 'none') {
-                const executed = executeMusicAction(aiCommand.action, aiCommand.song);
-                if (executed) {
-                    addMessage('user', text);
-                    return;
-                }
-            }
-
-            addMessage('user', text);
-            history.push({ role: 'user', text });
-            if (history.length > 16) history = history.slice(-16);
-
-            showTyping();
-            if (voiceActive) setLiveTranscript('Thinking…');
-            const answer = await getAIAnswer(text, selected);
-            hideTyping();
-            setLiveTranscript('');
-            addMessage('bot', answer);
-            history.push({ role: 'bot', text: answer });
-            if (voiceActive && !musicPlaying) {
-                await speakText(answer);
-            } else {
-                if (conversationActive && !musicPlaying) {
-                    setTimeout(startListening, 500);
-                }
-            }
-        }
-
-        // ─── TTS ────────────────────────────────────────────────────────
-        async function speakText(text) {
-            if (!voiceActive) return;
-            stopAudio();
-            ttsLoading = true;
-            try {
-                const res = await fetch(VOICE_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, language: 'en-US', voice_id: VOICE_ID, speed: VOICE_SPEED })
-                });
-                if (!res.ok) throw new Error(`TTS ${res.status}`);
-                const blob = await res.blob();
-                const audioUrl = URL.createObjectURL(blob);
-                currentAudio = new Audio(audioUrl);
-                currentAudio.addEventListener('ended', () => {
-                    const wasPlaying = !!currentAudio;
-                    currentAudio = null;
-                    ttsLoading = false;
-                    if (wasPlaying && conversationActive && !musicPlaying) {
-                        startListening();
-                    }
-                });
-                currentAudio.addEventListener('error', () => {
-                    currentAudio = null;
-                    ttsLoading = false;
-                    if (conversationActive && !musicPlaying) {
-                        setTimeout(startListening, 500);
-                    }
-                });
-                currentAudio.play();
-            } catch (e) {
-                console.warn('Voice failed:', e.message);
-                ttsLoading = false;
-                if (conversationActive && !musicPlaying) {
-                    setTimeout(startListening, 500);
-                }
-            }
-        }
-
-        function stopAudio() {
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-                currentAudio.onended = null;
-                currentAudio.onerror = null;
-                currentAudio = null;
-            }
-            ttsLoading = false;
-        }
-
-        // ─── Mic ────────────────────────────────────────────────────────
-        function startListening() {
-            if (!voiceActive || !SpeechRecognition) return;
-            if (currentAudio) return;
-            if (ttsLoading) return;
-            if (musicPlaying) return;
-            if (isMinimized) return;
-
-            if (recognition) {
-                try { recognition.stop(); } catch (e) {}
-                recognition = null;
-            }
-
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-            let finalTranscript = '';
-
-            recognition.addEventListener('result', (e) => {
-                let interim = '';
-                for (let i = e.resultIndex; i < e.results.length; i++) {
-                    const r = e.results[i];
-                    if (r.isFinal) {
-                        finalTranscript += r[0].transcript;
-                    } else {
-                        interim += r[0].transcript;
-                    }
-                }
-                chatInput.value = finalTranscript + interim;
-                setLiveTranscript(interim || finalTranscript, !!interim);
-            });
-
-            recognition.addEventListener('end', () => {
-                micOrb.classList.remove('listening');
-                const text = finalTranscript.trim();
-                finalTranscript = '';
-                recognition = null;
-                setLiveTranscript('');
-
-                if (text) {
-                    chatInput.value = text;
-                    sendMessage(text);
-                } else {
-                    if (wasPlayingBeforeMic && currentVideoId) {
-                        wasPlayingBeforeMic = false;
-                        resumeSong();
-                    }
-                }
-            });
-
-            recognition.addEventListener('error', (e) => {
-                micOrb.classList.remove('listening');
-                setLiveTranscript('');
-                recognition = null;
-                if (e.error === 'not-allowed') {
-                    setLiveTranscript('Mic denied');
-                    setTimeout(() => setLiveTranscript(''), 4000);
-                }
-                if (wasPlayingBeforeMic && currentVideoId) {
-                    wasPlayingBeforeMic = false;
-                    resumeSong();
-                }
-            });
-
-            try {
-                recognition.start();
-                micOrb.classList.add('listening');
-                setLiveTranscript('🎤 Listening…', true);
-            } catch (e) {
-                recognition = null;
-            }
-        }
-
-        function stopListening() {
-            if (recognition) {
-                try { recognition.stop(); } catch (e) {}
-                recognition = null;
-            }
-            micOrb.classList.remove('listening');
-            setLiveTranscript('');
-            if (wasPlayingBeforeMic && currentVideoId) {
-                wasPlayingBeforeMic = false;
-                resumeSong();
-            }
-        }
-
-        micOrb.addEventListener('click', () => {
-            if (!voiceActive) return;
-
-            if (currentAudio) {
-                stopAudio();
-                if (musicPlaying) {
-                    wasPlayingBeforeMic = true;
-                    pauseSong();
-                }
-                if (!conversationActive) conversationActive = true;
-                setTimeout(startListening, 100);
-                return;
-            }
-
-            if (micOrb.classList.contains('listening')) {
-                stopListening();
-                return;
-            }
-
-            if (musicPlaying) {
-                wasPlayingBeforeMic = true;
-                pauseSong();
-            }
-
-            if (!conversationActive) conversationActive = true;
-            startListening();
-        });
-
-        voiceToggleBtn.addEventListener('click', () => {
-            voiceActive = !voiceActive;
-            if (voiceActive) {
-                voiceToggleBtn.innerHTML =
-                    `<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>`;
-                voiceToggleBtn.classList.remove('voice-off');
-            } else {
-                voiceToggleBtn.innerHTML =
-                    `<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`;
-                voiceToggleBtn.classList.add('voice-off');
-                stopListening();
-                stopSong();
-                stopAudio();
-            }
-        });
-
-        sendBtn.addEventListener('click', () => sendMessage(chatInput.value));
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') sendMessage(chatInput.value);
-        });
-
-        // ─── Export / Import / Clear ──────────────────────────────────
-        saveChatBtn.addEventListener('click', () => {
-            const data = JSON.stringify(messageHistory, null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ragina-chat-${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            chatStatus.textContent = 'Exported ✓';
-            chatStatus.style.color = '#6C63FF';
-            setTimeout(() => {
-                chatStatus.textContent = 'Auto‑saved';
-                chatStatus.style.color = '#666';
-            }, 3000);
-        });
-
-        loadChatBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    if (Array.isArray(data)) {
-                        messageHistory = data;
-                        renderMessages(data);
-                        saveToIndexedDB(data);
-                        chatStatus.textContent = `Loaded ${data.length} messages`;
-                        chatStatus.style.color = '#6C63FF';
-                        const nameMsg = data.find(m => m.role === 'system' && m.text.includes('Welcome back'));
-                        if (nameMsg) {
-                            const match = nameMsg.text.match(/Welcome back, ([^!]+)/);
-                            if (match) {
-                                userName = match[1];
-                                try { localStorage.setItem('ragina_user_name', userName); } catch(e) {}
-                            }
-                        }
-                        history = data.filter(m => m.role === 'user' || m.role === 'bot')
-                            .map(m => ({ role: m.role, text: m.text }));
-                        introDone = true;
-                        conversationActive = true;
-                        if (userName) {
-                            setTimeout(() => {
-                                if (voiceActive && !musicPlaying && !currentAudio && !ttsLoading) {
-                                    startListening();
-                                }
-                            }, 1000);
-                        }
-                    } else {
-                        throw new Error('Invalid format');
-                    }
-                } catch (err) {
-                    alert('Failed to load chat file. Make sure it\'s a valid JSON export.');
-                    console.error(err);
-                }
-            };
-            reader.readAsText(file);
-            fileInput.value = '';
-        });
-
-        clearChatBtn.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to clear all chat history?')) {
-                messageHistory = [];
-                messages.innerHTML = '';
-                history = [];
-                userName = null;
-                introDone = false;
-                conversationActive = false;
-                awaitingName = false;
-                try { localStorage.removeItem('ragina_user_name'); } catch(e) {}
-                await clearIndexedDB();
-                chatStatus.textContent = 'Cleared';
-                chatStatus.style.color = '#FF6584';
-                setTimeout(() => {
-                    chatStatus.textContent = 'Auto‑saved';
-                    chatStatus.style.color = '#666';
-                }, 3000);
-            }
-        });
-
-        // ─── Typing / transcript ──────────────────────────────────────
-        function setLiveTranscript(text, interim = false) {
-            liveTranscript.textContent = text || '';
-            liveTranscript.classList.toggle('interim', interim);
-        }
-
-        let typingEl = null;
-
-        function showTyping() {
-            typingEl = document.createElement('div');
-            typingEl.className = 'typing-dots';
-            typingEl.innerHTML = '<span></span><span></span><span></span>';
-            messages.appendChild(typingEl);
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        function hideTyping() {
-            if (typingEl) { typingEl.remove();
-                typingEl = null; }
-        }
-
-        // ─── Boot ──────────────────────────────────────────────────────
-        (async function init() {
-            // Load YouTube API if not present
-            if (!window.YT || !window.YT.Player) {
-                const script = document.createElement('script');
-                script.src = 'https://www.youtube.com/iframe_api';
-                script.async = true;
-                document.head.appendChild(script);
-                await new Promise(resolve => {
-                    const check = () => {
-                        if (window.YT && window.YT.Player) {
-                            resolve();
-                        } else {
-                            setTimeout(check, 200);
-                        }
-                    };
-                    check();
-                });
-            }
-            // Initialize YouTube player
-            initYouTubePlayer();
-
-            // Wait for engine (if using external RAGina engine)
-            engine = await waitForEngine(5000);
-
-            // Restore chat
-            const hasHistory = await restoreChat();
-            if (!hasHistory) {
-                // No history – just show orb
-            } else {
-                if (userName) conversationActive = true;
-            }
-            setMinimized(true);
-        })();
-
-        // ─── Expose YouTube callback ──────────────────────────────────
-        window.onYouTubeIframeAPIReady = function() {
-            if (!youtubePlayer && window.YT && window.YT.Player) {
-                initYouTubePlayer();
-            }
-        };
-    }
-
-    // ─── EXECUTE ──────────────────────────────────────────────────────────
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            injectApp();
-            initApp();
-        });
-    } else {
-        injectApp();
-        initApp();
-    }
-
-})();
