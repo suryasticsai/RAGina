@@ -1,6 +1,6 @@
 /**
  * RAGina Pro – Full Application (UI + Engine)
- * Version 2.3.3 – Fixed YouTube player initialization
+ * Version 2.3.4 – Fully fixed YouTube player
  * All-in-one, self-contained, no external dependencies except YouTube IFrame API.
  */
 (function() {
@@ -744,38 +744,42 @@
         // ─── YouTube Player ────────────────────────────────────────────
         function initYouTubePlayer() {
             if (window.YT && window.YT.Player) {
-                if (!youtubePlayer) {
-                    youtubePlayer = new YT.Player('youtubePlayerContainer', {
-                        height: '0',
-                        width: '0',
-                        videoId: '',
-                        playerVars: {
-                            autoplay: 0,
-                            controls: 0,
-                            modestbranding: 1,
-                            rel: 0,
-                            showinfo: 0,
-                            iv_load_policy: 3
-                        },
-                        events: {
-                            onReady: onPlayerReady,
-                            onStateChange: onPlayerStateChange,
-                            onError: onPlayerError
-                        }
-                    });
-                }
+                if (youtubePlayer) return;
+                youtubePlayer = new YT.Player('youtubePlayerContainer', {
+                    height: '0',
+                    width: '0',
+                    videoId: '',
+                    playerVars: {
+                        autoplay: 0,
+                        controls: 0,
+                        modestbranding: 1,
+                        rel: 0,
+                        showinfo: 0,
+                        iv_load_policy: 3
+                    },
+                    events: {
+                        onReady: onPlayerReady,
+                        onStateChange: onPlayerStateChange,
+                        onError: onPlayerError
+                    }
+                });
             } else {
                 setTimeout(initYouTubePlayer, 500);
             }
         }
 
         function onPlayerReady(event) {
+            youtubePlayer = event.target;
             playerReady = true;
             if (playerReadyResolve) playerReadyResolve();
             if (currentVideoId) {
-                youtubePlayer.loadVideoById(currentVideoId);
-                if (musicPlaying) {
-                    youtubePlayer.playVideo();
+                try {
+                    youtubePlayer.loadVideoById(currentVideoId);
+                    if (musicPlaying) {
+                        youtubePlayer.playVideo();
+                    }
+                } catch (e) {
+                    console.warn('Failed to load pending video:', e);
                 }
             }
         }
@@ -802,7 +806,6 @@
 
         function onPlayerError(event) {
             console.warn('YouTube player error:', event.data);
-            stopSong();
             addMessage('bot', 'Sorry, there was an error playing that song.');
         }
 
@@ -819,15 +822,22 @@
             } catch (e) {}
         }
 
-        // ─── loadVideo with waiting ──────────────────────────────────
+        // ─── loadVideo with robust waiting ────────────────────────────
         async function loadVideo(videoId, title) {
             if (!playerReady) {
+                console.log('⏳ Waiting for YouTube player...');
                 await playerReadyPromise;
+                console.log('✅ YouTube player ready.');
             }
-            if (!youtubePlayer) {
-                console.error('YouTube player not available');
-                addMessage('bot', 'Sorry, the music player is not ready.');
-                return;
+            if (!youtubePlayer || typeof youtubePlayer.loadVideoById !== 'function') {
+                console.warn('⚠️ YouTube player not fully initialized. Re-initializing...');
+                playerReady = false;
+                initYouTubePlayer();
+                await playerReadyPromise;
+                if (!youtubePlayer || typeof youtubePlayer.loadVideoById !== 'function') {
+                    addMessage('bot', 'Sorry, the music player is not available. Please try again.');
+                    return;
+                }
             }
             currentVideoId = videoId;
             currentSongTitle = title;
