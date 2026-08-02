@@ -1,28 +1,17 @@
 /**
  * RAGina Pro – Full Application (UI + Engine)
- * Version 2.3.1
- *
- * Hardcoded defaults (can be overridden via window.RAGINA_CONFIG):
- *   - apiBaseUrl : 'https://sensycilva.suryasticsai.workers.dev'
- *   - indexUrl   : 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/demo-index.json'
- *   - voiceId    : 'rachel'
- *   - voiceSpeed : 1.0
- *
- * All endpoints are derived from apiBaseUrl:
- *   /api/ask          – AI chat
- *   /api/tts          – text‑to‑speech
- *   /api/youtube/search – music search
+ * Version 2.3.2 – Music search fix with better error handling
  */
 (function() {
     'use strict';
 
-    // ─── HARDCODED DEFAULTS ──────────────────────────────────────────────
+    // ─── HARDCODED DEFAULTS (can be overridden via window.RAGINA_CONFIG) ──
     const DEFAULT_BASE_URL = 'https://sensycilva.suryasticsai.workers.dev';
     const DEFAULT_INDEX_URL = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/demo-index.json';
     const DEFAULT_VOICE_ID = 'rachel';
     const DEFAULT_VOICE_SPEED = 1.0;
 
-    // ─── READ CONFIG (overrides) ──────────────────────────────────────────
+    // ─── READ CONFIG ──────────────────────────────────────────────────────
     const CONFIG = window.RAGINA_CONFIG || {};
     const BASE_URL = CONFIG.apiBaseUrl || DEFAULT_BASE_URL;
     const INDEX_URL = CONFIG.indexUrl || DEFAULT_INDEX_URL;
@@ -1030,17 +1019,27 @@
             }
         }
 
+        // ─── FIXED: searchAndPlay with better error handling ──────────
         async function searchAndPlay(query) {
             if (!query || query.length < 2) {
                 addMessage('bot', "Could you be more specific? What song would you like?");
                 return;
             }
             try {
-                const res = await fetch(YT_SEARCH_URL + encodeURIComponent(query));
-                if (!res.ok) throw new Error(`Worker ${res.status}`);
+                const url = YT_SEARCH_URL + encodeURIComponent(query);
+                console.log('🔍 Searching for:', url);
+                const res = await fetch(url);
+                console.log('📡 Response status:', res.status);
+                if (!res.ok) {
+                    throw new Error(`Worker returned ${res.status}`);
+                }
                 const data = await res.json();
+                console.log('📦 Data received:', data);
                 if (!data.success || !data.items || data.items.length === 0) {
-                    addMessage('bot', `Sorry, I couldn't find any song for "${query}".`);
+                    // Fallback: direct YouTube search link
+                    addMessage('bot', `Couldn't find "${query}" through the API. Trying direct YouTube...`);
+                    const fallbackUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+                    addMessage('bot', `Please open this link to play: <a href="${fallbackUrl}" target="_blank">${query} on YouTube</a>`);
                     return;
                 }
                 const song = data.items[0];
@@ -1048,7 +1047,8 @@
                 addMessage('bot', `🎵 Playing: <strong>${escapeHTML(song.title)}</strong>`);
                 if (voiceActive && !musicPlaying) await speakText(`Playing ${song.title}.`);
             } catch (err) {
-                addMessage('bot', `Oops, I couldn't play that right now.`);
+                console.error('❌ Search error:', err);
+                addMessage('bot', `Oops, I couldn't play that right now. Error: ${err.message || 'unknown'}`);
             }
         }
 
