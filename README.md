@@ -1,4 +1,14 @@
 <p align="center">
+  <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" width="160" style="border-radius: 50%; animation: spin 10s linear infinite;"/>
+</p>
+
+<style>
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+<p align="center">
   <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile.png" alt="RAGina" width="200"/>
 </p>
 
