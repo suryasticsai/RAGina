@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAGina – Your In‑Browser Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── base reset & variables ─── */
+    :root {
+      --primary: #6C63FF;
+      --accent: #FF6584;
+      --bg: #0a0a14;
+      --card: #111122;
+      --text: #e0e0f0;
+      --muted: #8888aa;
+      --border: rgba(108, 99, 255, 0.2);
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: hidden;
+      cursor: default;
+      min-height: 100vh;
+    }
+    h1, h2, h3 {
+      font-family: 'Syne', system-ui, sans-serif;
+    }
+
+    /* ─── background particles ─── */
+    .bg-particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 50%;
+      animation: bg-float linear infinite;
+    }
+    @keyframes bg-float {
+      0% { opacity: 0; transform: translateY(100vh) scale(0); }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.2; }
+      100% { opacity: 0; transform: translateY(-10vh) scale(1.5); }
+    }
+
+    /* ─── mascot spirit ─── */
+    .mascot-spirit {
+      position: fixed;
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 999;
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      opacity: 0.85;
+      filter: drop-shadow(0 0 20px rgba(108, 99, 255, 0.5));
+    }
+    .mascot-spirit:hover {
+      opacity: 1;
+      filter: drop-shadow(0 0 40px rgba(108, 99, 255, 0.8)) drop-shadow(0 0 80px rgba(255, 101, 132, 0.4));
+      transform: scale(1.1) !important;
+    }
+    .mascot-spirit img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .mascot-spirit.vanishing {
+      opacity: 0;
+      transform: scale(0) rotate(180deg);
+      filter: drop-shadow(0 0 60px rgba(108, 99, 255, 1));
+    }
+    .mascot-spirit.appearing {
+      animation: spirit-appear 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    }
+    @keyframes spirit-appear {
+      0% { opacity: 0; transform: scale(0) rotate(-180deg); filter: drop-shadow(0 0 100px rgba(108, 99, 255, 1)); }
+      50% { opacity: 0.7; transform: scale(1.2) rotate(10deg); }
+      100% { opacity: 0.85; transform: scale(1) rotate(0deg); }
+    }
+    .spirit-trail {
+      position: fixed;
+      pointer-events: none;
+      z-index: 998;
+      font-size: 1.2rem;
+      animation: trail-fade 1.5s ease-out forwards;
+    }
+    @keyframes trail-fade {
+      0% { opacity: 1; transform: translate(0,0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+    }
+    .burst-particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      font-size: 1.8rem;
+      animation: burst-out 1.5s ease-out forwards;
+    }
+    @keyframes burst-out {
+      0% { opacity: 1; transform: translate(0,0) scale(0) rotate(0deg); }
+      40% { opacity: 1; transform: translate(var(--bx), var(--by)) scale(1.8) rotate(180deg); }
+      100% { opacity: 0; transform: translate(var(--bx), var(--by)) scale(0.2) rotate(360deg); }
+    }
+    .spirit-quote {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1001;
+      background: rgba(10,10,20,0.9);
+      border: 1px solid rgba(108,99,255,0.5);
+      border-radius: 20px;
+      padding: 0.7rem 1.5rem;
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      animation: quote-float 2.5s ease-out forwards;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 30px rgba(108,99,255,0.3);
+    }
+    @keyframes quote-float {
+      0% { opacity: 0; transform: translateY(0) scale(0.5); }
+      20% { opacity: 1; transform: translateY(-20px) scale(1); }
+      80% { opacity: 1; transform: translateY(-40px) scale(1); }
+      100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+    }
+
+    /* ─── hero ─── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 5rem 1.5rem 3rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(108,99,255,0.06) 0%, transparent 70%);
+    }
+    .hero-logo-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .hero-logo-wrap img {
+      border-radius: 50%;
+      animation: spin 10s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .mascot-small {
+      width: 80px;
+      border-radius: 30px;
+      box-shadow: 0 0 40px rgba(108,99,255,0.3);
+    }
+    .hero-title {
+      font-size: clamp(3rem, 8vw, 5rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #6C63FF 0%, #FF6584 50%, #6C63FF 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 3s linear infinite;
+      letter-spacing: -2px;
+      margin: 0.5rem 0;
+    }
+    @keyframes shimmer {
+      to { background-position: 200% center; }
+    }
+    .hero-tagline {
+      font-size: 1.3rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0.5rem auto 1rem;
+    }
+    .hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin: 1.5rem 0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.9rem 2.2rem;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-decoration: none;
+      transition: all 0.3s;
+      font-family: 'Syne', sans-serif;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-standard {
+      background: linear-gradient(135deg, #6C63FF, #8B83FF);
+      color: white;
+      box-shadow: 0 8px 25px rgba(108,99,255,0.4);
+    }
+    .btn-standard:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(108,99,255,0.6);
+    }
+    .btn-pro {
+      background: linear-gradient(135deg, #FF6584, #FF8BA7);
+      color: white;
+      box-shadow: 0 8px 25px rgba(255,101,132,0.4);
+    }
+    .btn-pro:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(255,101,132,0.6);
+    }
+    .btn-outline {
+      background: transparent;
+      color: white;
+      border: 2px solid var(--border);
+    }
+    .btn-outline:hover {
+      border-color: var(--primary);
+      background: rgba(108,99,255,0.05);
+      transform: translateY(-2px);
+    }
+
+    /* ─── nav ─── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,20,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      padding: 1rem;
+      flex-wrap: wrap;
+    }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+      position: relative;
+    }
+    .nav a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--primary);
+      transition: width 0.3s;
+    }
+    .nav a:hover {
+      color: #fff;
+    }
+    .nav a:hover::after {
+      width: 100%;
+    }
+
+    /* ─── sections ─── */
+    .section {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+    .section-label {
+      display: inline-block;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+    h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      color: #fff;
+    }
+
+    /* ─── tables centered ─── */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+    .table-wrap table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .table-wrap th,
+    .table-wrap td {
+      padding: 0.9rem 1.2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-wrap th {
+      background: rgba(108,99,255,0.1);
+      color: #fff;
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+    }
+    .table-wrap td:first-child {
+      text-align: left;
+      font-weight: 500;
+    }
+    .table-wrap tr:last-child td {
+      border-bottom: none;
+    }
+    .badge-yes {
+      color: #4ade80;
+    }
+    .badge-no {
+      color: #f87171;
+    }
+
+    /* ─── other utilities ─── */
+    .text-center {
+      text-align: center;
+    }
+    .mt-2 {
+      margin-top: 2rem;
+    }
+
+    /* ─── footer ─── */
+    footer {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin: 0.8rem 0;
+    }
+
+    /* ─── responsive ─── */
+    @media (max-width: 600px) {
+      .hero-title { font-size: 2.5rem; }
+      .hero-cta { flex-direction: column; align-items: center; }
+      .btn { width: 100%; max-width: 280px; text-align: center; }
+      .nav { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- background particles -->
+  <div id="bgParticles"></div>
+
+  <!-- ===== NAV ===== -->
+  <nav class="nav">
+    <a href="#hero">🏠 Home</a>
+    <a href="#features">⚡ Features</a>
+    <a href="ragina.html">🧠 Standard</a>
+    <a href="ragina-pro.html">🚀 Pro</a>
+    <a href="pr-generator.html">🤖 PR Bot</a>
+    <a href="generate.html">📦 Generator</a>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="hero">
+    <div class="hero-logo-wrap">
+      <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina Logo" width="70" />
+      <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile.png" alt="Mascot" class="mascot-small" />
+    </div>
+    <h1 class="hero-title">RAGina</h1>
+    <p class="hero-tagline">
+      Your in‑browser companion. She knows it all.<br />
+      Just ask her – she knows exactly what you're looking for.
+    </p>
+    <div class="hero-cta">
+      <a href="ragina.html" class="btn btn-standard">🧠 Try Standard</a>
+      <a href="ragina-pro.html" class="btn btn-pro">🚀 Try Pro</a>
+      <a href="https://suryasticsai.github.io/RAGina" class="btn btn-outline">🔮 Full App</a>
+    </div>
+    <div style="color:var(--muted); font-size:0.9rem; margin-top:0.5rem;">
+      ⚡ One script tag · Zero keys · Zero servers
+    </div>
+  </section>
+
+  <!-- ===== FEATURES COMPARISON ===== -->
+  <section class="section" id="features">
+    <span class="section-label">Choose Your Edition</span>
+    <h2>📦 Standard vs. Pro</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Standard</th>
+            <th>Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Instant RAG (HTML, text, URL)</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td></tr>
+          <tr><td>AI‑Powered Chat (multiple LLMs)</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Gist Memory (GitHub)</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Auto PR Bot</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Standalone HTML Generator</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Zero API Keys</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Dark / Light Theme</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Speech Recognition (voice input)</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Text‑to‑Speech (voice output)</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Background Music (YouTube)</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Persistent Memory (IndexedDB)</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Draggable / Minimizable orb</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Selected‑Text Awareness</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td>Export / Import Chat History</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="text-center mt-2">
+      <a href="ragina.html" class="btn btn-standard" style="margin-right:0.8rem;">🧠 Standard</a>
+      <a href="ragina-pro.html" class="btn btn-pro">🚀 Pro</a>
+    </div>
+  </section>
+
+  <!-- ===== MORE LINKS ===== -->
+  <section class="section" style="padding-top:0;">
+    <h2>🔗 Explore More</h2>
+    <div style="display:flex; flex-wrap:wrap; gap:1.2rem; justify-content:center;">
+      <a href="pr-generator.html" class="btn btn-outline" style="padding:0.7rem 2rem;">🤖 Raise a PR with Chatbot</a>
+      <a href="generate.html" class="btn btn-outline" style="padding:0.7rem 2rem;">📦 Generate Standalone Page</a>
+      <a href="https://github.com/suryasticsai/RAGina" class="btn btn-outline" style="padding:0.7rem 2rem;">🐙 GitHub Repo</a>
+      <a href="https://suryasticsai.github.io/RAGina" class="btn btn-outline" style="padding:0.7rem 2rem;">🔮 Full App</a>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <p style="font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700;">🧠 RAGina – Your In‑Browser Companion</p>
+    <div class="footer-links">
+      <a href="ragina.html">Standard</a>
+      <a href="ragina-pro.html">Pro</a>
+      <a href="pr-generator.html">PR Bot</a>
+      <a href="generate.html">Generator</a>
+      <a href="https://github.com/suryasticsai/RAGina">GitHub</a>
+    </div>
+    <p style="margin-top:0.8rem; font-size:0.8rem;">
+      She penetrates walls. She reads chaos. She forgets nothing. 🔮
+    </p>
+  </footer>
+
+  <!-- ============================================================ -->
+  <!-- SCRIPT: mascot, particles, trails (same as before)            -->
+  <!-- ============================================================ -->
+  <script>
+    // ─── Background particles ───
+    (function initBgParticles() {
+      const container = document.getElementById('bgParticles');
+      for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'bg-particle';
+        p.style.left = Math.random() * 100 + '%';
+        const size = 2 + Math.random() * 4;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.background = Math.random() > 0.5 ? '#6C63FF' : '#FF6584';
+        p.style.animationDelay = Math.random() * 12 + 's';
+        p.style.animationDuration = (10 + Math.random() * 15) + 's';
+        container.appendChild(p);
+      }
+    })();
+
+    // ─── Mascot spirit ───
+    const poses = [
+      { file: 'https://raw.githubusercontent.com/suryasticsai/RAGina/main/research.png', quote: 'Scanning every document…' },
+      { file: 'https://raw.githubusercontent.com/suryasticsai/RAGina/main/doubt.png', quote: "That's not in the files…" },
+      { file: 'https://raw.githubusercontent.com/suryasticsai/RAGina/main/crosshands.png', quote: 'Organize better, human!' },
+      { file: 'https://raw.githubusercontent.com/suryasticsai/RAGina/main/shrug-what.png', quote: 'Your files are silent on this.' },
+      { file: 'https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance1.png', quote: 'Found it, darling!' },
+      { file: 'https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance2.png', quote: 'Piece of cake!' },
+      { file: 'https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance3.png', quote: 'Knew exactly where that was!' }
+    ];
+
+    let currentSpirit = null;
+    let spiritTimeout = null;
+
+    function spawnSpirit(x, y, size) {
+      if (currentSpirit) {
+        currentSpirit.classList.add('vanishing');
+        setTimeout(() => { if (currentSpirit) currentSpirit.remove(); }, 500);
+        currentSpirit = null;
+      }
+      clearTimeout(spiritTimeout);
+
+      const pose = poses[Math.floor(Math.random() * poses.length)];
+      const spirit = document.createElement('div');
+      spirit.className = 'mascot-spirit appearing';
+      spirit.style.left = (x - size/2) + 'px';
+      spirit.style.top = (y - size/2) + 'px';
+      spirit.style.width = size + 'px';
+      spirit.style.height = 'auto';
+
+      const img = document.createElement('img');
+      img.src = pose.file;
+      img.alt = 'RAGina';
+      img.style.width = '100%';
+      img.style.display = 'block';
+      spirit.appendChild(img);
+
+      const rot = (Math.random() * 20 - 10);
+      spirit.style.transform = `rotate(${rot}deg)`;
+
+      spirit.addEventListener('click', (e) => {
+        e.stopPropagation();
+        createBurst(e.clientX, e.clientY);
+        showQuote(e.clientX, e.clientY, pose.quote);
+        createTrail(e.clientX, e.clientY);
+        moveSpirit();
+      });
+
+      document.body.appendChild(spirit);
+      currentSpirit = spirit;
+
+      spiritTimeout = setTimeout(() => moveSpirit(), 4000 + Math.random() * 3000);
+    }
+
+    function moveSpirit() {
+      if (!currentSpirit) return;
+      const spirit = currentSpirit;
+      spirit.classList.add('vanishing');
+      setTimeout(() => {
+        spirit.remove();
+        currentSpirit = null;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const size = 60 + Math.random() * 140;
+        const x = size/2 + Math.random() * (vw - size);
+        const y = size/2 + Math.random() * (vh - size);
+        setTimeout(() => spawnSpirit(x, y, size), 300);
+      }, 500);
+    }
+
+    function createBurst(x, y) {
+      const emojis = ['✨', '💜', '🔮', '⚡', '💫', '🌟', '💥', '🎯', '🧠', '📂'];
+      for (let i = 0; i < 25; i++) {
+        const p = document.createElement('span');
+        p.className = 'burst-particle';
+        p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        p.style.setProperty('--bx', (Math.random() * 250 - 125) + 'px');
+        p.style.setProperty('--by', (Math.random() * -250 - 50) + 'px');
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 1500);
+      }
+    }
+
+    function showQuote(x, y, text) {
+      const quote = document.createElement('div');
+      quote.className = 'spirit-quote';
+      quote.textContent = text;
+      quote.style.left = (x - 100) + 'px';
+      quote.style.top = (y - 60) + 'px';
+      document.body.appendChild(quote);
+      setTimeout(() => quote.remove(), 2500);
+    }
+
+    function createTrail(x, y) {
+      const symbols = ['✦', '✧', '⋆', '⭑', '⊹', '◌'];
+      for (let i = 0; i < 12; i++) {
+        const t = document.createElement('span');
+        t.className = 'spirit-trail';
+        t.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        t.style.left = x + 'px';
+        t.style.top = y + 'px';
+        t.style.setProperty('--tx', (Math.random() * 100 - 50) + 'px');
+        t.style.setProperty('--ty', (Math.random() * 100 - 50) + 'px');
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 1500);
+      }
+    }
+
+    // Start the mascot
+    setTimeout(() => {
+      const size = 120;
+      const x = window.innerWidth * 0.75;
+      const y = window.innerHeight * 0.35;
+      spawnSpirit(x, y, size);
+    }, 1000);
+
+    // Click anywhere creates a small trail
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.mascot-spirit')) return;
+      if (e.target.closest('a, button, input, textarea, nav')) return;
+      createTrail(e.clientX, e.clientY);
+    });
+  </script>
+</body>
+</html>
