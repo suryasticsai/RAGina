@@ -25,69 +25,44 @@
 
 ---
 
-## ✨ What She Can Do (Core – `ragina.js`)
+## 📦 Two Flavours – Standard & Pro
 
-| Power | Description |
-|-------|-------------|
-| 🔮 **Instant RAG** | Upload HTML, paste text, or point her at a URL. She builds a searchable knowledge base in seconds. |
-| 💬 **AI‑Powered Chat** | Sassy, grounded answers powered by Groq, OpenRouter, Gemini, and Hugging Face — with automatic fallback. |
-| 📝 **Gist Memory** | Save knowledge to a public GitHub Gist. She loads from it instantly next time. No duplicate Gists. |
-| 🚀 **Auto PR Bot** | Login with GitHub, scan a repo, she injects the chatbot snippet and opens a Pull Request — all from the browser. |
-| 📦 **Standalone Generator** | Upload files or paste text → download a complete `ragina-chatbot.html` ready to host. |
-| 🔐 **Zero Keys for You** | The AI backend runs on a free proxy — you never need to provide an API key. |
-| 🎨 **Stunning UI** | Dark / Light themes, spinning logo, animated backgrounds, and a smooth chat panel. |
+RAGina comes in two editions, both free and open‑source.
 
----
-
-## 🧠 RAGina Pro – A Living, Breathing AI Brain
-
-Now, **RAGina Pro** takes it to the next level. She’s not just a chatbot – she’s a **full‑bodied AI assistant** that can **see, speak, and remember**.
-
-### 🧠 She Has a Brain
-- **Retrieval-Augmented Memory** – She stores every conversation and can recall it later.
-- **Contextual Awareness** – She knows what you just said, what you highlighted, and what she said before.
-- **Flawless Persistence** – Her memory survives page reloads and even browser restarts (IndexedDB storage).
-
-### 🎤 She Speaks and Listens
-- **Text-to-Speech (TTS)** – She reads her answers out loud with a natural voice.
-- **Speech Recognition** – Click the microphone and talk to her; she understands you instantly.
-- **Live Transcript** – See your voice turned into text in real time, right above the chat.
-
-### 🎵 She Plays Music
-- **YouTube Integration** – Say “play Shape of You” and she finds it instantly.
-- **Full Controls** – Pause, resume, skip, stop – all by voice or on‑screen buttons.
-- **Progress Bar & Time** – See exactly where you are in the song.
-
-### 📝 She Reads Your Screen
-- **Selected‑Text Awareness** – Highlight any text on the page and ask, “What does this mean?” – she reads the selection and answers intelligently.
-
-### 🖱️ She Drags and Fits Anywhere
-- **Draggable Orb** – Move her anywhere on the screen.
-- **Minimise / Expand** – Collapse her to a tiny orb or expand to a full chat window.
-
-### 💾 She Forgets Nothing
-- **Auto‑Save** – Every message is saved to IndexedDB instantly.
-- **Export / Import** – Download your entire chat history as a JSON file and load it back anytime.
+| Feature | Standard (`ragina.js`) | Pro (`ragina-pro.js`) |
+|---------|------------------------|------------------------|
+| **Instant RAG** – upload HTML, text, URL | ✅ | ✅ |
+| **AI‑Powered Chat** (multiple LLM backends) | ✅ | ✅ |
+| **Gist Memory** – save knowledge to GitHub Gist | ✅ | ✅ |
+| **Auto PR Bot** – inject chatbot and open PR | ✅ | ✅ |
+| **Standalone Generator** – download a full HTML | ✅ | ✅ |
+| **Zero API Keys** (free proxy included) | ✅ | ✅ |
+| **Dark / Light theme** | ✅ | ✅ |
+| **Speech Recognition** (voice input) | ❌ | ✅ |
+| **Text‑to‑Speech** (voice output) | ❌ | ✅ |
+| **Background Music** (YouTube integration) | ❌ | ✅ |
+| **Persistent Memory** (IndexedDB, chat history) | ❌ | ✅ |
+| **Draggable / Minimizable orb** | ❌ | ✅ |
+| **Selected‑Text Awareness** | ❌ | ✅ |
+| **Export / Import chat history** | ❌ | ✅ |
 
 ---
 
-## 🚀 One Line – She Appears (Core)
+## 🚀 Quick Start – Standard
 
 Add this single `<script>` tag and a floating chat bubble appears:
 
-```
+```html
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
 ```
 
 That’s it. No signup. No keys. No servers.
 
----
+## 🚀 Quick Start – Pro
 
-## 🚀 Pro in One Line – Full AI Brain with Voice & Memory
+For the full AI brain with voice, music, and memory:
 
-Just add this script and the full RAGina Pro experience is live:
-
-```
+```html
 <script>
   window.RAGINA_CONFIG = {
     apiBaseUrl: 'https://your-worker.com',  // optional, defaults to our free proxy
@@ -97,29 +72,17 @@ Just add this script and the full RAGina Pro experience is live:
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.js"></script>
 ```
 
-No additional HTML, no CSS, no setup. She injects everything automatically.
-
-### Pro CDN Links
-
-```
-<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.js"></script>
-```
-
-Or instant via raw.githack:
-
-```
-<script src="https://raw.githack.com/suryasticsai/RAGina/main/ragina-pro.js"></script>
-```
+> **Pro loads the YouTube Iframe API automatically** for background music. No extra code needed.
 
 ---
 
-## 📚 Give Her Knowledge (Core & Pro)
+## 📚 Give Her Knowledge (Both Versions)
 
 She can read from a URL or from data you embed directly in the page.
 
 ### From a URL (recommended)
 
-```
+```html
 <script>
   window.RAGINA_CONFIG = {
     indexUrl: 'https://example.com/my-knowledge.json',
@@ -133,7 +96,7 @@ She can read from a URL or from data you embed directly in the page.
 
 ### Embedded Knowledge (zero external files)
 
-```
+```html
 <script>
   window.__RAGINA_INDEX__ = {
     "about.html": { "bodyText": "RAGina is awesome..." },
@@ -145,6 +108,34 @@ She can read from a URL or from data you embed directly in the page.
 ```
 
 No files. No server. She reads everything from that tiny object.
+
+---
+
+## ✨ What She Can Do – Core Features (Both Editions)
+
+| Power | Description |
+|-------|-------------|
+| 🔮 **Instant RAG** | Upload HTML, paste text, or point her at a URL. She builds a searchable knowledge base in seconds. |
+| 💬 **AI‑Powered Chat** | Sassy, grounded answers powered by Groq, OpenRouter, Gemini, and Hugging Face — with automatic fallback. |
+| 📝 **Gist Memory** | Save knowledge to a public GitHub Gist. She loads from it instantly next time. No duplicate Gists. |
+| 🚀 **Auto PR Bot** | Login with GitHub, scan a repo, she injects the chatbot snippet and opens a Pull Request — all from the browser. |
+| 📦 **Standalone Generator** | Upload files or paste text → download a complete `ragina-chatbot.html` ready to host. |
+| 🔐 **Zero Keys for You** | The AI backend runs on a free proxy — you never need to provide an API key. |
+| 🎨 **Stunning UI** | Dark / Light themes, spinning logo, animated backgrounds, and a smooth chat panel. |
+
+---
+
+## 🧠 RAGina Pro – Extra Powers
+
+Pro takes the core experience and adds a **living, breathing AI brain**:
+
+- 🎤 **Speech Recognition** – Click the microphone and talk to her; she transcribes and answers.
+- 🔊 **Text‑to‑Speech** – She reads her responses aloud in a natural voice.
+- 🎵 **YouTube Music** – Say “play Shape of You” and she plays it with full controls (pause, skip, volume, progress bar).
+- 🧠 **Persistent Memory** – Every conversation is saved to IndexedDB and survives page reloads.
+- 🖱️ **Draggable Orb** – Move her anywhere on the screen. Minimise or expand with a click.
+- 📝 **Selected‑Text Awareness** – Highlight text on the page and ask “What does this mean?” – she reads the selection and answers intelligently.
+- 💾 **Export / Import** – Download your entire chat history as a JSON file and load it back anytime.
 
 ---
 
