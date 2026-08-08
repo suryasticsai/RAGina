@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAGina · Standard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        /* ─── same base styles as original ─── */
+        :root {
+            --primary: #6C63FF;
+            --accent: #FF6584;
+            --bg: #0a0a14;
+            --card: #111122;
+            --text: #e0e0f0;
+            --muted: #8888aa;
+            --border: rgba(108, 99, 255, 0.2);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            overflow-x: hidden;
+            cursor: default;
+            min-height: 100vh;
+        }
+        h1,
+        h2,
+        h3 {
+            font-family: 'Syne', system-ui, sans-serif;
+        }
+
+        /* mascot, particles, etc. – same as original */
+        .mascot-spirit {
+            position: fixed;
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 999;
+            transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            opacity: 0.85;
+            filter: drop-shadow(0 0 20px rgba(108, 99, 255, 0.5));
+        }
+        .mascot-spirit:hover {
+            opacity: 1;
+            filter: drop-shadow(0 0 40px rgba(108, 99, 255, 0.8)) drop-shadow(0 0 80px rgba(255, 101, 132, 0.4));
+            transform: scale(1.1) !important;
+        }
+        .mascot-spirit img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .mascot-spirit.vanishing {
+            opacity: 0;
+            transform: scale(0) rotate(180deg);
+            filter: drop-shadow(0 0 60px rgba(108, 99, 255, 1));
+        }
+        .mascot-spirit.appearing {
+            animation: spirit-appear 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        @keyframes spirit-appear {
+            0% {
+                opacity: 0;
+                transform: scale(0) rotate(-180deg);
+                filter: drop-shadow(0 0 100px rgba(108, 99, 255, 1));
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.2) rotate(10deg);
+            }
+            100% {
+                opacity: 0.85;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        .spirit-trail {
+            position: fixed;
+            pointer-events: none;
+            z-index: 998;
+            font-size: 1.2rem;
+            animation: trail-fade 1.5s ease-out forwards;
+        }
+        @keyframes trail-fade {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--tx), var(--ty)) scale(0);
+            }
+        }
+        .burst-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            font-size: 1.8rem;
+            animation: burst-out 1.5s ease-out forwards;
+        }
+        @keyframes burst-out {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(0) rotate(0deg);
+            }
+            40% {
+                opacity: 1;
+                transform: translate(var(--bx), var(--by)) scale(1.8) rotate(180deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--bx), var(--by)) scale(0.2) rotate(360deg);
+            }
+        }
+        .spirit-quote {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1001;
+            background: rgba(10, 10, 20, 0.9);
+            border: 1px solid rgba(108, 99, 255, 0.5);
+            border-radius: 20px;
+            padding: 0.7rem 1.5rem;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            animation: quote-float 2.5s ease-out forwards;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(108, 99, 255, 0.3);
+        }
+        @keyframes quote-float {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0.5);
+            }
+            20% {
+                opacity: 1;
+                transform: translateY(-20px) scale(1);
+            }
+            80% {
+                opacity: 1;
+                transform: translateY(-40px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-60px) scale(0.8);
+            }
+        }
+        .bg-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 50%;
+            animation: bg-float linear infinite;
+        }
+        @keyframes bg-float {
+            0% {
+                opacity: 0;
+                transform: translateY(100vh) scale(0);
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.2;
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-10vh) scale(1.5);
+            }
+        }
+
+        /* hero, nav, sections – same as original */
+        .hero {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 5rem 1.5rem 3rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(ellipse at center, rgba(108, 99, 255, 0.06) 0%, transparent 70%);
+        }
+        .hero-title {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #6C63FF 0%, #FF6584 50%, #6C63FF 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+            letter-spacing: -2px;
+        }
+        @keyframes shimmer {
+            to {
+                background-position: 200% center;
+            }
+        }
+        .hero-tagline {
+            font-size: 1.3rem;
+            color: var(--muted);
+            max-width: 550px;
+            margin: 1rem auto;
+        }
+        .hero-hint {
+            color: var(--primary);
+            font-size: 1rem;
+            margin-top: 0.5rem;
+            animation: hint-pulse 2s ease-in-out infinite;
+        }
+        @keyframes hint-pulse {
+            0%,
+            100% {
+                opacity: 0.4;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+        .powers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+        .power-badge {
+            background: rgba(108, 99, 255, 0.12);
+            border: 1px solid var(--border);
+            color: #a89fff;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .power-badge:hover {
+            background: rgba(108, 99, 255, 0.22);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        .cta-row {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .cta-btn {
+            display: inline-block;
+            padding: 0.9rem 2rem;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-family: 'Syne', sans-serif;
+        }
+        .cta-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            box-shadow: 0 8px 25px rgba(108, 99, 255, 0.4);
+        }
+        .cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(108, 99, 255, 0.6);
+        }
+        .cta-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid var(--border);
+        }
+        .cta-secondary:hover {
+            border-color: var(--primary);
+            background: rgba(108, 99, 255, 0.05);
+        }
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            padding: 1rem;
+            flex-wrap: wrap;
+        }
+        .nav a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+            position: relative;
+        }
+        .nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+        .nav a:hover {
+            color: #fff;
+        }
+        .nav a:hover::after {
+            width: 100%;
+        }
+        .section {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .section-label {
+            display: inline-block;
+            font-family: 'Syne', sans-serif;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            color: #fff;
+        }
+        .install-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            margin: 1.5rem 0;
+        }
+        .install-box code {
+            display: block;
+            background: #000;
+            padding: 1.2rem;
+            border-radius: 10px;
+            color: #6C63FF;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: 'Fira Code', monospace;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .copy-btn:hover {
+            background: #5a52d5;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.2rem;
+        }
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.8rem;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transform: scaleX(0);
+            transition: transform 0.4s;
+        }
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        .feature-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+        }
+        .feature-card .icon {
+            font-size: 2.2rem;
+            margin-bottom: 0.8rem;
+        }
+        .feature-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.4rem;
+        }
+        .feature-card p {
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+        .demo-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        .cdn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .cdn-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.2rem;
+        }
+        .cdn-card strong {
+            color: var(--primary);
+        }
+        .cdn-card p {
+            font-size: 0.75rem;
+            color: var(--muted);
+            word-break: break-all;
+            margin-top: 0.3rem;
+        }
+        .version-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 0.3rem 1.2rem;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+        .switch-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .switch-link:hover {
+            text-decoration: underline;
+        }
+        footer {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @media (max-width: 600px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            h2 {
+                font-size: 1.6rem;
+            }
+            .nav {
+                gap: 1rem;
+            }
+            .cdn-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- background particles -->
+    <div id="bgParticles"></div>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero" id="hero">
+        <div class="version-badge">🧠 STANDARD</div>
+        <h1 class="hero-title">RAGina</h1>
+        <p class="hero-tagline">She penetrates walls. She reads chaos. She forgets nothing.</p>
+        <p class="hero-hint">🔮 She's somewhere on this page… click her!</p>
+        <div class="powers">
+            <span class="power-badge">🔮 Mind Reading</span>
+            <span class="power-badge">📂 Folder Whisperer</span>
+            <span class="power-badge">🧠 TF‑IDF Vision</span>
+            <span class="power-badge">💅 Sassy Attitude</span>
+            <span class="power-badge">⚡ Instant Answers</span>
+            <span class="power-badge">🔐 Zero API Keys</span>
+        </div>
+        <div class="cta-row">
+            <a href="pr-generator.html" class="cta-btn cta-primary">🚀 Raise a PR with Chatbot</a>
+            <a href="generate.html" class="cta-btn cta-secondary">📦 Generate Standalone Page</a>
+        </div>
+        <p style="margin-top:2rem; color:var(--muted); font-size:0.9rem;">
+            ⚡ <a href="ragina-pro.html" class="switch-link">Switch to Pro</a> (voice · music · memory)
+        </p>
+    </section>
+
+    <!-- ===== NAV ===== -->
+    <nav class="nav">
+        <a href="#hero">🏠 Home</a>
+        <a href="#install">📦 Install</a>
+        <a href="#features">🦸 Powers</a>
+        <a href="#demo">🔮 Demo</a>
+        <a href="pr-generator.html">🚀 PR Bot</a>
+        <a href="generate.html">⚡ Generator</a>
+    </nav>
+
+    <!-- ===== INSTALL ===== -->
+    <section class="section" id="install">
+        <span class="section-label">One Line</span>
+        <h2>📦 Add RAGina (Standard) to Any Site</h2>
+        <div class="install-box">
+            <button class="copy-btn" onclick="copyCode()">📋 Copy</button>
+            <code id="installCode">&lt;script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js"&gt;&lt;/script&gt;</code>
+        </div>
+        <div class="cdn-grid">
+            <div class="cdn-card">
+                <strong>⚡ Production (Minified)</strong>
+                <p>cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js</p>
+            </div>
+            <div class="cdn-card">
+                <strong>🔧 Development</strong>
+                <p>cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FEATURES ===== -->
+    <section class="section" id="features">
+        <span class="section-label">Super Powers</span>
+        <h2>🦸 What Makes Her Special</h2>
+        <div class="features">
+            <div class="feature-card reveal">
+                <div class="icon">🧠</div>
+                <h3>TF‑IDF Mentalist Vision</h3>
+                <p>Understands context through vector scoring. Finds semantically relevant chunks, not just keywords.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="icon">📂</div>
+                <h3>Confluence Whisperer</h3>
+                <p>Penetrates messy exports, nested folders, legacy HTML. Extracts only what matters.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="icon">🔐</div>
+                <h3>Zero API Keys</h3>
+                <p>Uses free LLM endpoint. No signup. Your data stays in the browser.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="icon">📦</div>
+                <h3>CDN Library (8KB)</h3>
+                <p>One script tag. Zero dependencies. Works with any framework.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="icon">💅</div>
+                <h3>Sassy Personality</h3>
+                <p>"Even I can't find that. Organize better, human." — attitude included.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="icon">📱</div>
+                <h3>Mobile Ready</h3>
+                <p>Dark theme, glowing accents, responsive. Works everywhere.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== DEMO ===== -->
+    <section class="section" id="demo">
+        <span class="section-label">Try Her Live</span>
+        <h2>🔮 She's Active Right Now</h2>
+        <div class="demo-box reveal">
+            <p style="color:var(--muted); margin-bottom:0.8rem;">
+                Click the <strong style="color:var(--primary);">🔮 bubble</strong> at the bottom-right!
+            </p>
+            <p style="color:var(--primary); font-weight:600;">
+                Ask: "What is RAGina?" • "How does TF‑IDF work?" • "What are your powers?"
+            </p>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer>
+        <p style="font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700;">🧠 RAGina – The Mentalist RAG</p>
+        <p style="margin-top:0.5rem;">
+            <a href="https://github.com/suryasticsai/RAGina">GitHub</a> ·
+            <a href="pr-generator.html">PR Bot</a> ·
+            <a href="generate.html">Generator</a> ·
+            MIT License
+        </p>
+        <p style="margin-top:0.8rem; font-size:0.8rem;">
+            She penetrates walls. She reads chaos. She forgets nothing. 🔮
+            <br />
+            <a href="ragina-pro.html" class="switch-link">✨ Try Pro version (voice + music)</a>
+        </p>
+    </footer>
+
+    <script>
+        // ─── Background particles ───
+        const bgContainer = document.getElementById('bgParticles');
+        for (let i = 0; i < 25; i++) {
+            const p = document.createElement('div');
+            p.className = 'bg-particle';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.width = (2 + Math.random() * 3) + 'px';
+            p.style.height = p.style.width;
+            p.style.background = Math.random() > 0.5 ? '#6C63FF' : '#FF6584';
+            p.style.animationDelay = Math.random() * 10 + 's';
+            p.style.animationDuration = (8 + Math.random() * 12) + 's';
+            bgContainer.appendChild(p);
+        }
+
+        // ─── Mascot logic ───
+        const poses = [
+            { file: 'research.png', quote: 'Scanning every document…' },
+            { file: 'doubt.png', quote: "That's not in the files…" },
+            { file: 'crosshands.png', quote: 'Organize better, human!' },
+            { file: 'shrug-what.png', quote: 'Your files are silent on this.' },
+            { file: 'dance1.png', quote: 'Found it, darling!' },
+            { file: 'dance2.png', quote: 'Piece of cake!' },
+            { file: 'dance3.png', quote: 'Knew exactly where that was!' }
+        ];
+
+        let currentSpirit = null;
+        let spiritTimeout = null;
+
+        function spawnSpirit(x, y, size) {
+            if (currentSpirit) {
+                currentSpirit.classList.add('vanishing');
+                setTimeout(() => { if (currentSpirit) currentSpirit.remove(); }, 500);
+                currentSpirit = null;
+            }
+            clearTimeout(spiritTimeout);
+
+            const pose = poses[Math.floor(Math.random() * poses.length)];
+            const spirit = document.createElement('div');
+            spirit.className = 'mascot-spirit appearing';
+            spirit.style.left = (x - size / 2) + 'px';
+            spirit.style.top = (y - size / 2) + 'px';
+            spirit.style.width = size + 'px';
+            spirit.style.height = 'auto';
+
+            const img = document.createElement('img');
+            img.src = pose.file;
+            img.alt = 'RAGina';
+            img.style.width = '100%';
+            img.style.display = 'block';
+            spirit.appendChild(img);
+
+            const rot = (Math.random() * 20 - 10);
+            spirit.style.transform = `rotate(${rot}deg)`;
+
+            spirit.addEventListener('click', (e) => {
+                e.stopPropagation();
+                createBurst(e.clientX, e.clientY);
+                showQuote(e.clientX, e.clientY, pose.quote);
+                createTrail(e.clientX, e.clientY);
+                moveSpirit();
+            });
+
+            document.body.appendChild(spirit);
+            currentSpirit = spirit;
+
+            spiritTimeout = setTimeout(() => moveSpirit(), 4000 + Math.random() * 3000);
+        }
+
+        function moveSpirit() {
+            if (!currentSpirit) return;
+            const spirit = currentSpirit;
+            spirit.classList.add('vanishing');
+            setTimeout(() => {
+                spirit.remove();
+                currentSpirit = null;
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const size = 60 + Math.random() * 140;
+                const x = size / 2 + Math.random() * (vw - size);
+                const y = size / 2 + Math.random() * (vh - size);
+                setTimeout(() => spawnSpirit(x, y, size), 300);
+            }, 500);
+        }
+
+        function createBurst(x, y) {
+            const emojis = ['✨', '💜', '🔮', '⚡', '💫', '🌟', '💥', '🎯', '🧠', '📂'];
+            for (let i = 0; i < 25; i++) {
+                const p = document.createElement('span');
+                p.className = 'burst-particle';
+                p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                p.style.left = x + 'px';
+                p.style.top = y + 'px';
+                p.style.setProperty('--bx', (Math.random() * 250 - 125) + 'px');
+                p.style.setProperty('--by', (Math.random() * -250 - 50) + 'px');
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 1500);
+            }
+        }
+
+        function showQuote(x, y, text) {
+            const quote = document.createElement('div');
+            quote.className = 'spirit-quote';
+            quote.textContent = text;
+            quote.style.left = (x - 100) + 'px';
+            quote.style.top = (y - 60) + 'px';
+            document.body.appendChild(quote);
+            setTimeout(() => quote.remove(), 2500);
+        }
+
+        function createTrail(x, y) {
+            const symbols = ['✦', '✧', '⋆', '⭑', '⊹', '◌'];
+            for (let i = 0; i < 12; i++) {
+                const t = document.createElement('span');
+                t.className = 'spirit-trail';
+                t.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                t.style.left = x + 'px';
+                t.style.top = y + 'px';
+                t.style.setProperty('--tx', (Math.random() * 100 - 50) + 'px');
+                t.style.setProperty('--ty', (Math.random() * 100 - 50) + 'px');
+                document.body.appendChild(t);
+                setTimeout(() => t.remove(), 1500);
+            }
+        }
+
+        setTimeout(() => {
+            const size = 120;
+            const x = window.innerWidth * 0.75;
+            const y = window.innerHeight * 0.35;
+            spawnSpirit(x, y, size);
+        }, 800);
+
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.mascot-spirit')) return;
+            if (e.target.closest('a, button, input, textarea, nav')) return;
+            createTrail(e.clientX, e.clientY);
+        });
+
+        // ─── Scroll reveal ───
+        const reveals = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+        }, { threshold: 0.15 });
+        reveals.forEach(el => observer.observe(el));
+
+        // ─── Copy code ───
+        function copyCode() {
+            const code = document.getElementById('installCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+            });
+        }
+
+        // ─── RAGina config & load ───
+        window.RAGINA_CONFIG = {
+            indexUrl: 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/demo-index.json',
+            placeholder: 'Ask the mentalist…',
+            position: 'bottom-right',
+            theme: { primary: '#6C63FF' }
+        };
+
+        // Load the standard script
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.min.js';
+        script.async = true;
+        script.onload = () => {
+            if (window.RAGINA && typeof window.RAGINA.init === 'function') {
+                window.RAGINA.init();
+            }
+        };
+        document.head.appendChild(script);
+    </script>
+
+</body>
+</html>
