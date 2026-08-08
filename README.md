@@ -1,18 +1,16 @@
 <p align="center">
-  <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" width="160" style="border-radius: 50%; animation: spin 10s linear infinite;"/>
+  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile.png" alt="RAGina Mascot" width="140" style="border-radius: 30px; box-shadow: 0 0 40px rgba(108,99,255,0.3);"/>
 </p>
 
-<style>
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-</style>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile.png" alt="RAGina" width="200"/>
+  <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" width="60" style="border-radius: 50%; animation: spin 10s linear infinite;"/>
 </p>
 
-<h1 align="center">🧠 RAGina – The Instant RAG</h1>
+<h1 align="center">🧠 RAGina – Your In‑Browser Companion</h1>
+
+<p align="center">
+  <i>“Your in‑browser companion. She knows it all. Just ask her – she knows exactly what you're looking for.”</i>
+</p>
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="MIT License"></a>
@@ -21,26 +19,49 @@
   <a href="#"><img src="https://img.shields.io/badge/Size-8KB_minified-blue" alt="8KB Minified"></a>
 </p>
 
-<p align="center">
-  <i>“She penetrates walls. She reads chaos. She forgets nothing.”</i>
-</p>
+---
+
+> 💡 **One `<script>` tag. Zero API keys. Zero servers. Zero cost.**  
+> Turn any website, repo, or document into an AI‑powered Q&A chatbot in seconds.  
+> **And now she hears you. She talks back. She remembers everything.**
 
 ---
 
-<p align="center">
-  <b>One <code>&lt;script&gt;</code> tag. Zero API keys. Zero servers. Zero cost.</b><br>
-  Turn any website, repo, or document into an AI‑powered Q&A chatbot in seconds.<br>
-  <b>And now she hears you. She talks back. She remembers everything.</b>
-</p>
+## ⚡ Lightning Start
+
+Choose your version and drop the script into any HTML page.
+
+| | Standard | Pro |
+|-|----------|-----|
+| **Script** | `ragina.js` | `ragina-pro.js` |
+| **Voice** | ❌ | 🎤 |
+| **Music** | ❌ | 🎵 |
+| **Memory** | ❌ | 🧠 |
+
+### 🟣 Standard
+```html
+<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
+```
+
+### 🔥 Pro (Full AI Brain)
+```
+<script>
+  window.RAGINA_CONFIG = {
+    apiBaseUrl: 'https://your-worker.com',  // optional
+    indexUrl: 'https://your-knowledge.json' // optional
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.js"></script>
+```
 
 ---
 
-## 📦 Two Flavours – Standard & Pro
+## 📦 Two Flavours – Side by Side
 
-RAGina comes in two editions, both free and open‑source.
+<div align="center">
 
 | Feature | Standard (`ragina.js`) | Pro (`ragina-pro.js`) |
-|---------|------------------------|------------------------|
+|---------|:----------------------:|:----------------------:|
 | **Instant RAG** – upload HTML, text, URL | ✅ | ✅ |
 | **AI‑Powered Chat** (multiple LLM backends) | ✅ | ✅ |
 | **Gist Memory** – save knowledge to GitHub Gist | ✅ | ✅ |
@@ -56,41 +77,15 @@ RAGina comes in two editions, both free and open‑source.
 | **Selected‑Text Awareness** | ❌ | ✅ |
 | **Export / Import chat history** | ❌ | ✅ |
 
----
-
-## 🚀 Quick Start – Standard
-
-Add this single `<script>` tag and a floating chat bubble appears:
-
-```html
-<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
-```
-
-That’s it. No signup. No keys. No servers.
-
-## 🚀 Quick Start – Pro
-
-For the full AI brain with voice, music, and memory:
-
-```html
-<script>
-  window.RAGINA_CONFIG = {
-    apiBaseUrl: 'https://your-worker.com',  // optional, defaults to our free proxy
-    indexUrl: 'https://your-knowledge.json' // optional, for RAG
-  };
-</script>
-<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.js"></script>
-```
-
-> **Pro loads the YouTube Iframe API automatically** for background music. No extra code needed.
+</div>
 
 ---
 
-## 📚 Give Her Knowledge (Both Versions)
+## 🎯 Give Her Knowledge (Both Versions)
 
 She can read from a URL or from data you embed directly in the page.
 
-### From a URL (recommended)
+### 🌐 From a URL (recommended)
 
 ```html
 <script>
@@ -104,7 +99,7 @@ She can read from a URL or from data you embed directly in the page.
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
 ```
 
-### Embedded Knowledge (zero external files)
+### 📦 Embedded Knowledge (zero external files)
 
 ```html
 <script>
@@ -117,11 +112,13 @@ She can read from a URL or from data you embed directly in the page.
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"></script>
 ```
 
-No files. No server. She reads everything from that tiny object.
+> ✨ No files. No server. She reads everything from that tiny object.
 
 ---
 
-## ✨ What She Can Do – Core Features (Both Editions)
+## ✨ Core Powers – Both Editions
+
+<div align="center">
 
 | Power | Description |
 |-------|-------------|
@@ -133,19 +130,25 @@ No files. No server. She reads everything from that tiny object.
 | 🔐 **Zero Keys for You** | The AI backend runs on a free proxy — you never need to provide an API key. |
 | 🎨 **Stunning UI** | Dark / Light themes, spinning logo, animated backgrounds, and a smooth chat panel. |
 
+</div>
+
 ---
 
-## 🧠 RAGina Pro – Extra Powers
+## 🧠 Pro Extra Powers – The Full Mentalist
 
-Pro takes the core experience and adds a **living, breathing AI brain**:
+<div align="center">
 
-- 🎤 **Speech Recognition** – Click the microphone and talk to her; she transcribes and answers.
-- 🔊 **Text‑to‑Speech** – She reads her responses aloud in a natural voice.
-- 🎵 **YouTube Music** – Say “play Shape of You” and she plays it with full controls (pause, skip, volume, progress bar).
-- 🧠 **Persistent Memory** – Every conversation is saved to IndexedDB and survives page reloads.
-- 🖱️ **Draggable Orb** – Move her anywhere on the screen. Minimise or expand with a click.
-- 📝 **Selected‑Text Awareness** – Highlight text on the page and ask “What does this mean?” – she reads the selection and answers intelligently.
-- 💾 **Export / Import** – Download your entire chat history as a JSON file and load it back anytime.
+| Feature | Description |
+|---------|-------------|
+| 🎤 **Speech Recognition** | Click the microphone and talk to her; she transcribes and answers. |
+| 🔊 **Text‑to‑Speech** | She reads her responses aloud in a natural voice. |
+| 🎵 **YouTube Music** | Say “play Shape of You” and she plays it with full controls (pause, skip, volume, progress bar). |
+| 🧠 **Persistent Memory** | Every conversation is saved to IndexedDB and survives page reloads. |
+| 🖱️ **Draggable Orb** | Move her anywhere on the screen. Minimise or expand with a click. |
+| 📝 **Selected‑Text Awareness** | Highlight text on the page and ask “What does this mean?” – she reads the selection and answers intelligently. |
+| 💾 **Export / Import** | Download your entire chat history as a JSON file and load it back anytime. |
+
+</div>
 
 ---
 
@@ -167,19 +170,23 @@ On the full app you can:
 
 ---
 
-## 🎭 Meet the Mentalist
+## 🎭 Meet the Mentalist – 7 Expressive Moods
 
 She has **seven powerful expressions** – each one a different mentalist state. Click any image in the full app to see her transformation.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/research.png" width="100" alt="Deep Research"/>
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/doubt.png" width="100" alt="Doubt Detected"/>
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/crosshands.png" width="100" alt="Cross Hands"/>
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/shrug-what.png" width="100" alt="Shrug"/>
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance1.png" width="100" alt="Victory Dance"/>
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance2.png" width="100" alt="Happy Dance"/>
-  <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance3.png" width="100" alt="Celebration"/>
-</p>
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/research.png" width="80" alt="Deep Research"/>
+<img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/doubt.png" width="80" alt="Doubt Detected"/>
+<img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/crosshands.png" width="80" alt="Cross Hands"/>
+<img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/shrug-what.png" width="80" alt="Shrug"/>
+<img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance1.png" width="80" alt="Victory Dance"/>
+<img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance2.png" width="80" alt="Happy Dance"/>
+<img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance3.png" width="80" alt="Celebration"/>
+
+</div>
+
+<div align="center">
 
 | Expression | Quote |
 |------------|-------|
@@ -190,6 +197,8 @@ She has **seven powerful expressions** – each one a different mentalist state.
 | 💃 Victory Dance | *“Found it, darling!”* |
 | 🕺 Happy Dance | *“Piece of cake!”* |
 | 🎉 Celebration | *“Knew exactly where that was!”* |
+
+</div>
 
 ---
 
@@ -214,5 +223,5 @@ MIT – use freely, modify, distribute. Credit is appreciated.
 
 ---
 
-**RAGina – She penetrates walls. She reads chaos. She forgets nothing. 🔮**  
-**Now she speaks, she listens, and she remembers everything. The future of AI is here.**
+> 🔮 **RAGina – Your in‑browser companion. She knows it all. Just ask her – she knows exactly what you're looking for.**  
+> **Now she speaks, she listens, and she remembers everything. The future of AI is here.**
