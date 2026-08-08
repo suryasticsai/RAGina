@@ -1,37 +1,44 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAGina – The Mentalist RAG</title>
-    <link rel="icon" type="image/png" href="ragina-logo.png">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAGina – Your In‑Browser Companion</title>
+    <link rel="icon" type="image/png" href="ragina-logo.png" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
+        /* ─── Base Variables (dark by default) ─── */
         :root {
             --primary: #6C63FF;
+            --primary-hover: #5a52d5;
+            --accent: #FF6584;
             --bg: #0a0a14;
             --card: #111122;
             --text: #e0e0f0;
-            --muted: #8888aa;
-            --border: rgba(108,99,255,0.2);
+            --text-muted: #8888aa;
+            --border: rgba(108, 99, 255, 0.2);
+            --input-bg: #0a0a18;
             --success: #00d68f;
             --danger: #FF4757;
-            --input-bg: #0a0a18;
             --transition-speed: 0.5s;
+            --nav-link-color: rgba(255, 255, 255, 0.7);
         }
+        /* ─── Light Theme ─── */
         .light {
             --bg: #f5f5f9;
             --card: #ffffff;
             --text: #1a1a2e;
-            --muted: #666666;
-            --border: rgba(108,99,255,0.3);
+            --text-muted: #666666;
+            --border: rgba(108, 99, 255, 0.3);
             --input-bg: #ffffff;
             --primary: #4b44cc;
+            --nav-link-color: rgba(0, 0, 0, 0.7);
         }
-        * { margin:0; padding:0; box-sizing:border-box; }
+        /* ─── Reset & Base ─── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: system-ui, sans-serif;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg);
             color: var(--text) !important;
             min-height: 100vh;
@@ -40,7 +47,21 @@
             overflow-x: hidden;
             position: relative;
         }
-        canvas#bgCanvas { position: fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events: none; }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { color: var(--primary-hover); }
+
+        /* ─── Background Canvas ─── */
+        canvas#bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ─── Navbar ─── */
         .navbar {
             background: var(--card) !important;
             backdrop-filter: blur(10px);
@@ -48,12 +69,39 @@
             z-index: 10;
             transition: background var(--transition-speed), border-color var(--transition-speed);
         }
-        .navbar .logo { width:40px; height:40px; border-radius:50%; margin-right:0.5rem; cursor:pointer; animation: auto-spin 8s linear infinite; }
+        .navbar .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            cursor: pointer;
+            animation: auto-spin 8s linear infinite;
+        }
         .navbar .logo.fast { animation: fast-spin 0.6s ease-in-out; }
         @keyframes auto-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes fast-spin { 0%{transform:rotate(0deg)} 50%{transform:rotate(360deg)} 100%{transform:rotate(360deg)} }
-        .brand-text { font-weight:700; background: linear-gradient(135deg, var(--primary), #FF6584); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:1.3rem; }
-        .theme-toggle { cursor:pointer; border: none; background: none; color: var(--text); font-size:1.2rem; }
+        .brand-text {
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.3rem;
+        }
+        .nav-link {
+            color: var(--nav-link-color) !important;
+            transition: color 0.3s;
+        }
+        .nav-link:hover { color: var(--text) !important; }
+        .theme-toggle {
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: var(--text);
+            font-size: 1.2rem;
+            padding: 0 8px;
+        }
+
+        /* ─── Cards & Inputs ─── */
         .card-ragina {
             background: var(--card) !important;
             border: 1px solid var(--border) !important;
@@ -63,92 +111,296 @@
             color: var(--text);
             transition: all var(--transition-speed);
         }
-        input, textarea, select, .form-control, .form-select {
+        .form-control, .form-select {
             background-color: var(--input-bg) !important;
             border: 1px solid var(--border) !important;
             color: var(--text) !important;
             transition: all var(--transition-speed);
         }
-        input::placeholder, textarea::placeholder { color: var(--muted); }
-        .btn-primary-ragina { background: var(--primary); border:none; color:white; }
-        .btn-primary-ragina:hover { background: #5a52d5; }
-        .btn-outline-ragina { border:1px solid var(--primary); color:var(--primary); }
-        .btn-outline-ragina:hover { background: var(--primary); color:white; }
-        .progress-bar-ragina { background: linear-gradient(90deg, var(--primary), #FF6584); }
-        .chat-messages { max-height:400px; overflow-y:auto; background: rgba(0,0,0,0.05); border-radius:12px; padding:1rem; }
-        .chat-messages .user { text-align:right; }
-        .chat-messages .bot { text-align:left; }
-        .chat-messages span { display:inline-block; max-width:80%; padding:8px 16px; border-radius:18px; margin:4px 0; }
-        .chat-messages .user span { background: var(--primary); color:white; }
-        .chat-messages .bot span { background: rgba(108,99,255,0.1); border:1px solid rgba(108,99,255,0.3); color:var(--text); }
-        .kb-tile { background: var(--card); border:1px solid var(--border); border-radius:16px; padding:1.5rem; margin:1rem 0; }
-        .stats { font-size:0.9rem; color:var(--muted); }
-        .log { background:#000; border:1px solid var(--border); border-radius:10px; padding:1rem; margin:.8rem 0; max-height:200px; overflow-y:auto; font-family:'Fira Code',monospace; font-size:.7rem; color:#6C63FF; }
+        .form-control::placeholder { color: var(--text-muted); }
+        .btn-primary-ragina {
+            background: var(--primary);
+            border: none;
+            color: #fff;
+        }
+        .btn-primary-ragina:hover { background: var(--primary-hover); color: #fff; }
+        .btn-outline-ragina {
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+        }
+        .btn-outline-ragina:hover { background: var(--primary); color: #fff; }
+
+        /* ─── Status / Log ─── */
+        .status {
+            padding: 0.7rem 1rem;
+            border-radius: 10px;
+            margin: 0.8rem 0;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        .status.info { background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.3); }
+        .status.success { background: rgba(0,214,143,0.1); border: 1px solid var(--success); }
+        .status.error { background: rgba(255,71,87,0.1); border: 1px solid var(--danger); }
+        .log {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 0.8rem 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+            color: var(--primary);
+        }
         .log .log-success { color: var(--success); }
         .log .log-error { color: var(--danger); }
-        .file-list { max-height:220px; overflow-y:auto; margin:.8rem 0; border:1px solid var(--border); border-radius:10px; background:var(--input-bg); }
-        .file-row { display:flex; align-items:center; gap:.6rem; padding:.6rem 1rem; border-bottom:1px solid rgba(255,255,255,.03); cursor:pointer; font-size:.85rem; color:var(--text); }
-        .file-row:hover { background:rgba(108,99,255,.08); }
-        .file-row.selected { background:rgba(108,99,255,.15); border-left:3px solid var(--primary); }
-        .file-row .check { color:var(--success); opacity:0; }
-        .file-row.selected .check { opacity:1; }
-        .radio-row { display:flex; gap:.8rem; margin:.8rem 0; }
-        .radio-card { flex:1; position:relative; }
-        .radio-card input { position:absolute; opacity:0; }
-        .radio-card label { display:flex; align-items:center; gap:.5rem; padding:.8rem 1rem; border:2px solid var(--border); border-radius:12px; cursor:pointer; font-weight:500; color:var(--text); }
-        .radio-card input:checked+label { border-color:var(--primary); background:rgba(108,99,255,.1); }
-        .status { padding:.7rem 1rem; border-radius:10px; margin:.8rem 0; font-size:.85rem; line-height:1.5; }
-        .status.info { background:rgba(108,99,255,.12); border:1px solid rgba(108,99,255,.3); }
-        .status.success { background:rgba(0,214,143,.1); border:1px solid var(--success); }
-        .status.error { background:rgba(255,71,87,.1); border:1px solid var(--danger); }
-        .toast { background: var(--card); color: var(--text); border:1px solid var(--border); }
-        footer { border-top:1px solid var(--border); }
-        .flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; opacity:0; z-index:9999; pointer-events:none; animation: flash 0.5s ease-out; }
+
+        /* ─── File tree ─── */
+        .file-list {
+            max-height: 220px;
+            overflow-y: auto;
+            margin: 0.8rem 0;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--input-bg);
+        }
+        .file-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+        .file-row:hover { background: rgba(108,99,255,0.08); }
+        .file-row.selected { background: rgba(108,99,255,0.15); border-left: 3px solid var(--primary); }
+        .file-row .check { color: var(--success); opacity: 0; }
+        .file-row.selected .check { opacity: 1; }
+
+        /* ─── Chat ─── */
+        .chat-messages {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.05);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        .chat-messages .user { text-align: right; }
+        .chat-messages .bot { text-align: left; }
+        .chat-messages span {
+            display: inline-block;
+            max-width: 80%;
+            padding: 8px 16px;
+            border-radius: 18px;
+            margin: 4px 0;
+        }
+        .chat-messages .user span { background: var(--primary); color: #fff; }
+        .chat-messages .bot span { background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.3); color: var(--text); }
+
+        /* ─── Radio Cards ─── */
+        .radio-row { display: flex; gap: 0.8rem; margin: 0.8rem 0; }
+        .radio-card { flex: 1; position: relative; }
+        .radio-card input { position: absolute; opacity: 0; }
+        .radio-card label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text);
+        }
+        .radio-card input:checked+label { border-color: var(--primary); background: rgba(108,99,255,0.1); }
+
+        /* ─── KB Tile ─── */
+        .kb-tile {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .stats { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* ─── Toast ─── */
+        .toast { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+
+        /* ─── Flash (lightning) ─── */
+        .flash {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: white;
+            opacity: 0;
+            z-index: 9999;
+            pointer-events: none;
+            animation: flash 0.5s ease-out;
+        }
         @keyframes flash { 0%{opacity:0.8} 100%{opacity:0} }
+
+        /* ─── Hero / Marketing Sections ─── */
+        .hero-section {
+            text-align: center;
+            padding: 3rem 1rem 2rem;
+        }
+        .hero-section .hero-logo {
+            width: 100px;
+            border-radius: 50%;
+            animation: spin 10s linear infinite;
+            margin-bottom: 0.5rem;
+        }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        .hero-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+        .hero-tagline {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0.5rem auto 1rem;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.2rem;
+            margin: 2rem 0;
+        }
+        .feature-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .feature-item:hover { transform: translateY(-4px); }
+        .feature-item i { font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem; }
+        .feature-item h5 { font-weight: 700; }
+        .feature-item p { font-size: 0.9rem; color: var(--text-muted); margin: 0; }
+
+        /* ─── Footer ─── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem 0;
+            color: var(--text-muted);
+        }
+        footer a { color: var(--primary); }
     </style>
 </head>
 <body>
     <canvas id="bgCanvas"></canvas>
+
+    <!-- ===== NAVBAR ===== -->
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="#">
                 <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" class="logo" id="navLogo" onclick="toggleTheme()">
                 <span class="brand-text">RAGina</span>
             </a>
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <button class="theme-toggle" id="themeToggleBtn"><i class="fas fa-moon"></i></button>
-                <div id="userArea">
-                    <button class="btn btn-outline-light btn-sm" id="loginBtn"><i class="fab fa-github me-1"></i> Login</button>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#crawler">Crawler</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#pr">PR Bot</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#kb">KB & Chat</a></li>
+                    <li class="nav-item"><a class="nav-link" href="ragina.html">Standard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="ragina-pro.html">Pro</a></li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    <button class="theme-toggle" id="themeToggleBtn"><i class="fas fa-moon"></i></button>
+                    <div id="userArea">
+                        <button class="btn btn-outline-ragina btn-sm" id="loginBtn"><i class="fab fa-github me-1"></i> Login</button>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
 
+    <!-- ===== MAIN CONTAINER ===== -->
     <div class="container py-4" style="max-width: 1000px; position: relative; z-index: 1;">
-        <div class="card card-ragina mb-4">
-            <h4 class="mb-3">🎯 Enter a Repository or Website URL</h4>
-            <div class="input-group mb-3">
-                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                <input type="text" id="targetInput" class="form-control" placeholder="e.g., user/repo or https://example.com">
-                <button class="btn btn-primary-ragina" id="exploreBtn">🔍 Explore</button>
+
+        <!-- ===== HERO SECTION ===== -->
+        <section id="home" class="hero-section">
+            <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" class="hero-logo" />
+            <h1 class="hero-title">RAGina</h1>
+            <p class="hero-tagline">
+                Your in‑browser companion. She knows it all.<br />
+                Just ask her – she knows exactly what you're looking for.
+            </p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center mt-3">
+                <a href="ragina.html" class="btn btn-primary-ragina"><i class="fas fa-brain me-2"></i>Try Standard</a>
+                <a href="ragina-pro.html" class="btn btn-primary-ragina" style="background: var(--accent);"><i class="fas fa-star me-2"></i>Try Pro</a>
+                <a href="#crawler" class="btn btn-outline-ragina"><i class="fas fa-robot me-2"></i>Launch Crawler</a>
             </div>
-            <div class="status info" id="targetStatus"></div>
-            <div id="pageTreeSection" style="display:none;">
-                <h6>Select up to 5 items to scrape:</h6>
-                <div class="file-list" id="treeContainer"></div>
-                <div class="d-flex align-items-center gap-2 mt-2">
-                    <button class="btn btn-outline-ragina btn-sm" id="scrapeSelectedBtn"><i class="fas fa-download me-1"></i> Scrape Selected</button>
-                    <span class="text-muted small" id="selectedCount">0 selected</span>
-                </div>
+        </section>
+
+        <!-- ===== FEATURES GRID (UPDATED ICON) ===== -->
+        <section class="mb-4">
+            <h4 class="text-center mb-3"><i class="fas fa-bolt me-2" style="color:var(--primary);"></i>Why RAGina?</h4>
+            <div class="feature-grid">
+                <div class="feature-item"><i class="fas fa-cubes"></i><h5>Instant RAG</h5><p>Upload HTML, paste text, or point to a URL – she builds a searchable knowledge base in seconds.</p></div>
+                <div class="feature-item"><i class="fas fa-key"></i><h5>Zero API Keys</h5><p>No signups, no keys. Uses a free LLM proxy – your data stays private.</p></div>
+                <!-- 🔥 UPDATED: Auto PR Bot icon changed from fa-github to fa-code-pull-request -->
+                <div class="feature-item"><i class="fas fa-code-pull-request"></i><h5>Auto PR Bot</h5><p>Login with GitHub, she injects the chatbot into your repo and opens a Pull Request.</p></div>
+                <div class="feature-item"><i class="fas fa-comment"></i><h5>Sassy AI Chat</h5><p>Ask questions and get grounded, context‑aware answers – with a mentalist attitude.</p></div>
+            </div>
+        </section>
+
+        <!-- ===== VERSION COMPARISON ===== -->
+        <div class="card card-ragina mb-4 text-center">
+            <h5><i class="fas fa-balance-scale me-2"></i>Standard vs Pro</h5>
+            <div class="row g-2 justify-content-center">
+                <div class="col-sm-5"><span class="badge bg-primary">Standard</span> – Lightweight, fast, no setup</div>
+                <div class="col-sm-5"><span class="badge" style="background:var(--accent);">Pro</span> – Voice, Music, Memory, Drag &amp; resize</div>
+            </div>
+            <div class="mt-2">
+                <a href="ragina.html" class="btn btn-sm btn-outline-ragina me-2"><i class="fas fa-arrow-right"></i> Standard</a>
+                <a href="ragina-pro.html" class="btn btn-sm btn-primary-ragina"><i class="fas fa-arrow-right"></i> Pro</a>
             </div>
         </div>
 
-        <div id="prSection" style="display:none;">
-            <div class="card card-ragina mb-4">
-                <h4 class="mb-3">⚙️ PR Configuration</h4>
+        <!-- ===== CRAWLER SECTION ===== -->
+        <section id="crawler">
+            <div class="card card-ragina">
+                <h4><i class="fas fa-search me-2" style="color:var(--primary);"></i>Enter a Repository or Website URL</h4>
+                <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="targetInput" class="form-control" placeholder="e.g., user/repo or https://example.com" />
+                    <button class="btn btn-primary-ragina" id="exploreBtn"><i class="fas fa-compass me-1"></i> Explore</button>
+                </div>
+                <div class="status info" id="targetStatus"></div>
+                <div id="pageTreeSection" style="display:none;">
+                    <h6>Select up to 5 items to scrape:</h6>
+                    <div class="file-list" id="treeContainer"></div>
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <button class="btn btn-outline-ragina btn-sm" id="scrapeSelectedBtn"><i class="fas fa-download me-1"></i> Scrape Selected</button>
+                        <span class="text-muted small" id="selectedCount">0 selected</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== PR SECTION (icon updated to match) ===== -->
+        <section id="prSection" style="display:none;">
+            <div class="card card-ragina" id="pr">
+                <h4><i class="fas fa-code-pull-request me-2" style="color:var(--primary);"></i>PR Configuration</h4>
                 <div class="radio-row">
-                    <div class="radio-card"><input type="radio" name="injectMode" id="modeExisting" value="existing" checked><label for="modeExisting">📄 Inject into existing file</label></div>
-                    <div class="radio-card"><input type="radio" name="injectMode" id="modeNew" value="new"><label for="modeNew">📝 Create new chatbot page</label></div>
+                    <div class="radio-card"><input type="radio" name="injectMode" id="modeExisting" value="existing" checked><label for="modeExisting"><i class="fas fa-file-code me-1"></i> Inject into existing file</label></div>
+                    <div class="radio-card"><input type="radio" name="injectMode" id="modeNew" value="new"><label for="modeNew"><i class="fas fa-file-plus me-1"></i> Create new chatbot page</label></div>
                 </div>
                 <div id="existingFileSection">
                     <label>Select target HTML file:</label>
@@ -160,574 +412,588 @@
                         <option value="beforeHeadEnd">Before &lt;/head&gt; tag</option>
                     </select>
                 </div>
-                <div id="newFileSection" style="display:none;"><p class="text-muted">📝 A new file <code>ragina-chatbot.html</code> will be created in the repo root.</p></div>
+                <div id="newFileSection" style="display:none;"><p class="text-muted"><i class="fas fa-info-circle me-1"></i> A new file <code>ragina-chatbot.html</code> will be created in the repo root.</p></div>
                 <label>Product Name *</label>
-                <input type="text" id="productName" class="form-control mb-2" placeholder="e.g., MyProduct">
+                <input type="text" id="productName" class="form-control mb-2" placeholder="e.g., MyProduct" />
                 <label>Accent Color</label>
-                <input type="text" id="accentColor" class="form-control mb-2" value="#6C63FF">
+                <input type="text" id="accentColor" class="form-control mb-2" value="#6C63FF" />
                 <label>PR Title</label>
-                <input type="text" id="prTitle" class="form-control mb-2" value="🤖 Add RAGina AI Chatbot">
+                <input type="text" id="prTitle" class="form-control mb-2" value="🤖 Add RAGina AI Chatbot" />
                 <label>PR Description</label>
                 <textarea id="prBody" class="form-control mb-2" rows="3">## 🤖 What this PR does
 Adds RAGina - an AI chatbot that answers questions.</textarea>
-                <button class="btn btn-primary-ragina" id="raisePRBtn" disabled>🔮 Raise PR</button>
+                <button class="btn btn-primary-ragina" id="raisePRBtn" disabled><i class="fas fa-rocket me-1"></i> Raise PR</button>
                 <div class="status info" id="prStatus"></div>
                 <div class="log" id="logBox" style="display:none;"></div>
                 <div id="prSuccess" style="display:none; margin-top:1rem;"></div>
             </div>
-        </div>
+        </section>
 
-        <div id="kbSection" style="display:none;">
+        <!-- ===== KB & CHAT SECTION ===== -->
+        <section id="kbSection" style="display:none;" id="kb">
             <div class="kb-tile">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div><h5><i class="fas fa-brain me-2"></i>Knowledge Base</h5><div class="stats" id="kbStats"></div></div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
                         <button class="btn btn-outline-success btn-sm" id="downloadBtn"><i class="fas fa-download me-1"></i> Download JSON</button>
                         <button class="btn btn-outline-success btn-sm" id="gistBtn"><i class="fab fa-github me-1"></i> Save to Gist</button>
                         <button class="btn btn-outline-info btn-sm" id="editKbBtn"><i class="fas fa-edit me-1"></i> Edit KB</button>
                     </div>
                 </div>
             </div>
-            <div class="card card-ragina mt-3">
+            <div class="card card-ragina">
                 <h5><i class="fas fa-comments me-2"></i>Chat</h5>
                 <div class="chat-messages mb-3" id="chatMessages"></div>
                 <div class="input-group">
-                    <input type="text" id="questionInput" class="form-control" placeholder="Ask a question...">
+                    <input type="text" id="questionInput" class="form-control" placeholder="Ask a question..." />
                     <button class="btn btn-primary-ragina" id="askBtn"><i class="fas fa-paper-plane me-1"></i> Ask</button>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
 
+    <!-- ===== MODALS ===== -->
     <div class="modal fade" id="kbEditorModal" tabindex="-1">
-        <div class="modal-dialog modal-lg"><div class="modal-content bg-dark text-light"><div class="modal-header"><h5>Edit KB</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><textarea id="kbEditorTextarea" class="form-control bg-dark text-light" rows="20"></textarea></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary-ragina" id="saveKbBtn">Save</button></div></div></div>
+        <div class="modal-dialog modal-lg"><div class="modal-content bg-dark text-light"><div class="modal-header"><h5><i class="fas fa-edit me-2"></i>Edit KB</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><textarea id="kbEditorTextarea" class="form-control bg-dark text-light" rows="20"></textarea></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary-ragina" id="saveKbBtn">Save</button></div></div></div>
     </div>
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
-    <footer class="py-3 text-center text-muted small"><div class="container"><img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" height="24"> RAGina – The Mentalist RAG · <a href="https://github.com/suryasticsai/RAGina" target="_blank">⭐ Star on GitHub</a></div></footer>
 
+    <!-- ===== FOOTER ===== -->
+    <footer class="text-center">
+        <div class="container">
+            <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" height="24" class="me-2" />
+            RAGina – The Mentalist RAG
+            <span class="mx-2">·</span>
+            <a href="https://github.com/suryasticsai/RAGina" target="_blank"><i class="fab fa-github me-1"></i>Star on GitHub</a>
+            <span class="mx-2">·</span>
+            <a href="ragina.html">Standard</a>
+            <span class="mx-2">·</span>
+            <a href="ragina-pro.html">Pro</a>
+        </div>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- SCRIPTS (all functionality preserved) -->
+    <!-- ============================================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    const $ = (s) => document.querySelector(s);
-    const showToast = (msg, type='success') => {
-        const t = document.createElement('div');
-        t.className = `toast align-items-center text-bg-${type} border-0`;
-        t.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
-        document.getElementById('toastContainer').appendChild(t);
-        new bootstrap.Toast(t).show();
-        setTimeout(() => t.remove(), 5000);
-    };
-    const setStatus = (el, msg, type='info') => { el.className = `status ${type}`; el.innerHTML = msg; };
+        // ── Helper shortcuts ──
+        const $ = (s) => document.querySelector(s);
+        const showToast = (msg, type='success') => {
+            const t = document.createElement('div');
+            t.className = `toast align-items-center text-bg-${type} border-0`;
+            t.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+            document.getElementById('toastContainer').appendChild(t);
+            new bootstrap.Toast(t).show();
+            setTimeout(() => t.remove(), 5000);
+        };
+        const setStatus = (el, msg, type='info') => { el.className = `status ${type}`; el.innerHTML = msg; };
 
-    // ── Background Animation ──
-    const canvas = document.getElementById('bgCanvas');
-    const ctx = canvas.getContext('2d');
-    let stars=[], clouds=[], lightningTimer=null, isDark=true;
-    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
-    window.addEventListener('resize',resize); resize();
-    function createStars(n=120){ stars=[]; for(let i=0;i<n;i++) stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+.5,twinkle:Math.random()*.03+.005,opacity:Math.random()*.8+.2}); }
-    function drawStars(){ stars.forEach(s=>{ s.opacity+=s.twinkle; if(s.opacity>1||s.opacity<.2)s.twinkle*=-1; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(255,255,255,${Math.abs(s.opacity)})`; ctx.fill(); }); }
-    function createClouds(){ clouds=[]; for(let i=0;i<8;i++) clouds.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height*.6+50,w:80+Math.random()*150,h:40+Math.random()*50,sp:.3+Math.random()*.7,op:.4+Math.random()*.3}); }
-    function drawClouds(){ clouds.forEach(c=>{ c.x+=c.sp; if(c.x>canvas.width+c.w)c.x=-c.w; ctx.fillStyle=`rgba(255,255,255,${c.op})`; ctx.beginPath(); ctx.ellipse(c.x,c.y,c.w/2,c.h/2,0,0,Math.PI*2); ctx.fill(); }); }
-    function triggerLightning(){ const f=document.createElement('div'); f.className='flash'; document.body.appendChild(f); setTimeout(()=>f.remove(),500); }
-    function startThunder(){ if(lightningTimer)clearInterval(lightningTimer); lightningTimer=setInterval(()=>{ if(Math.random()<.3)triggerLightning(); },4000+Math.random()*8000); }
-    createStars(); createClouds(); startThunder();
-    function animate(){ ctx.clearRect(0,0,canvas.width,canvas.height); if(isDark){ drawStars(); clouds.forEach(c=>{ c.x+=c.sp; if(c.x>canvas.width+c.w)c.x=-c.w; ctx.fillStyle=`rgba(30,30,50,${c.op})`; ctx.beginPath(); ctx.ellipse(c.x,c.y,c.w/2,c.h/2,0,0,Math.PI*2); ctx.fill(); }); } else { const cx=canvas.width*.5,cy=canvas.height*.3; const grad=ctx.createRadialGradient(cx,cy,20,cx,cy,300); grad.addColorStop(0,'rgba(255,200,80,.9)'); grad.addColorStop(.4,'rgba(255,180,40,.4)'); grad.addColorStop(1,'rgba(255,150,20,0)'); ctx.beginPath(); ctx.arc(cx,cy,300,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill(); drawClouds(); } requestAnimationFrame(animate); }
-    animate();
+        // ── Background Animation ──
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars=[], clouds=[], lightningTimer=null, isDark=true;
+        function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+        window.addEventListener('resize',resize); resize();
+        function createStars(n=120){ stars=[]; for(let i=0;i<n;i++) stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+.5,twinkle:Math.random()*.03+.005,opacity:Math.random()*.8+.2}); }
+        function drawStars(){ stars.forEach(s=>{ s.opacity+=s.twinkle; if(s.opacity>1||s.opacity<.2)s.twinkle*=-1; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(255,255,255,${Math.abs(s.opacity)})`; ctx.fill(); }); }
+        function createClouds(){ clouds=[]; for(let i=0;i<8;i++) clouds.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height*.6+50,w:80+Math.random()*150,h:40+Math.random()*50,sp:.3+Math.random()*.7,op:.4+Math.random()*.3}); }
+        function drawClouds(){ clouds.forEach(c=>{ c.x+=c.sp; if(c.x>canvas.width+c.w)c.x=-c.w; ctx.fillStyle=`rgba(255,255,255,${c.op})`; ctx.beginPath(); ctx.ellipse(c.x,c.y,c.w/2,c.h/2,0,0,Math.PI*2); ctx.fill(); }); }
+        function triggerLightning(){ const f=document.createElement('div'); f.className='flash'; document.body.appendChild(f); setTimeout(()=>f.remove(),500); }
+        function startThunder(){ if(lightningTimer)clearInterval(lightningTimer); lightningTimer=setInterval(()=>{ if(Math.random()<.3)triggerLightning(); },4000+Math.random()*8000); }
+        createStars(); createClouds(); startThunder();
+        function animate(){ ctx.clearRect(0,0,canvas.width,canvas.height); if(isDark){ drawStars(); clouds.forEach(c=>{ c.x+=c.sp; if(c.x>canvas.width+c.w)c.x=-c.w; ctx.fillStyle=`rgba(30,30,50,${c.op})`; ctx.beginPath(); ctx.ellipse(c.x,c.y,c.w/2,c.h/2,0,0,Math.PI*2); ctx.fill(); }); } else { const cx=canvas.width*.5,cy=canvas.height*.3; const grad=ctx.createRadialGradient(cx,cy,20,cx,cy,300); grad.addColorStop(0,'rgba(255,200,80,.9)'); grad.addColorStop(.4,'rgba(255,180,40,.4)'); grad.addColorStop(1,'rgba(255,150,20,0)'); ctx.beginPath(); ctx.arc(cx,cy,300,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill(); drawClouds(); } requestAnimationFrame(animate); }
+        animate();
 
-    // ── Theme Toggle ──
-    function toggleTheme(){
-        const logo = document.getElementById('navLogo'); logo.classList.add('fast'); setTimeout(()=>logo.classList.remove('fast'),600);
-        isDark = !isDark;
-        const html = document.documentElement;
-        if(isDark){ html.classList.remove('light'); html.classList.add('dark'); document.getElementById('themeToggleBtn').innerHTML='<i class="fas fa-moon"></i>'; createStars(); startThunder(); }
-        else { html.classList.add('light'); html.classList.remove('dark'); document.getElementById('themeToggleBtn').innerHTML='<i class="fas fa-sun"></i>'; createClouds(); if(lightningTimer){clearInterval(lightningTimer);lightningTimer=null;} }
-    }
-    document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+        // ── Theme Toggle ──
+        function toggleTheme(){
+            const logo = document.getElementById('navLogo'); logo.classList.add('fast'); setTimeout(()=>logo.classList.remove('fast'),600);
+            isDark = !isDark;
+            const html = document.documentElement;
+            if(isDark){ html.classList.remove('light'); html.classList.add('dark'); document.getElementById('themeToggleBtn').innerHTML='<i class="fas fa-moon"></i>'; createStars(); startThunder(); }
+            else { html.classList.add('light'); html.classList.remove('dark'); document.getElementById('themeToggleBtn').innerHTML='<i class="fas fa-sun"></i>'; createClouds(); if(lightningTimer){clearInterval(lightningTimer);lightningTimer=null;} }
+        }
+        document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
 
-    // ── GitHub OAuth & State ──
-    const GITHUB_CLIENT_ID='Ov23lizeWF08DBQn2djN', REDIRECT_URI='https://ragina-crawler-ragina.vercel.app/api/auth';
-    let githubToken=null, githubUser=null, repoOwner=null, repoName=null, isRepoMode=false, allRepoFiles=[], htmlFiles=[], knowledge=null, chunks=[], idf={}, currentCrawlUrl='', gistMemory={}, currentGistId=null, savingGist=false, currentBranchName=null;
-    const CRAWL_PROXY='https://ragina-crawler-ragina.vercel.app/api/crawl', MAP_PROXY='https://ragina-crawler-ragina.vercel.app/api/map', ASK_PROXY='https://ragina-crawler-ragina.vercel.app/api/ask', GIST_PROXY='https://ragina-crawler-ragina.vercel.app/api/gist';
+        // ── GitHub OAuth & State ──
+        const GITHUB_CLIENT_ID='Ov23lizeWF08DBQn2djN', REDIRECT_URI='https://ragina-crawler-ragina.vercel.app/api/auth';
+        let githubToken=null, githubUser=null, repoOwner=null, repoName=null, isRepoMode=false, allRepoFiles=[], htmlFiles=[], knowledge=null, chunks=[], idf={}, currentCrawlUrl='', gistMemory={}, currentGistId=null, savingGist=false, currentBranchName=null;
+        const CRAWL_PROXY='https://ragina-crawler-ragina.vercel.app/api/crawl', MAP_PROXY='https://ragina-crawler-ragina.vercel.app/api/map', ASK_PROXY='https://ragina-crawler-ragina.vercel.app/api/ask', GIST_PROXY='https://ragina-crawler-ragina.vercel.app/api/gist';
 
-    async function loadGistMemory(){
-        if(!githubToken) return;
-        try{
-            const res = await fetch('https://api.github.com/gists', { headers: { Authorization: `Bearer ${githubToken}` } });
-            const gists = await res.json();
-            gistMemory = {};
-            for(const gist of gists){
-                const desc = gist.description || '';
-                if(desc.startsWith('RAGina: ') && gist.files && Object.keys(gist.files).length){
-                    const source = desc.slice('RAGina: '.length).trim();
-                    gistMemory[source] = gist.id;
+        async function loadGistMemory(){
+            if(!githubToken) return;
+            try{
+                const res = await fetch('https://api.github.com/gists', { headers: { Authorization: `Bearer ${githubToken}` } });
+                const gists = await res.json();
+                gistMemory = {};
+                for(const gist of gists){
+                    const desc = gist.description || '';
+                    if(desc.startsWith('RAGina: ') && gist.files && Object.keys(gist.files).length){
+                        const source = desc.slice('RAGina: '.length).trim();
+                        gistMemory[source] = gist.id;
+                    }
                 }
-            }
-        } catch(e) {}
-    }
+            } catch(e) {}
+        }
 
-    function updateUserUI(){
-        if(githubToken){
-            fetch('https://api.github.com/user', { headers: { Authorization: `Bearer ${githubToken}` } })
-            .then(r => r.json())
-            .then(u => {
-                githubUser = u.login;
-                document.getElementById('userArea').innerHTML = `<div class="d-flex align-items-center gap-2"><img src="${u.avatar_url}" style="width:32px;height:32px;border-radius:50%;"><span>${u.login}</span><button class="btn btn-sm btn-outline-danger" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button></div>`;
-                document.getElementById('logoutBtn').addEventListener('click', () => {
-                    githubToken = null; githubUser = null; knowledge = null; gistMemory = {}; currentGistId = null;
-                    updateUserUI();
-                    document.getElementById('kbSection').style.display = 'none';
+        function updateUserUI(){
+            if(githubToken){
+                fetch('https://api.github.com/user', { headers: { Authorization: `Bearer ${githubToken}` } })
+                .then(r => r.json())
+                .then(u => {
+                    githubUser = u.login;
+                    document.getElementById('userArea').innerHTML = `<div class="d-flex align-items-center gap-2"><img src="${u.avatar_url}" style="width:32px;height:32px;border-radius:50%;"><span>${u.login}</span><button class="btn btn-sm btn-outline-ragina" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button></div>`;
+                    document.getElementById('logoutBtn').addEventListener('click', () => {
+                        githubToken = null; githubUser = null; knowledge = null; gistMemory = {}; currentGistId = null;
+                        updateUserUI();
+                        document.getElementById('kbSection').style.display = 'none';
+                    });
+                    loadGistMemory();
                 });
-                loadGistMemory();
-            });
-            document.getElementById('gistBtn').style.display = 'inline-block';
-        } else {
-            githubUser = null;
-            document.getElementById('userArea').innerHTML = `<button class="btn btn-outline-light btn-sm" id="loginBtn"><i class="fab fa-github me-1"></i> Login</button>`;
-            document.getElementById('loginBtn').addEventListener('click', () => window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=repo,gist`);
-            document.getElementById('gistBtn').style.display = 'none';
-        }
-    }
-
-    if(window.location.hash.startsWith('#access_token=')){
-        githubToken = window.location.hash.split('=')[1];
-        history.replaceState(null, '', window.location.pathname);
-    }
-    updateUserUI();
-
-    // ── Utils ──
-    const getSiteIdentifier = (source) => {
-        try {
-            if(source.includes('/') && !source.startsWith('http')) return source.replace(/[^a-zA-Z0-9._-]/g, '_');
-            const host = new URL(source).hostname.replace(/^www\./, '');
-            return host.replace(/[^a-zA-Z0-9.-]/g, '_');
-        } catch { return 'unknown'; }
-    };
-
-    // ── Explore ──
-    document.getElementById('exploreBtn').addEventListener('click', async () => {
-        const target = document.getElementById('targetInput').value.trim();
-        if(!target) return;
-        if(target.includes('/') && !target.startsWith('http')){
-            if(!githubToken){ showToast('Login first','warning'); return; }
-            [repoOwner, repoName] = target.split('/');
-            isRepoMode = true;
-            currentCrawlUrl = target;
-            document.getElementById('prSection').style.display = 'block';
-            await scanRepo();
-        } else if(target.startsWith('http')){
-            isRepoMode = false;
-            currentCrawlUrl = target;
-            document.getElementById('prSection').style.display = 'none';
-            await exploreWebsite(target);
-        } else showToast('Enter valid repo or URL','warning');
-    });
-
-    async function scanRepo(){
-        const btn = document.getElementById('exploreBtn'); btn.disabled=true; btn.innerHTML='Scanning…';
-        allRepoFiles=[]; htmlFiles=[];
-        try{
-            await scanDir(repoOwner, repoName, '');
-            htmlFiles = allRepoFiles.filter(f => /\.html?$/i.test(f.name));
-            renderFileTree(htmlFiles, f => f.name);
-            document.getElementById('pageTreeSection').style.display='block';
-            populatePRFileSelect(htmlFiles);
-            checkPRReady();
-        }catch(e){ showToast(e.message,'danger'); }
-        btn.disabled=false; btn.innerHTML='🔍 Explore';
-    }
-
-    async function exploreWebsite(url){
-        const btn = document.getElementById('exploreBtn'); btn.disabled=true; btn.innerHTML='Exploring…';
-        try{
-            const res = await fetch(MAP_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
-            const data = await res.json();
-            if(data.error) throw new Error(data.error);
-            const urls = data.urls || [];
-            if(!urls.length){ showToast('No pages found','warning'); btn.disabled=false; btn.innerHTML='🔍 Explore'; return; }
-            renderFileTree(urls, u => new URL(u).pathname || '/');
-            document.getElementById('pageTreeSection').style.display='block';
-        }catch(e){ showToast(e.message,'danger'); }
-        btn.disabled=false; btn.innerHTML='🔍 Explore';
-    }
-
-    async function scanDir(owner, repo, path){
-        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-        const r = await fetch(url, { headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' } });
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const items = await r.json();
-        for(const item of (Array.isArray(items)?items:[items])){
-            if(item.type === 'file') allRepoFiles.push(item);
-            else if(item.type === 'dir' && !item.name.startsWith('.') && item.name !== 'node_modules' && item.name !== '.git')
-                await scanDir(owner, repo, item.path);
-        }
-    }
-
-    function renderFileTree(items, labelFn){
-        const container = document.getElementById('treeContainer'); container.innerHTML='';
-        items.forEach((item,i) => {
-            const label = labelFn(item);
-            const div = document.createElement('div'); div.className='file-row';
-            div.innerHTML = `<span class="icon">${isRepoMode?'📄':'🔗'}</span><span class="name">${label}</span><span class="check">✅</span>`;
-            div.addEventListener('click', () => { div.classList.toggle('selected'); updateSelectedCount(); });
-            container.appendChild(div);
-        });
-        updateSelectedCount();
-    }
-
-    function updateSelectedCount(){
-        const count = document.getElementById('treeContainer').querySelectorAll('.file-row.selected').length;
-        document.getElementById('selectedCount').textContent = count + ' selected';
-        if(count > 5){
-            const sel = document.getElementById('treeContainer').querySelectorAll('.file-row.selected');
-            sel[sel.length-1].classList.remove('selected');
-            showToast('Max 5 pages','warning');
-            updateSelectedCount();
-        }
-    }
-
-    function populatePRFileSelect(htmlFiles){
-        const sel = document.getElementById('targetFileSelect'); sel.innerHTML = '';
-        htmlFiles.forEach(f => { const o = document.createElement('option'); o.value = f.path; o.textContent = f.path; sel.appendChild(o); });
-    }
-
-    // ── Scrape ──
-    document.getElementById('scrapeSelectedBtn').addEventListener('click', async () => {
-        const selectedRows = document.getElementById('treeContainer').querySelectorAll('.file-row.selected');
-        if(!selectedRows.length) return showToast('Select at least one item','warning');
-        const btn = document.getElementById('scrapeSelectedBtn'); btn.disabled=true; btn.innerHTML='Scraping…';
-        try{
-            if(isRepoMode){
-                const selectedPaths = Array.from(selectedRows).map(r => r.querySelector('.name').textContent);
-                const filesToScrape = htmlFiles.filter(f => selectedPaths.includes(f.name));
-                const knowledgeData = {};
-                for(const f of filesToScrape){
-                    const r = await fetch(f.download_url); const html = await r.text();
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const clone = doc.body.cloneNode(true); clone.querySelectorAll('script,style,noscript').forEach(el => el.remove());
-                    knowledgeData[f.path] = { bodyText: (clone.textContent||'').trim().replace(/\s+/g,' ').slice(0,2000) };
-                }
-                const prodName = document.getElementById('productName').value.trim();
-                if(prodName) knowledgeData['product-overview'] = { bodyText: `${prodName}: Product description.` };
-                await buildKnowledgeFromData(knowledgeData);
+                document.getElementById('gistBtn').style.display = 'inline-block';
             } else {
-                const selectedUrls = Array.from(selectedRows).map(r => r.querySelector('.name').textContent);
-                const res = await fetch(CRAWL_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls:selectedUrls}) });
-                const data = await res.json(); if(data.error) throw new Error(data.error);
-                await buildKnowledgeFromPages(data.pages);
+                githubUser = null;
+                document.getElementById('userArea').innerHTML = `<button class="btn btn-outline-ragina btn-sm" id="loginBtn"><i class="fab fa-github me-1"></i> Login</button>`;
+                document.getElementById('loginBtn').addEventListener('click', () => window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=repo,gist`);
+                document.getElementById('gistBtn').style.display = 'none';
             }
-            if(githubToken && gistMemory[currentCrawlUrl]) currentGistId = gistMemory[currentCrawlUrl];
-            else currentGistId = null;
-        }catch(e){ showToast(e.message,'danger'); }
-        btn.disabled=false; btn.innerHTML='<i class="fas fa-download me-1"></i> Scrape Selected';
-        checkPRReady();
-    });
-
-    async function buildKnowledgeFromData(knowledgeData){
-        const pages = Object.entries(knowledgeData).map(([url, {bodyText}]) => ({url, content: bodyText}));
-        await buildKnowledgeFromPages(pages);
-    }
-
-    async function buildKnowledgeFromPages(pages){
-        knowledge = { metadata: { crawledAt: new Date().toISOString(), sourceUrl: currentCrawlUrl, generator:'RAGina', version:'2.0' }, pages:[] };
-        chunks = [];
-        for(const page of pages){
-            const text = page.content; if(!text || text.length < 50) continue;
-            const sentences = text.split(/\n+|(?<=[.!?])\s+/); let current=''; const rawChunks = [];
-            for(const s of sentences){ if((current+s).length > 200 && current.length > 0){ rawChunks.push(current.trim()); current=''; } current += s+' '; }
-            if(current.trim()) rawChunks.push(current.trim());
-            const limited = rawChunks.slice(0,8);
-            const enriched = limited.map((t,i) => ({ id:`${page.url}#chunk${i}`, title:t.split(/[.!?]/,1)[0].trim().slice(0,50), text:t, sourceUrl:page.url, chunkIndex:i }));
-            knowledge.pages.push({ url:page.url, title:enriched[0]?.title||'Untitled', tags:extractTags(text), chunks:enriched });
-            enriched.forEach(c => chunks.push(c));
         }
-        rebuildIDF();
-        updateKBTile();
-        document.getElementById('kbSection').style.display = 'block';
-        document.getElementById('chatMessages').innerHTML = '<div class="bot"><span>I\'ve read the selected pages. Ask me anything!</span></div>';
-        if(githubToken) try { await saveOrUpdateGist(true); } catch(e){}
-    }
 
-    function extractTags(text, maxTags=5){
-        const stopWords = new Set(['the','a','an','is','are','was','were','be','been','being','have','has','had','do','does','did','but','and','or','if','because','as','until','while','of','at','by','for','with','about','into','through','during','before','after','to','from','in','out','on','off','over','under','again','further','then','once','here','there','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','can','will','just','should','now']);
-        const words = text.toLowerCase().match(/\b\w{4,}\b/g) || [];
-        const freq = {}; words.forEach(w => { if(!stopWords.has(w)) freq[w] = (freq[w]||0)+1; });
-        return Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, maxTags).map(e => e[0]);
-    }
-    function rebuildIDF(){ idf={}; const total=chunks.length||1; for(const ch of chunks){ const words=new Set(ch.text.toLowerCase().match(/\b\w+\b/g)||[]); for(const w of words) idf[w]=(idf[w]||0)+1; } for(const w in idf) idf[w]=Math.log(total/(1+idf[w])); }
-    function updateKBTile(){
-        const facts=chunks.length, updated=new Date(knowledge.metadata.crawledAt).toLocaleString();
-        let gistInfo=currentGistId ? ` · <a href="https://gist.github.com/${currentGistId}" target="_blank">Gist saved</a>` : '';
-        document.getElementById('kbStats').innerHTML = `<i class="fas fa-database me-1"></i> ${facts} facts · Updated ${updated}${gistInfo}`;
-    }
-
-    // ── Chat ──
-    document.getElementById('askBtn').addEventListener('click', async () => {
-        const q = document.getElementById('questionInput').value.trim(); if(!q) return;
-        document.getElementById('questionInput').value = '';
-        const chat = document.getElementById('chatMessages');
-        chat.innerHTML += `<div class="user"><span>${q}</span></div>`;
-        const think = document.createElement('div'); think.className='bot'; think.innerHTML='<span><i class="fas fa-spinner fa-pulse"></i> Thinking…</span>';
-        chat.appendChild(think);
-        try {
-            const answer = await answerQuestion(q);
-            think.remove();
-            chat.innerHTML += `<div class="bot"><span>${answer}</span></div>`;
-        } catch(e) { think.remove(); chat.innerHTML += `<div class="bot"><span class="text-danger">${e.message}</span></div>`; }
-        chat.scrollTop = chat.scrollHeight;
-    });
-
-    async function answerQuestion(question){
-        const topChunks = retrieve(question, 5);
-        let context = topChunks.map((c,i) => `[${i+1}] (${c.title}) ${c.text}`).join('\n\n');
-        if(!context.trim() && knowledge){
-            const allTags = [...new Set(knowledge.pages.flatMap(p => p.tags))];
-            context = allTags.length ? `Topics: ${allTags.join(', ')}.` : 'No info.';
+        if(window.location.hash.startsWith('#access_token=')){
+            githubToken = window.location.hash.split('=')[1];
+            history.replaceState(null, '', window.location.pathname);
         }
-        if(context.length > 2000) context = context.slice(0,2000)+'…';
-        const prompt = `You are a helpful assistant. Using the context below, answer the user's question thoroughly. If the exact answer isn't there, provide a relevant summary.\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer:`;
-        for(let attempt=0; attempt<3; attempt++){
+        updateUserUI();
+
+        // ── Utils ──
+        const getSiteIdentifier = (source) => {
             try {
-                const res = await fetch(ASK_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt}) });
-                if(!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    if(errData.error && errData.error.includes('loading')) { await new Promise(r => setTimeout(r, 5000)); continue; }
-                    throw new Error(errData.error || `HTTP ${res.status}`);
-                }
-                const data = await res.json();
-                if(data.error) throw new Error(data.error);
-                let answer = data.text.trim();
-                if(answer.startsWith(prompt)) answer = answer.slice(prompt.length).trim();
-                return answer;
-            } catch(e) { if(attempt === 2) throw e; await new Promise(r => setTimeout(r, 3000)); }
-        }
-    }
-
-    function retrieve(query, topK=5){
-        const qWords = query.toLowerCase().match(/\b\w+\b/g) || [], qTF = {};
-        qWords.forEach(w => qTF[w] = (qTF[w]||0)+1);
-        const scores = chunks.map((ch, idx) => {
-            const cWords = ch.text.toLowerCase().match(/\b\w+\b/g) || [], cTF = {};
-            cWords.forEach(w => cTF[w] = (cTF[w]||0)+1);
-            let score = 0;
-            for(const w of Object.keys(qTF)) if(cTF[w] && idf[w]) score += qTF[w]*cTF[w]*idf[w];
-            return {idx, score};
-        });
-        scores.sort((a,b) => b.score-a.score);
-        return scores.slice(0, topK).map(s => chunks[s.idx]);
-    }
-
-    // ── Gist (duplicate‑proof) ──
-    async function saveOrUpdateGist(silent=false){
-        if(!githubToken) { if(!silent) showToast('Login first','warning'); return; }
-        if(!knowledge || savingGist) return;
-        savingGist = true;
-        const gistBtn = document.getElementById('gistBtn');
-        gistBtn.disabled = true; gistBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving…';
-        try {
-            await loadGistMemory();
-            const gistId = currentGistId || gistMemory[currentCrawlUrl] || undefined;
-            const siteId = getSiteIdentifier(currentCrawlUrl);
-            const fileName = `ragina-${siteId}-kb.json`;
-            const files = { [fileName]: { content: JSON.stringify(knowledge, null, 2) } };
-            const res = await fetch(GIST_PROXY, {
-                method: 'POST',
-                headers: { 'Content-Type':'application/json', Authorization: `Bearer ${githubToken}` },
-                body: JSON.stringify({ description: `RAGina: ${currentCrawlUrl}`, files, gistId })
-            });
-            const data = await res.json();
-            if(data.error) throw new Error(data.error);
-            currentGistId = data.id;
-            gistMemory[currentCrawlUrl] = data.id;
-            updateKBTile();
-            if(!silent) showToast(`Gist ${gistId ? 'updated' : 'saved'} (${fileName}).`, 'success');
-            await loadGistMemory();
-        } catch(e) { if(!silent) showToast('Gist error: '+e.message, 'danger'); }
-        finally {
-            savingGist = false;
-            gistBtn.disabled = false; gistBtn.innerHTML = '<i class="fab fa-github me-1"></i> Save to Gist';
-        }
-    }
-
-    document.getElementById('gistBtn').addEventListener('click', () => saveOrUpdateGist());
-    document.getElementById('editKbBtn').addEventListener('click', () => {
-        if(!knowledge) return;
-        document.getElementById('kbEditorTextarea').value = JSON.stringify(knowledge, null, 2);
-        new bootstrap.Modal(document.getElementById('kbEditorModal')).show();
-    });
-    document.getElementById('saveKbBtn').addEventListener('click', async () => {
-        try {
-            knowledge = JSON.parse(document.getElementById('kbEditorTextarea').value);
-            chunks = [];
-            knowledge.pages.forEach(p => p.chunks.forEach(c => chunks.push(c)));
-            rebuildIDF();
-            updateKBTile();
-            showToast('KB updated','success');
-            if(githubToken) await saveOrUpdateGist(true);
-            bootstrap.Modal.getInstance(document.getElementById('kbEditorModal')).hide();
-        } catch(e) { showToast('Invalid JSON: '+e.message, 'danger'); }
-    });
-    document.getElementById('downloadBtn').addEventListener('click', () => {
-        if(!knowledge) return;
-        const blob = new Blob([JSON.stringify(knowledge,null,2)], { type:'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'ragina-knowledge.json'; a.click();
-        URL.revokeObjectURL(url);
-    });
-
-    // ── PR Bot (with Gist URL snippet & Undo) ──
-    document.querySelectorAll('input[name="injectMode"]').forEach(r => r.addEventListener('change', () => {
-        document.getElementById('existingFileSection').style.display = document.getElementById('modeNew').checked ? 'none' : 'block';
-        document.getElementById('newFileSection').style.display = document.getElementById('modeNew').checked ? 'block' : 'none';
-    }));
-
-    function checkPRReady(){
-        const ready = !!githubToken && isRepoMode && !!knowledge && !!document.getElementById('productName').value.trim();
-        const btn = document.getElementById('raisePRBtn');
-        btn.disabled = !ready;
-        const statusEl = document.getElementById('prStatus');
-        if(!githubToken) setStatus(statusEl, 'Login with GitHub first.', 'info');
-        else if(!isRepoMode) setStatus(statusEl, 'Scan a repository to enable PR.', 'info');
-        else if(!knowledge) setStatus(statusEl, 'Scrape pages first.', 'info');
-        else if(!document.getElementById('productName').value.trim()) setStatus(statusEl, 'Enter a product name.', 'info');
-        else setStatus(statusEl, '✅ Ready to raise PR.', 'success');
-    }
-    document.getElementById('productName').addEventListener('input', checkPRReady);
-
-    async function undoPR(branchName){
-        if(!confirm('Delete branch & close PR? This cannot be undone.')) return;
-        try {
-            await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs/heads/${branchName}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }
-            });
-            showToast('PR undone – branch deleted.', 'info');
-            document.getElementById('prSuccess').innerHTML = '';
-            document.getElementById('prSuccess').style.display = 'none';
-        } catch(e) { showToast('Undo failed: '+e.message, 'danger'); }
-    }
-
-    document.getElementById('raisePRBtn').addEventListener('click', async () => {
-        const btn = document.getElementById('raisePRBtn');
-        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Working…';
-        const productName = document.getElementById('productName').value.trim();
-        const accent = document.getElementById('accentColor').value || '#6C63FF';
-        const isNew = document.getElementById('modeNew').checked;
-        const loc = document.getElementById('injectLocation').value;
-        const logBox = document.getElementById('logBox');
-        logBox.style.display = 'block';
-        logBox.innerHTML = '';
-        const logPR = (msg, type='info') => {
-            const d = document.createElement('div');
-            d.className = `log-${type}`;
-            d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            logBox.appendChild(d);
-            logBox.scrollTop = logBox.scrollHeight;
+                if(source.includes('/') && !source.startsWith('http')) return source.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const host = new URL(source).hostname.replace(/^www\./, '');
+                return host.replace(/[^a-zA-Z0-9.-]/g, '_');
+            } catch { return 'unknown'; }
         };
 
-        try {
-            // Ensure Gist is saved first (so we have a raw URL)
-            if(!currentGistId && githubToken){
-                logPR('Saving knowledge to Gist…', 'info');
-                await saveOrUpdateGist(true);
-            }
-            if(!currentGistId) throw new Error('Gist must be saved before raising PR. Please save manually.');
+        // ── Explore ──
+        document.getElementById('exploreBtn').addEventListener('click', async () => {
+            const target = document.getElementById('targetInput').value.trim();
+            if(!target) return;
+            if(target.includes('/') && !target.startsWith('http')){
+                if(!githubToken){ showToast('Login first','warning'); return; }
+                [repoOwner, repoName] = target.split('/');
+                isRepoMode = true;
+                currentCrawlUrl = target;
+                document.getElementById('prSection').style.display = 'block';
+                await scanRepo();
+            } else if(target.startsWith('http')){
+                isRepoMode = false;
+                currentCrawlUrl = target;
+                document.getElementById('prSection').style.display = 'none';
+                await exploreWebsite(target);
+            } else showToast('Enter valid repo or URL','warning');
+        });
 
-            // Build snippet using raw Gist URL
-            const snippet = makeSnippet(productName, accent);
-
-            // Get base SHA
-            let baseBranch = 'main', baseSha;
-            try {
-                const r = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/main`, {
-                    headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }
-                });
-                if(!r.ok) throw new Error();
-                baseSha = (await r.json()).object.sha;
-            } catch {
-                const r = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/master`, {
-                    headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }
-                });
-                baseSha = (await r.json()).object.sha;
-                baseBranch = 'master';
-            }
-            logPR(`Base branch: ${baseBranch}`, 'success');
-
-            // Create branch
-            currentBranchName = `ragina-${Date.now()}`;
-            await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' },
-                body: JSON.stringify({ ref: `refs/heads/${currentBranchName}`, sha: baseSha })
-            });
-            logPR(`Branch ${currentBranchName} created`, 'success');
-
-            if(isNew){
-                const page = makeStandalone(productName, accent);
-                const content = btoa(unescape(encodeURIComponent(page)));
-                await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/ragina-chatbot.html`, {
-                    method: 'PUT',
-                    headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' },
-                    body: JSON.stringify({ message: `🤖 Add RAGina chatbot for ${productName}`, content, branch: currentBranchName })
-                });
-                logPR('Created standalone page', 'success');
-            } else {
-                const filePath = document.getElementById('targetFileSelect').value;
-                const fileRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
-                    headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }
-                });
-                const fileData = await fileRes.json();
-                const current = atob(fileData.content);
-                const updated = injectSnippet(current, snippet, loc);
-                const encoded = btoa(unescape(encodeURIComponent(updated)));
-                await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
-                    method: 'PUT',
-                    headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' },
-                    body: JSON.stringify({ message: `🤖 Inject RAGina into ${filePath}`, content: encoded, sha: fileData.sha, branch: currentBranchName })
-                });
-                logPR(`Injected into ${filePath}`, 'success');
-            }
-
-            // Create PR
-            const prTitle = document.getElementById('prTitle').value || `🤖 Add RAGina AI Chatbot for ${productName}`;
-            const prBody = document.getElementById('prBody').value || '';
-            const changeDesc = isNew ? 'Adds standalone chatbot page' : `Injects chatbot into \`${document.getElementById('targetFileSelect').value}\``;
-            const prRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/pulls`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' },
-                body: JSON.stringify({
-                    title: prTitle,
-                    head: currentBranchName,
-                    base: baseBranch,
-                    body: `## 🤖 RAGina AI Chatbot\n\n${changeDesc}\n\n### ✨ What You Get\n- 💬 Floating chat bubble\n- 🧠 Knowledge from ${Object.keys(knowledge.pages).length} pages\n- 🔐 No API keys\n- 📱 Mobile ready\n\n${prBody}`
-                })
-            });
-            const pr = await prRes.json();
-            logPR(`🎉 PR #${pr.number} created!`, 'success');
-
-            const successBox = document.getElementById('prSuccess');
-            successBox.style.display = 'block';
-            successBox.innerHTML = `
-                <div class="status success">
-                    ✅ PR #${pr.number} created · <a href="${pr.html_url}" target="_blank">View on GitHub</a>
-                </div>
-                <button class="btn btn-sm btn-outline-danger mt-2" onclick="undoPR('${currentBranchName}')">↩️ Undo (Delete Branch & Close PR)</button>
-            `;
-            window.undoPR = undoPR;
-
-        } catch(e) {
-            logPR(`Error: ${e.message}`, 'error');
-            showToast('PR failed: '+e.message, 'danger');
+        async function scanRepo(){
+            const btn = document.getElementById('exploreBtn'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Scanning…';
+            allRepoFiles=[]; htmlFiles=[];
+            try{
+                await scanDir(repoOwner, repoName, '');
+                htmlFiles = allRepoFiles.filter(f => /\.html?$/i.test(f.name));
+                renderFileTree(htmlFiles, f => f.name);
+                document.getElementById('pageTreeSection').style.display='block';
+                populatePRFileSelect(htmlFiles);
+                checkPRReady();
+            }catch(e){ showToast(e.message,'danger'); }
+            btn.disabled=false; btn.innerHTML='<i class="fas fa-compass me-1"></i> Explore';
         }
-        btn.disabled = false; btn.innerHTML = '🔮 Raise PR';
-        checkPRReady();
-    });
 
-    function makeSnippet(productName, accentColor) {
-        if(currentGistId && githubUser){
-            const siteId = getSiteIdentifier(currentCrawlUrl);
-            const fileName = `ragina-${siteId}-kb.json`;
-            const rawUrl = `https://gist.githubusercontent.com/${githubUser}/${currentGistId}/raw/${fileName}`;
-            return `
+        async function exploreWebsite(url){
+            const btn = document.getElementById('exploreBtn'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Exploring…';
+            try{
+                const res = await fetch(MAP_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+                const urls = data.urls || [];
+                if(!urls.length){ showToast('No pages found','warning'); btn.disabled=false; btn.innerHTML='<i class="fas fa-compass me-1"></i> Explore'; return; }
+                renderFileTree(urls, u => new URL(u).pathname || '/');
+                document.getElementById('pageTreeSection').style.display='block';
+            }catch(e){ showToast(e.message,'danger'); }
+            btn.disabled=false; btn.innerHTML='<i class="fas fa-compass me-1"></i> Explore';
+        }
+
+        async function scanDir(owner, repo, path){
+            const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+            const r = await fetch(url, { headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' } });
+            if(!r.ok) throw new Error(`HTTP ${r.status}`);
+            const items = await r.json();
+            for(const item of (Array.isArray(items)?items:[items])){
+                if(item.type === 'file') allRepoFiles.push(item);
+                else if(item.type === 'dir' && !item.name.startsWith('.') && item.name !== 'node_modules' && item.name !== '.git')
+                    await scanDir(owner, repo, item.path);
+            }
+        }
+
+        function renderFileTree(items, labelFn){
+            const container = document.getElementById('treeContainer'); container.innerHTML='';
+            items.forEach((item,i) => {
+                const label = labelFn(item);
+                const div = document.createElement('div'); div.className='file-row';
+                div.innerHTML = `<span class="icon"><i class="fas ${isRepoMode?'fa-file-code':'fa-link'}"></i></span><span class="name">${label}</span><span class="check"><i class="fas fa-check-circle"></i></span>`;
+                div.addEventListener('click', () => { div.classList.toggle('selected'); updateSelectedCount(); });
+                container.appendChild(div);
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount(){
+            const count = document.getElementById('treeContainer').querySelectorAll('.file-row.selected').length;
+            document.getElementById('selectedCount').textContent = count + ' selected';
+            if(count > 5){
+                const sel = document.getElementById('treeContainer').querySelectorAll('.file-row.selected');
+                sel[sel.length-1].classList.remove('selected');
+                showToast('Max 5 pages','warning');
+                updateSelectedCount();
+            }
+        }
+
+        function populatePRFileSelect(htmlFiles){
+            const sel = document.getElementById('targetFileSelect'); sel.innerHTML = '';
+            htmlFiles.forEach(f => { const o = document.createElement('option'); o.value = f.path; o.textContent = f.path; sel.appendChild(o); });
+        }
+
+        // ── Scrape ──
+        document.getElementById('scrapeSelectedBtn').addEventListener('click', async () => {
+            const selectedRows = document.getElementById('treeContainer').querySelectorAll('.file-row.selected');
+            if(!selectedRows.length) return showToast('Select at least one item','warning');
+            const btn = document.getElementById('scrapeSelectedBtn'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Scraping…';
+            try{
+                if(isRepoMode){
+                    const selectedPaths = Array.from(selectedRows).map(r => r.querySelector('.name').textContent);
+                    const filesToScrape = htmlFiles.filter(f => selectedPaths.includes(f.name));
+                    const knowledgeData = {};
+                    for(const f of filesToScrape){
+                        const r = await fetch(f.download_url); const html = await r.text();
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const clone = doc.body.cloneNode(true); clone.querySelectorAll('script,style,noscript').forEach(el => el.remove());
+                        knowledgeData[f.path] = { bodyText: (clone.textContent||'').trim().replace(/\s+/g,' ').slice(0,2000) };
+                    }
+                    const prodName = document.getElementById('productName').value.trim();
+                    if(prodName) knowledgeData['product-overview'] = { bodyText: `${prodName}: Product description.` };
+                    await buildKnowledgeFromData(knowledgeData);
+                } else {
+                    const selectedUrls = Array.from(selectedRows).map(r => r.querySelector('.name').textContent);
+                    const res = await fetch(CRAWL_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls:selectedUrls}) });
+                    const data = await res.json(); if(data.error) throw new Error(data.error);
+                    await buildKnowledgeFromPages(data.pages);
+                }
+                if(githubToken && gistMemory[currentCrawlUrl]) currentGistId = gistMemory[currentCrawlUrl];
+                else currentGistId = null;
+            }catch(e){ showToast(e.message,'danger'); }
+            btn.disabled=false; btn.innerHTML='<i class="fas fa-download me-1"></i> Scrape Selected';
+            checkPRReady();
+        });
+
+        async function buildKnowledgeFromData(knowledgeData){
+            const pages = Object.entries(knowledgeData).map(([url, {bodyText}]) => ({url, content: bodyText}));
+            await buildKnowledgeFromPages(pages);
+        }
+
+        async function buildKnowledgeFromPages(pages){
+            knowledge = { metadata: { crawledAt: new Date().toISOString(), sourceUrl: currentCrawlUrl, generator:'RAGina', version:'2.0' }, pages:[] };
+            chunks = [];
+            for(const page of pages){
+                const text = page.content; if(!text || text.length < 50) continue;
+                const sentences = text.split(/\n+|(?<=[.!?])\s+/); let current=''; const rawChunks = [];
+                for(const s of sentences){ if((current+s).length > 200 && current.length > 0){ rawChunks.push(current.trim()); current=''; } current += s+' '; }
+                if(current.trim()) rawChunks.push(current.trim());
+                const limited = rawChunks.slice(0,8);
+                const enriched = limited.map((t,i) => ({ id:`${page.url}#chunk${i}`, title:t.split(/[.!?]/,1)[0].trim().slice(0,50), text:t, sourceUrl:page.url, chunkIndex:i }));
+                knowledge.pages.push({ url:page.url, title:enriched[0]?.title||'Untitled', tags:extractTags(text), chunks:enriched });
+                enriched.forEach(c => chunks.push(c));
+            }
+            rebuildIDF();
+            updateKBTile();
+            document.getElementById('kbSection').style.display = 'block';
+            document.getElementById('chatMessages').innerHTML = '<div class="bot"><span><i class="fas fa-check-circle me-1"></i> I\'ve read the selected pages. Ask me anything!</span></div>';
+            if(githubToken) try { await saveOrUpdateGist(true); } catch(e){}
+        }
+
+        function extractTags(text, maxTags=5){
+            const stopWords = new Set(['the','a','an','is','are','was','were','be','been','being','have','has','had','do','does','did','but','and','or','if','because','as','until','while','of','at','by','for','with','about','into','through','during','before','after','to','from','in','out','on','off','over','under','again','further','then','once','here','there','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','can','will','just','should','now']);
+            const words = text.toLowerCase().match(/\b\w{4,}\b/g) || [];
+            const freq = {}; words.forEach(w => { if(!stopWords.has(w)) freq[w] = (freq[w]||0)+1; });
+            return Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, maxTags).map(e => e[0]);
+        }
+        function rebuildIDF(){ idf={}; const total=chunks.length||1; for(const ch of chunks){ const words=new Set(ch.text.toLowerCase().match(/\b\w+\b/g)||[]); for(const w of words) idf[w]=(idf[w]||0)+1; } for(const w in idf) idf[w]=Math.log(total/(1+idf[w])); }
+        function updateKBTile(){
+            const facts=chunks.length, updated=new Date(knowledge.metadata.crawledAt).toLocaleString();
+            let gistInfo=currentGistId ? ` · <a href="https://gist.github.com/${currentGistId}" target="_blank"><i class="fab fa-github"></i> Gist saved</a>` : '';
+            document.getElementById('kbStats').innerHTML = `<i class="fas fa-database me-1"></i> ${facts} facts · Updated ${updated}${gistInfo}`;
+        }
+
+        // ── Chat ──
+        document.getElementById('askBtn').addEventListener('click', async () => {
+            const q = document.getElementById('questionInput').value.trim(); if(!q) return;
+            document.getElementById('questionInput').value = '';
+            const chat = document.getElementById('chatMessages');
+            chat.innerHTML += `<div class="user"><span>${q}</span></div>`;
+            const think = document.createElement('div'); think.className='bot'; think.innerHTML='<span><i class="fas fa-spinner fa-pulse me-1"></i> Thinking…</span>';
+            chat.appendChild(think);
+            try {
+                const answer = await answerQuestion(q);
+                think.remove();
+                chat.innerHTML += `<div class="bot"><span>${answer}</span></div>`;
+            } catch(e) { think.remove(); chat.innerHTML += `<div class="bot"><span class="text-danger">${e.message}</span></div>`; }
+            chat.scrollTop = chat.scrollHeight;
+        });
+
+        async function answerQuestion(question){
+            const topChunks = retrieve(question, 5);
+            let context = topChunks.map((c,i) => `[${i+1}] (${c.title}) ${c.text}`).join('\n\n');
+            if(!context.trim() && knowledge){
+                const allTags = [...new Set(knowledge.pages.flatMap(p => p.tags))];
+                context = allTags.length ? `Topics: ${allTags.join(', ')}.` : 'No info.';
+            }
+            if(context.length > 2000) context = context.slice(0,2000)+'…';
+            const prompt = `You are a helpful assistant. Using the context below, answer the user's question thoroughly. If the exact answer isn't there, provide a relevant summary.\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer:`;
+            for(let attempt=0; attempt<3; attempt++){
+                try {
+                    const res = await fetch(ASK_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt}) });
+                    if(!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        if(errData.error && errData.error.includes('loading')) { await new Promise(r => setTimeout(r, 5000)); continue; }
+                        throw new Error(errData.error || `HTTP ${res.status}`);
+                    }
+                    const data = await res.json();
+                    if(data.error) throw new Error(data.error);
+                    let answer = data.text.trim();
+                    if(answer.startsWith(prompt)) answer = answer.slice(prompt.length).trim();
+                    return answer;
+                } catch(e) { if(attempt === 2) throw e; await new Promise(r => setTimeout(r, 3000)); }
+            }
+        }
+
+        function retrieve(query, topK=5){
+            const qWords = query.toLowerCase().match(/\b\w+\b/g) || [], qTF = {};
+            qWords.forEach(w => qTF[w] = (qTF[w]||0)+1);
+            const scores = chunks.map((ch, idx) => {
+                const cWords = ch.text.toLowerCase().match(/\b\w+\b/g) || [], cTF = {};
+                cWords.forEach(w => cTF[w] = (cTF[w]||0)+1);
+                let score = 0;
+                for(const w of Object.keys(qTF)) if(cTF[w] && idf[w]) score += qTF[w]*cTF[w]*idf[w];
+                return {idx, score};
+            });
+            scores.sort((a,b) => b.score-a.score);
+            return scores.slice(0, topK).map(s => chunks[s.idx]);
+        }
+
+        // ── Gist ──
+        async function saveOrUpdateGist(silent=false){
+            if(!githubToken) { if(!silent) showToast('Login first','warning'); return; }
+            if(!knowledge || savingGist) return;
+            savingGist = true;
+            const gistBtn = document.getElementById('gistBtn');
+            gistBtn.disabled = true; gistBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+            try {
+                await loadGistMemory();
+                const gistId = currentGistId || gistMemory[currentCrawlUrl] || undefined;
+                const siteId = getSiteIdentifier(currentCrawlUrl);
+                const fileName = `ragina-${siteId}-kb.json`;
+                const files = { [fileName]: { content: JSON.stringify(knowledge, null, 2) } };
+                const res = await fetch(GIST_PROXY, {
+                    method: 'POST',
+                    headers: { 'Content-Type':'application/json', Authorization: `Bearer ${githubToken}` },
+                    body: JSON.stringify({ description: `RAGina: ${currentCrawlUrl}`, files, gistId })
+                });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+                currentGistId = data.id;
+                gistMemory[currentCrawlUrl] = data.id;
+                updateKBTile();
+                if(!silent) showToast(`Gist ${gistId ? 'updated' : 'saved'} (${fileName}).`, 'success');
+                await loadGistMemory();
+            } catch(e) { if(!silent) showToast('Gist error: '+e.message, 'danger'); }
+            finally {
+                savingGist = false;
+                gistBtn.disabled = false; gistBtn.innerHTML = '<i class="fab fa-github me-1"></i> Save to Gist';
+            }
+        }
+
+        document.getElementById('gistBtn').addEventListener('click', () => saveOrUpdateGist());
+        document.getElementById('editKbBtn').addEventListener('click', () => {
+            if(!knowledge) return;
+            document.getElementById('kbEditorTextarea').value = JSON.stringify(knowledge, null, 2);
+            new bootstrap.Modal(document.getElementById('kbEditorModal')).show();
+        });
+        document.getElementById('saveKbBtn').addEventListener('click', async () => {
+            try {
+                knowledge = JSON.parse(document.getElementById('kbEditorTextarea').value);
+                chunks = [];
+                knowledge.pages.forEach(p => p.chunks.forEach(c => chunks.push(c)));
+                rebuildIDF();
+                updateKBTile();
+                showToast('KB updated','success');
+                if(githubToken) await saveOrUpdateGist(true);
+                bootstrap.Modal.getInstance(document.getElementById('kbEditorModal')).hide();
+            } catch(e) { showToast('Invalid JSON: '+e.message, 'danger'); }
+        });
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            if(!knowledge) return;
+            const blob = new Blob([JSON.stringify(knowledge,null,2)], { type:'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'ragina-knowledge.json'; a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // ── PR Bot ──
+        document.querySelectorAll('input[name="injectMode"]').forEach(r => r.addEventListener('change', () => {
+            document.getElementById('existingFileSection').style.display = document.getElementById('modeNew').checked ? 'none' : 'block';
+            document.getElementById('newFileSection').style.display = document.getElementById('modeNew').checked ? 'block' : 'none';
+        }));
+
+        function checkPRReady(){
+            const ready = !!githubToken && isRepoMode && !!knowledge && !!document.getElementById('productName').value.trim();
+            const btn = document.getElementById('raisePRBtn');
+            btn.disabled = !ready;
+            const statusEl = document.getElementById('prStatus');
+            if(!githubToken) setStatus(statusEl, 'Login with GitHub first.', 'info');
+            else if(!isRepoMode) setStatus(statusEl, 'Scan a repository to enable PR.', 'info');
+            else if(!knowledge) setStatus(statusEl, 'Scrape pages first.', 'info');
+            else if(!document.getElementById('productName').value.trim()) setStatus(statusEl, 'Enter a product name.', 'info');
+            else setStatus(statusEl, '✅ Ready to raise PR.', 'success');
+        }
+        document.getElementById('productName').addEventListener('input', checkPRReady);
+
+        async function undoPR(branchName){
+            if(!confirm('Delete branch & close PR? This cannot be undone.')) return;
+            try {
+                await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs/heads/${branchName}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }
+                });
+                showToast('PR undone – branch deleted.', 'info');
+                document.getElementById('prSuccess').innerHTML = '';
+                document.getElementById('prSuccess').style.display = 'none';
+            } catch(e) { showToast('Undo failed: '+e.message, 'danger'); }
+        }
+
+        document.getElementById('raisePRBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('raisePRBtn');
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Working…';
+            const productName = document.getElementById('productName').value.trim();
+            const accent = document.getElementById('accentColor').value || '#6C63FF';
+            const isNew = document.getElementById('modeNew').checked;
+            const loc = document.getElementById('injectLocation').value;
+            const logBox = document.getElementById('logBox');
+            logBox.style.display = 'block';
+            logBox.innerHTML = '';
+            const logPR = (msg, type='info') => {
+                const d = document.createElement('div');
+                d.className = `log-${type}`;
+                d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                logBox.appendChild(d);
+                logBox.scrollTop = logBox.scrollHeight;
+            };
+
+            try {
+                if(!currentGistId && githubToken){
+                    logPR('Saving knowledge to Gist…', 'info');
+                    await saveOrUpdateGist(true);
+                }
+                if(!currentGistId) throw new Error('Gist must be saved before raising PR. Please save manually.');
+
+                const snippet = makeSnippet(productName, accent);
+
+                let baseBranch = 'main', baseSha;
+                try {
+                    const r = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/main`, {
+                        headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }
+                    });
+                    if(!r.ok) throw new Error();
+                    baseSha = (await r.json()).object.sha;
+                } catch {
+                    const r = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/ref/heads/master`, {
+                        headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }
+                    });
+                    baseSha = (await r.json()).object.sha;
+                    baseBranch = 'master';
+                }
+                logPR(`Base branch: ${baseBranch}`, 'success');
+
+                currentBranchName = `ragina-${Date.now()}`;
+                await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/refs`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' },
+                    body: JSON.stringify({ ref: `refs/heads/${currentBranchName}`, sha: baseSha })
+                });
+                logPR(`Branch ${currentBranchName} created`, 'success');
+
+                if(isNew){
+                    const page = makeStandalone(productName, accent);
+                    const content = btoa(unescape(encodeURIComponent(page)));
+                    await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/ragina-chatbot.html`, {
+                        method: 'PUT',
+                        headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' },
+                        body: JSON.stringify({ message: `🤖 Add RAGina chatbot for ${productName}`, content, branch: currentBranchName })
+                    });
+                    logPR('Created standalone page', 'success');
+                } else {
+                    const filePath = document.getElementById('targetFileSelect').value;
+                    const fileRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
+                        headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' }
+                    });
+                    const fileData = await fileRes.json();
+                    const current = atob(fileData.content);
+                    const updated = injectSnippet(current, snippet, loc);
+                    const encoded = btoa(unescape(encodeURIComponent(updated)));
+                    await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
+                        method: 'PUT',
+                        headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' },
+                        body: JSON.stringify({ message: `🤖 Inject RAGina into ${filePath}`, content: encoded, sha: fileData.sha, branch: currentBranchName })
+                    });
+                    logPR(`Injected into ${filePath}`, 'success');
+                }
+
+                const prTitle = document.getElementById('prTitle').value || `🤖 Add RAGina AI Chatbot for ${productName}`;
+                const prBody = document.getElementById('prBody').value || '';
+                const changeDesc = isNew ? 'Adds standalone chatbot page' : `Injects chatbot into \`${document.getElementById('targetFileSelect').value}\``;
+                const prRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/pulls`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' },
+                    body: JSON.stringify({
+                        title: prTitle,
+                        head: currentBranchName,
+                        base: baseBranch,
+                        body: `## 🤖 RAGina AI Chatbot\n\n${changeDesc}\n\n### ✨ What You Get\n- 💬 Floating chat bubble\n- 🧠 Knowledge from ${Object.keys(knowledge.pages).length} pages\n- 🔐 No API keys\n- 📱 Mobile ready\n\n${prBody}`
+                    })
+                });
+                const pr = await prRes.json();
+                logPR(`🎉 PR #${pr.number} created!`, 'success');
+
+                const successBox = document.getElementById('prSuccess');
+                successBox.style.display = 'block';
+                successBox.innerHTML = `
+                    <div class="status success">
+                        ✅ PR #${pr.number} created · <a href="${pr.html_url}" target="_blank">View on GitHub</a>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="undoPR('${currentBranchName}')">↩️ Undo (Delete Branch & Close PR)</button>
+                `;
+                window.undoPR = undoPR;
+
+            } catch(e) {
+                logPR(`Error: ${e.message}`, 'error');
+                showToast('PR failed: '+e.message, 'danger');
+            }
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-rocket me-1"></i> Raise PR';
+            checkPRReady();
+        });
+
+        function makeSnippet(productName, accentColor) {
+            if(currentGistId && githubUser){
+                const siteId = getSiteIdentifier(currentCrawlUrl);
+                const fileName = `ragina-${siteId}-kb.json`;
+                const rawUrl = `https://gist.githubusercontent.com/${githubUser}/${currentGistId}/raw/${fileName}`;
+                return `
 <!-- 🤖 RAGina Chatbot - ${productName} -->
 <script>
   window.RAGINA_CONFIG = {
@@ -739,37 +1005,36 @@ Adds RAGina - an AI chatbot that answers questions.</textarea>
   };
 <\/script>
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"><\/script>`;
-        }
-        // Fallback to embedded
-        const json = JSON.stringify(knowledge);
-        return `
+            }
+            const json = JSON.stringify(knowledge);
+            return `
 <!-- 🤖 RAGina Chatbot - ${productName} -->
 <script>window.__RAGINA_INDEX__=${json};<\/script>
 <script>window.RAGINA_CONFIG={title:'${productName} Bot',placeholder:'Ask about ${productName}...',position:'bottom-right',theme:{primary:'${accentColor}'}};<\/script>
 <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina.js"><\/script>`;
-    }
+        }
 
-    function makeStandalone(productName, accentColor) {
-        const r=parseInt(accentColor.slice(1,3),16), g=parseInt(accentColor.slice(3,5),16), b=parseInt(accentColor.slice(5,7),16);
-        return `<!DOCTYPE html>
+        function makeStandalone(productName, accentColor) {
+            const r=parseInt(accentColor.slice(1,3),16), g=parseInt(accentColor.slice(3,5),16), b=parseInt(accentColor.slice(5,7),16);
+            return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${productName} - AI Chatbot</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#f5f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}h1{font-size:2.5rem;background:linear-gradient(135deg,${accentColor},#FF6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent}p{color:#666;font-size:1.2rem;margin-top:.5rem}.b{display:inline-block;margin-top:2rem;padding:.8rem 2rem;background:rgba(${r},${g},${b},0.1);border-radius:30px;color:${accentColor};font-weight:600}</style>
 </head><body><div class="c"><h1>🤖 AI Chatbot</h1><p>Ask about <strong>${productName}</strong></p><div class="b">👇 Click chat bubble</div></div>
 ${makeSnippet(productName, accentColor)}
 </body></html>`;
-    }
-
-    function injectSnippet(html, snippet, loc){
-        switch(loc){
-            case 'beforeBodyEnd': return html.replace('</body>', snippet+'\n</body>');
-            case 'afterBodyStart': return html.replace(/<body[^>]*>/i, m => m+'\n'+snippet);
-            case 'beforeHeadEnd': return html.replace('</head>', snippet+'\n</head>');
-            default: return html.replace('</body>', snippet+'\n</body>');
         }
-    }
 
-    checkPRReady();
+        function injectSnippet(html, snippet, loc){
+            switch(loc){
+                case 'beforeBodyEnd': return html.replace('</body>', snippet+'\n</body>');
+                case 'afterBodyStart': return html.replace(/<body[^>]*>/i, m => m+'\n'+snippet);
+                case 'beforeHeadEnd': return html.replace('</head>', snippet+'\n</head>');
+                default: return html.replace('</body>', snippet+'\n</body>');
+            }
+        }
+
+        checkPRReady();
     </script>
 </body>
 </html>
