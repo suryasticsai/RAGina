@@ -109,7 +109,6 @@
     margin-bottom:1.5rem;
   }
   h1 em{font-style:italic; font-weight:400; background:linear-gradient(135deg, var(--violet), var(--amber)); -webkit-background-clip:text; background-clip:text; color:transparent;}
-  h1 .glitch{position:relative; display:inline-block;}
 
   .hero-sub{font-size:1.1rem; color:var(--text-dim); max-width:44ch; margin-bottom:2.2rem; line-height:1.55;}
 
@@ -494,10 +493,11 @@
     box-shadow:0 0 12px var(--violet-glow);
   }
 
-  /* ===== Scroll reveals ===== */
-  .reveal{opacity:0; transform:translateY(30px); transition:opacity .8s, transform .8s;}
-  .reveal.in{opacity:1; transform:none;}
-
+  /* ===== Scroll reveals — JS safety net ===== */
+  /* Only hide content when JS is running and hasn't added .in yet.
+     If JS fails to load, content shows by default — page never goes blank. */
+  .js .reveal{opacity:0; transform:translateY(30px); transition:opacity .8s, transform .8s;}
+  .js .reveal.in{opacity:1; transform:none;}
 </style>
 </head>
 <body>
@@ -579,7 +579,7 @@
   <div class="wrap">
     <div class="eyebrow reveal">EXHIBITS A–F</div>
     <h2 class="reveal">What's actually inside <em>the file</em>.</h2>
-    <p class="section-sub reveal">Six capabilities, all in one ~25KB script. No build step, no server changes required. Just a `<script>` tag.</p>
+    <p class="section-sub reveal">Six capabilities, all in one ~25KB script. No build step, no server changes required. Just a <code>&lt;script&gt;</code> tag.</p>
 
     <div class="features">
       <div class="feat reveal">
@@ -615,7 +615,7 @@
       <div class="feat reveal">
         <span class="tag new">NEW IN T1</span>
         <div class="feat-icon">📅</div>
-        <h3>Calendar & email</h3>
+        <h3>Calendar &amp; email</h3>
         <p>Pre-filled Google Calendar events and mailto: drafts. The agent takes action in the real world, not just inside the chat.</p>
       </div>
     </div>
@@ -756,7 +756,7 @@
       </div>
       <div class="tier soon reveal">
         <div class="tier-badge">◆ SOON · T2</div>
-        <h3>Tier 2 — Memory & Multi-tool</h3>
+        <h3>Tier 2 — Memory &amp; Multi-tool</h3>
         <p>Long-term memory and chained tool use across a conversation.</p>
         <ul>
           <li>Vector DB memory (Supabase/Pinecone)</li>
@@ -811,6 +811,11 @@
 </footer>
 
 <script>
+  // ===== JS SAFETY NET =====
+  // Add 'js' class to <html> — this activates the .reveal fade-in animations.
+  // If JS fails to parse (e.g. due to a syntax error), content still shows normally.
+  document.documentElement.classList.add('js');
+
   // ===== Copy buttons =====
   document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
