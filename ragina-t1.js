@@ -1,43 +1,23 @@
 /*!
- * RAGina-Pro.js v2.2.0
- * Mentalist RAG — now with real agentic tool-calling.
+ * Ragina-t1.js v3.0.0 — Tier 1 Agentic Build
+ * Mentalist RAG + Real tool-calling + Web Search, Calendar, Email tools
  * Created by suryasticsai@gmail.com | github.com/suryasticsai
- * ⭐ Star the repo: https://github.com/suryasticsai/RAGina
  * MIT License
  *
- * NEW IN v2.2.0 — Tool / function calling (the agentic core)
- * -----------------------------------------------------------
- * RAGina's backend (/api/ask) is a plain prompt-in/text-out endpoint, not a
- * structured function-calling API. So tool-calling here is implemented as a
- * classic ReAct loop entirely on the client:
- *   1. RAGina is told what tools exist and how to invoke them in plain text.
- *   2. The model replies with either `TOOL_CALL: name({...json args...})`
- *      or `ANSWER: <final answer>`.
- *   3. If it's a tool call, we run your registered JS handler, feed the
- *      result back into the prompt, and ask again — up to a step limit.
- *   4. Once it replies ANSWER (or we hit the step limit), we're done.
+ * CDN: https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t1.js
  *
- * This works with the existing backend unchanged and works with ANY
- * plain completion endpoint — no native function-calling support required.
+ * TIER 1 TOOLS INCLUDED:
+ * - webSearch(query)        → Wikipedia + DuckDuckGo fallback
+ * - scheduleEvent({...})    → Opens Google Calendar with pre-filled event
+ * - draftEmail({...})       → Opens mail client with draft
+ * - getTime()               → Current local time (demo tool)
  *
- * Usage:
- *   RAGina.registerTool('getTime', {
- *     description: 'Get the current local time',
- *     parameters: {},
- *     handler: async () => new Date().toLocaleTimeString()
+ * ADD YOUR OWN:
+ *   RAGina.registerTool('myTool', {
+ *     description: '...',
+ *     parameters: { arg: 'type' },
+ *     handler: async ({arg}) => { ... }
  *   });
- *
- *   RAGina.registerTool('lookupOrder', {
- *     description: 'Look up an order by its ID',
- *     parameters: { orderId: 'string, e.g. "A1234"' },
- *     handler: async ({ orderId }) => {
- *       const r = await fetch('/api/orders/' + orderId);
- *       return r.ok ? await r.json() : 'Order not found.';
- *     }
- *   });
- *
- *   // Headless — for embedders (like PremCall) that don't want the widget:
- *   const { answer, steps } = await RAGina.query('What time is it?');
  */
 !function (e) {
   'use strict';
@@ -61,7 +41,7 @@
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   const API_URL = 'https://ragina-crawler-ragina.vercel.app/api/ask';
 
-  /* ================= Retrieval engine (unchanged TF-IDF) ================= */
+  /* ================= Retrieval engine (TF-IDF) ================= */
   class RetrievalEngine {
     constructor() { this.chunks = []; this.idf = {}; this.isReady = false; }
     buildIndex(data, chunkSize = 200) {
@@ -149,7 +129,7 @@
   }
 
   /* ================= Tool registry (the agentic core) ================= */
-  const tools = {}; // name -> { description, parameters, handler }
+  const tools = {};
 
   function registerTool(name, cfg) {
     if (!name || typeof cfg?.handler !== 'function') {
@@ -193,12 +173,12 @@ Always use one of those two formats — never explain outside of them.`;
     const toolMatch = text.match(/^TOOL_CALL:\s*([A-Za-z0-9_]+)\((.*)\)\s*$/s);
     if (toolMatch) {
       let args = {};
-      try { args = toolMatch[2].trim() ? JSON.parse(toolMatch[2]) : {}; } catch (e) { /* malformed args, treat as empty */ }
+      try { args = toolMatch[2].trim() ? JSON.parse(toolMatch[2]) : {}; } catch (e) { /* malformed */ }
       return { type: 'tool_call', name: toolMatch[1], args };
     }
     const answerMatch = text.match(/^ANSWER:\s*([\s\S]*)$/);
     if (answerMatch) return { type: 'answer', text: answerMatch[1].trim() };
-    return { type: 'answer', text }; // model didn't follow the format — treat whole reply as the answer
+    return { type: 'answer', text };
   }
 
   function buildAgentPrompt({ persona, query, contextText, history, toolLog }) {
@@ -213,11 +193,6 @@ ${historyBlock}${contextBlock}${toolLogBlock}
 User: ${query}`;
   }
 
-  /**
-   * Headless agent loop — runs with or without the chat widget.
-   * options: { persona, contextText, history, model, maxSteps, onStep }
-   * onStep(step) fires for every model turn, useful for showing "using tool: x…" in a UI.
-   */
   async function runAgent(query, options = {}) {
     const maxSteps = options.maxSteps || 4;
     let toolLog = '';
@@ -238,7 +213,6 @@ User: ${query}`;
 
       if (parsed.type === 'answer') return { answer: parsed.text, steps: stepsTaken };
 
-      // tool_call
       const tool = tools[parsed.name];
       if (!tool) {
         toolLog += `\nTool "${parsed.name}" does not exist. Available: ${listTools().join(', ') || '(none registered)'}.`;
@@ -257,7 +231,7 @@ User: ${query}`;
     constructor(engine, config) {
       this.engine = engine; this.config = config;
       this.bubble = null; this.panel = null; this.messages = null; this.input = null; this.sendBtn = null;
-      this.history = []; // { who, text } for the widget's own multi-turn context
+      this.history = [];
     }
     hexToRgb(hex) {
       const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -440,7 +414,7 @@ User: ${query}`;
         bubbleIcon: null, title: 'RAGina', personality: 'sassy',
         theme: { primary: '#6C63FF' }, chunkSize: 200,
         voiceEnabled: false, voiceUrl: null, voiceId: 'rachel', voiceSpeed: 1,
-        showWidget: true, // set false for headless use (call RAGina.query() yourself)
+        showWidget: true,
         ...userConfig
       };
       this.engine = new RetrievalEngine();
@@ -483,13 +457,7 @@ User: ${query}`;
     getEngine() { return this.engine; },
     ask(text) { if (this.ui) { this.ui.input.value = text; this.ui.handleSend(); } },
 
-    // ---- Agentic core ----
     registerTool, unregisterTool, listTools,
-    /**
-     * Headless agent call — no widget required. Great for embedding RAGina's
-     * brain into your own UI (e.g. a phone-call app) without its chat panel.
-     * Returns { answer, steps }. `steps` is the internal tool-call trace.
-     */
     async query(text, options = {}) {
       let contextText = options.contextText;
       if (contextText === undefined && this.engine?.isReady) {
@@ -499,6 +467,183 @@ User: ${query}`;
       return runAgent(text, { ...options, contextText });
     }
   };
+
+  /* ═══════════════════════════════════════════════════════════════════════
+   * 🔧 TIER 1 AGENTIC TOOLS — Registered automatically
+   * ═══════════════════════════════════════════════════════════════════════ */
+
+  // ─── Tool 1: Web Search (Wikipedia + DuckDuckGo) ────────────────────
+  registerTool('webSearch', {
+    description: 'Search Wikipedia and the web for facts, people, events, or any topic',
+    parameters: { query: 'string, the search query' },
+    handler: async ({ query }) => {
+      try {
+        // Primary: Wikipedia OpenSearch
+        const wikiUrl = 'https://en.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&limit=3&search=' + encodeURIComponent(query);
+        const wikiRes = await fetch(wikiUrl);
+        const wikiData = await wikiRes.json();
+        const titles = wikiData[1] || [];
+        const descriptions = wikiData[2] || [];
+        const urls = wikiData[3] || [];
+
+        if (titles.length === 0) {
+          // Fallback: DuckDuckGo Instant Answer
+          const ddgRes = await fetch('https://api.duckduckgo.com/?q=' + encodeURIComponent(query) + '&format=json&no_html=1&skip_disambig=1');
+          const ddgData = await ddgRes.json();
+          if (ddgData.Abstract) {
+            return {
+              source: 'DuckDuckGo',
+              title: ddgData.Heading || query,
+              summary: ddgData.Abstract,
+              url: ddgData.AbstractURL || 'https://duckduckgo.com/?q=' + encodeURIComponent(query)
+            };
+          }
+          return { error: 'No results found for "' + query + '".' };
+        }
+
+        return {
+          source: 'Wikipedia',
+          results: titles.map((title, i) => ({
+            title,
+            summary: descriptions[i] || 'No description available.',
+            url: urls[i]
+          }))
+        };
+      } catch (e) {
+        return { error: 'Search failed: ' + e.message };
+      }
+    }
+  });
+
+  // ─── Tool 2: Schedule Calendar Event ─────────────────────────────────
+  registerTool('scheduleEvent', {
+    description: 'Open Google Calendar with a pre-filled event (title, date, time, duration)',
+    parameters: {
+      title: 'string, event title',
+      date: 'string, date like "2026-08-25" or "tomorrow"',
+      time: 'string, time like "15:00" or "3pm" (optional)',
+      duration: 'number, minutes (default 60)',
+      location: 'string, location (optional)',
+      description: 'string, notes (optional)'
+    },
+    handler: async ({ title, date, time, duration, location, description }) => {
+      title = title || 'Event';
+      duration = duration || 60;
+
+      let startDT = null;
+      try {
+        if (date) {
+          if (/tomorrow/i.test(date)) {
+            startDT = new Date(); startDT.setDate(startDT.getDate() + 1);
+          } else if (/today/i.test(date)) {
+            startDT = new Date();
+          } else {
+            startDT = new Date(date + (time ? ' ' + time : ''));
+          }
+          if (time && !isNaN(startDT.getTime())) {
+            const timeMatch = time.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i);
+            if (timeMatch) {
+              let h = parseInt(timeMatch[1]);
+              const m = timeMatch[2] || 0;
+              const ap = (timeMatch[3] || '').toLowerCase().replace(/\./g, '');
+              if (ap === 'pm' && h < 12) h += 12;
+              if (ap === 'am' && h === 12) h = 0;
+              startDT.setHours(h, parseInt(m), 0, 0);
+            }
+          }
+        }
+      } catch (e) {}
+
+      if (!startDT || isNaN(startDT.getTime())) {
+        startDT = new Date();
+        startDT.setDate(startDT.getDate() + 1);
+        startDT.setHours(10, 0, 0, 0);
+      }
+      const endDT = new Date(startDT.getTime() + duration * 60000);
+
+      const fmt = (d) => d.toISOString().replace(/[-:]|\.\d{3}/g, '');
+      const url = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+        '&text=' + encodeURIComponent(title) +
+        '&dates=' + fmt(startDT) + '/' + fmt(endDT) +
+        (location ? '&location=' + encodeURIComponent(location) : '') +
+        (description ? '&details=' + encodeURIComponent(description) : '');
+
+      window.open(url, '_blank');
+      return {
+        success: true,
+        title,
+        start: startDT.toLocaleString(),
+        end: endDT.toLocaleString(),
+        location: location || '—',
+        url
+      };
+    }
+  });
+
+  // ─── Tool 3: Draft Email ────────────────────────────────────────────
+  registerTool('draftEmail', {
+    description: 'Open the default email client with a pre-filled draft',
+    parameters: {
+      to: 'string, recipient email address',
+      subject: 'string, email subject line',
+      body: 'string, email body text',
+      cc: 'string, CC email (optional)'
+    },
+    handler: async ({ to, subject, body, cc }) => {
+      let url = 'mailto:' + encodeURIComponent(to || '');
+      const q = [];
+      if (subject) q.push('subject=' + encodeURIComponent(subject));
+      if (body) q.push('body=' + encodeURIComponent(body));
+      if (cc) q.push('cc=' + encodeURIComponent(cc));
+      if (q.length) url += '?' + q.join('&');
+
+      window.open(url, '_self');
+      return {
+        success: true,
+        to: to || '(no recipient)',
+        subject: subject || '(no subject)',
+        bodyPreview: body ? (body.length > 120 ? body.slice(0, 120) + '…' : body) : ''
+      };
+    }
+  });
+
+  // ─── Tool 4: Get Current Time (demo) ────────────────────────────────
+  registerTool('getTime', {
+    description: 'Get the current local date and time',
+    parameters: {},
+    handler: async () => ({
+      time: new Date().toLocaleTimeString(),
+      date: new Date().toLocaleDateString(),
+      iso: new Date().toISOString()
+    })
+  });
+
+  // ─── Tool 5: Calculate (math) ───────────────────────────────────────
+  registerTool('calculate', {
+    description: 'Evaluate a math expression like "2 + 2 * 3" or "sqrt(144)"',
+    parameters: { expression: 'string, a math expression' },
+    handler: async ({ expression }) => {
+      try {
+        const safe = expression.replace(/[^0-9+\-*/().%\s,sqrt,pow,abs,Math]/g, '');
+        const result = new Function('return ' + safe)();
+        return { expression, result };
+      } catch (e) {
+        return { error: 'Invalid expression: ' + e.message };
+      }
+    }
+  });
+
+  // ─── Tool 6: Open URL ───────────────────────────────────────────────
+  registerTool('openUrl', {
+    description: 'Open a URL in a new browser tab',
+    parameters: { url: 'string, the URL to open' },
+    handler: async ({ url }) => {
+      window.open(url, '_blank');
+      return { opened: url };
+    }
+  });
+
+  /* ═══════════════════════════════════════════════════════════════════════ */
 
   e.RAGina = RAGina;
 
