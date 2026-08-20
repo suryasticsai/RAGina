@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RAGina-T1 — Case File: The Agentic Core</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a12; --panel:#12121e; --panel-2:#181828; --line:#2a2a3e;
+    --text:#eceaf6; --text-dim:#9694ab; --text-faint:#5f5d78;
+    --violet:#6C63FF; --violet-soft:rgba(108,99,255,.15);
+    --amber:#e8b86d; --amber-soft:rgba(232,184,109,.15);
+    --serif:'Fraunces',serif; --mono:'IBM Plex Mono',monospace; --sans:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(108,99,255,.14), transparent 60%),
+      radial-gradient(700px 400px at 5% 15%, rgba(232,184,109,.06), transparent 55%),
+      var(--ink);
+    color:var(--text); font-family:var(--sans); line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--violet);}
+  .wrap{max-width:960px; margin:0 auto; padding:0 1.5rem;}
+
+  /* ===== Nav ===== */
+  nav{position:sticky; top:0; z-index:50; backdrop-filter:blur(10px); background:rgba(10,10,18,.85); border-bottom:1px solid var(--line);}
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.5rem;}
+  .nav-brand{font-family:var(--mono); font-size:.82rem; letter-spacing:.08em; color:var(--amber);}
+  .nav-links{display:flex; gap:1.4rem; font-size:.82rem; font-family:var(--mono);}
+  .nav-links a{color:var(--text-dim); text-decoration:none; transition:color .15s;}
+  .nav-links a:hover{color:var(--text);}
+  @media(max-width:640px){ .nav-links{display:none;} }
+
+  /* ===== Hero / case file cover ===== */
+  .hero{padding:5rem 0 4rem; position:relative; overflow:hidden;}
+  .case-no{font-family:var(--mono); font-size:.75rem; letter-spacing:.15em; color:var(--text-faint); margin-bottom:1.2rem; display:flex; align-items:center; gap:.6rem;}
+  .case-no::before{content:''; width:22px; height:1px; background:var(--text-faint);}
+  h1{font-family:var(--serif); font-weight:600; font-size:clamp(2.4rem,6vw,3.6rem); line-height:1.08; letter-spacing:-.01em; max-width:11ch;}
+  h1 em{font-style:italic; color:var(--violet); font-weight:500;}
+  .hero-sub{font-size:1.05rem; color:var(--text-dim); max-width:52ch; margin:1.3rem 0 2rem;}
+  .stamp{
+    position:absolute; top:3.5rem; right:1.5rem; width:132px; height:132px; border-radius:50%;
+    border:2px solid var(--amber); display:flex; align-items:center; justify-content:center;
+    transform:rotate(-14deg); opacity:.85;
+  }
+  .stamp-inner{font-family:var(--mono); font-size:.62rem; letter-spacing:.1em; color:var(--amber); text-align:center; line-height:1.5;}
+  .stamp-inner b{display:block; font-size:.9rem; letter-spacing:.06em;}
+  @media(max-width:640px){ .stamp{width:96px; height:96px; top:1.5rem; right:1rem;} .stamp-inner{font-size:.5rem;} .stamp-inner b{font-size:.7rem;} }
+
+  .cta-row{display:flex; gap:.7rem; flex-wrap:wrap;}
+  .btn{
+    font-family:var(--mono); font-size:.8rem; padding:.7rem 1.2rem; border-radius:6px; text-decoration:none;
+    display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--line); transition:.15s;
+  }
+  .btn-primary{background:var(--violet); color:#fff; border-color:var(--violet);}
+  .btn-primary:hover{background:#5a52e0;}
+  .btn-ghost{color:var(--text-dim);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--text-dim);}
+
+  /* ===== Section scaffolding ===== */
+  section{padding:3.6rem 0; border-top:1px solid var(--line);}
+  .eyebrow{font-family:var(--mono); font-size:.72rem; letter-spacing:.14em; color:var(--amber); margin-bottom:.6rem;}
+  h2{font-family:var(--serif); font-weight:600; font-size:1.9rem; margin-bottom:.5rem;}
+  .section-sub{color:var(--text-dim); max-width:60ch; margin-bottom:2.2rem; font-size:.95rem;}
+
+  /* ===== Exhibits (features) ===== */
+  .exhibits{display:grid; grid-template-columns:repeat(2,1fr); gap:1rem;}
+  @media(max-width:700px){ .exhibits{grid-template-columns:1fr;} }
+  .exhibit{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.4rem;}
+  .exhibit-tag{font-family:var(--mono); font-size:.68rem; color:var(--text-faint); letter-spacing:.1em; margin-bottom:.6rem;}
+  .exhibit h3{font-family:var(--serif); font-size:1.15rem; font-weight:600; margin-bottom:.5rem;}
+  .exhibit p{color:var(--text-dim); font-size:.87rem; line-height:1.6;}
+  .exhibit .status{display:inline-block; margin-top:.8rem; font-family:var(--mono); font-size:.68rem; padding:.2rem .55rem; border-radius:20px;}
+  .status.new{background:var(--violet-soft); color:#b3aeff;}
+  .status.core{background:var(--amber-soft); color:var(--amber);}
+
+  /* ===== Flow diagram ===== */
+  .flow{display:flex; align-items:center; gap:0; flex-wrap:wrap; margin:2rem 0; font-family:var(--mono); font-size:.76rem;}
+  .flow-step{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:.7rem 1rem; color:var(--text-dim);}
+  .flow-step b{color:var(--text); display:block; font-size:.82rem; margin-bottom:.15rem;}
+  .flow-arrow{color:var(--text-faint); padding:0 .6rem;}
+
+  /* ===== Code blocks ===== */
+  .code-block{position:relative; background:#08080f; border:1px solid var(--line); border-radius:10px; margin:1rem 0; overflow:hidden;}
+  .code-head{display:flex; justify-content:space-between; align-items:center; padding:.55rem .9rem; border-bottom:1px solid var(--line); font-family:var(--mono); font-size:.68rem; color:var(--text-faint);}
+  .copy-btn{background:none; border:1px solid var(--line); color:var(--text-dim); font-family:var(--mono); font-size:.66rem; padding:.25rem .6rem; border-radius:5px; cursor:pointer; transition:.15s;}
+  .copy-btn:hover{color:var(--text); border-color:var(--text-dim);}
+  pre{margin:0; padding:1rem 1.1rem; overflow-x:auto; font-family:var(--mono); font-size:.8rem; line-height:1.65; color:#d8d6ea;}
+  .tok-kw{color:#c792ea;} .tok-str{color:#a8dba8;} .tok-fn{color:#82aaff;} .tok-com{color:#5f5d78; font-style:italic;} .tok-num{color:var(--amber);}
+
+  /* ===== Config table ===== */
+  table{width:100%; border-collapse:collapse; font-size:.83rem; margin-top:1rem;}
+  th{text-align:left; font-family:var(--mono); font-size:.68rem; letter-spacing:.08em; color:var(--text-faint); padding:.5rem .3rem; border-bottom:1px solid var(--line);}
+  td{padding:.6rem .3rem; border-bottom:1px solid var(--line); color:var(--text-dim); vertical-align:top;}
+  td:first-child{font-family:var(--mono); color:var(--amber); white-space:nowrap;}
+  td:last-child{color:var(--text-faint); font-size:.78rem;}
+
+  /* ===== Business case files ===== */
+  .cases{display:grid; grid-template-columns:repeat(2,1fr); gap:.9rem;}
+  @media(max-width:700px){ .cases{grid-template-columns:1fr;} }
+  .case{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.3rem; position:relative;}
+  .case-index{position:absolute; top:1.1rem; right:1.2rem; font-family:var(--mono); font-size:.68rem; color:var(--text-faint);}
+  .case h4{font-family:var(--serif); font-size:1.05rem; font-weight:600; margin-bottom:.4rem; padding-right:2.5rem;}
+  .case p{color:var(--text-dim); font-size:.85rem; margin-bottom:.6rem;}
+  .case .tool-line{font-family:var(--mono); font-size:.72rem; color:var(--text-faint); background:var(--panel-2); padding:.4rem .6rem; border-radius:6px; border-left:2px solid var(--violet);}
+
+  /* ===== CDN section ===== */
+  .cdn-box{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.4rem;}
+  .warn{border-left:2px solid var(--amber); background:var(--amber-soft); padding:.7rem 1rem; border-radius:0 8px 8px 0; font-size:.82rem; color:#e0cfa5; margin-top:1rem;}
+
+  footer{padding:2.5rem 0 4rem; text-align:center; color:var(--text-faint); font-family:var(--mono); font-size:.75rem;}
+  footer a{color:var(--text-faint);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="nav-brand">RAGINA · CASE FILE T1</div>
+    <div class="nav-links">
+      <a href="#features">Exhibits</a>
+      <a href="#usage">Usage</a>
+      <a href="#cases">Case Files</a>
+      <a href="#cdn">Install</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="stamp"><div class="stamp-inner">VERIFIED<b>AGENTIC</b>CORE · v2.2</div></div>
+    <div class="case-no">CASE FILE NO. T1 — OPENED</div>
+    <h1>The mentalist<br>learned to <em>act</em>, not just read.</h1>
+    <p class="hero-sub">RAGina-T1 is a single-file, CDN-hosted RAG engine that answers from your documents — and now, when the documents run out, it reaches for tools you register and takes action before it replies.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#cdn">Get the CDN tag →</a>
+      <a class="btn btn-ghost" href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">View source on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">EXHIBITS A–D</div>
+    <h2>What's actually in the file</h2>
+    <p class="section-sub">Four capabilities, all in one ~25KB script. No build step, no server changes required.</p>
+
+    <div class="exhibits">
+      <div class="exhibit">
+        <div class="exhibit-tag">EXHIBIT A</div>
+        <h3>Document retrieval</h3>
+        <p>A client-side TF-IDF search index. Load documents via a folder, a JSON index, or a URL — RAGina chunks, scores, and retrieves the most relevant passages for any question, entirely in the browser.</p>
+        <span class="status core">core</span>
+      </div>
+      <div class="exhibit">
+        <div class="exhibit-tag">EXHIBIT B</div>
+        <h3>Tool calling — the agentic core</h3>
+        <p>Register any JS function as a tool. When documents alone can't answer a question, RAGina asks for a tool, runs it, reads the result, and only then replies — a ReAct loop that works with a plain text-completion backend.</p>
+        <span class="status new">new in T1</span>
+      </div>
+      <div class="exhibit">
+        <div class="exhibit-tag">EXHIBIT C</div>
+        <h3>Headless mode</h3>
+        <p><code>RAGina.query()</code> returns an answer (with tools) with zero UI. Built for embedding RAGina's reasoning inside your own interface — a phone-call app, a Slack bot, a support console.</p>
+        <span class="status new">new in T1</span>
+      </div>
+      <div class="exhibit">
+        <div class="exhibit-tag">EXHIBIT D</div>
+        <h3>Chat widget</h3>
+        <p>An optional floating bubble + panel, ready out of the box. Now shows a live "🔧 using toolName…" tag while a tool call is in flight, so tool use is visible, not silent.</p>
+        <span class="status core">core</span>
+      </div>
+    </div>
+
+    <div class="eyebrow" style="margin-top:2.6rem;">HOW THE AGENTIC LOOP WORKS</div>
+    <p class="section-sub" style="margin-bottom:0;">The backend is a plain prompt-in/text-out endpoint — not a structured function-calling API. So the loop runs entirely on the client:</p>
+    <div class="flow">
+      <div class="flow-step"><b>1. Ask</b>question + tool list go in one prompt</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><b>2. Decide</b>model replies TOOL_CALL or ANSWER</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><b>3. Act</b>your JS handler runs, result recorded</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><b>4. Repeat</b>up to 4 steps, then final ANSWER</div>
+    </div>
+  </div>
+</section>
+
+<section id="usage">
+  <div class="wrap">
+    <div class="eyebrow">DEPOSITION</div>
+    <h2>Usage</h2>
+    <p class="section-sub">Three lines to start answering from documents. A few more to give it hands.</p>
+
+    <div class="code-block">
+      <div class="code-head"><span>quick-start.html</span><button class="copy-btn" data-copy="cb1">Copy</button></div>
+      <pre id="cb1"><span class="tok-com">&lt;!-- 1. include the script --&gt;</span>
+&lt;script src=<span class="tok-str">"https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t1.js"</span>&gt;&lt;/script&gt;
+
+&lt;script&gt;
+  <span class="tok-com">// 2. load what it should know</span>
+  RAGina.<span class="tok-fn">loadData</span>({
+    <span class="tok-str">"faq.html"</span>: { bodyText: <span class="tok-str">"Refunds take 5–7 business days..."</span> }
+  });
+
+  <span class="tok-com">// 3. that's it — the chat bubble is live</span>
+&lt;/script&gt;</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>register-a-tool.js</span><button class="copy-btn" data-copy="cb2">Copy</button></div>
+      <pre id="cb2"><span class="tok-kw">RAGina</span>.<span class="tok-fn">registerTool</span>(<span class="tok-str">'lookupOrder'</span>, {
+  description: <span class="tok-str">'Look up an order by its ID'</span>,
+  parameters: { orderId: <span class="tok-str">'string, e.g. "A1234"'</span> },
+  handler: <span class="tok-kw">async</span> ({ orderId }) =&gt; {
+    <span class="tok-kw">const</span> r = <span class="tok-kw">await</span> <span class="tok-fn">fetch</span>(<span class="tok-str">'/api/orders/' + orderId</span>);
+    <span class="tok-kw">return</span> r.ok ? <span class="tok-kw">await</span> r.<span class="tok-fn">json</span>() : <span class="tok-str">'Order not found.'</span>;
+  }
+});</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-head"><span>headless-query.js</span><button class="copy-btn" data-copy="cb3">Copy</button></div>
+      <pre id="cb3"><span class="tok-com">// No widget — use RAGina's brain inside your own UI</span>
+<span class="tok-kw">const</span> { answer, steps } = <span class="tok-kw">await</span> <span class="tok-kw">RAGina</span>.<span class="tok-fn">query</span>(<span class="tok-str">'Where is order A1234?'</span>);
+<span class="tok-fn">console</span>.<span class="tok-fn">log</span>(answer);   <span class="tok-com">// "Order A1234 shipped yesterday, arriving Thursday."</span>
+<span class="tok-fn">console</span>.<span class="tok-fn">log</span>(steps);    <span class="tok-com">// full trace — which tool ran, with what args</span></pre>
+    </div>
+
+    <div class="eyebrow" style="margin-top:2.6rem;">CONFIG OPTIONS</div>
+    <table>
+      <tr><th>Key</th><th>Default</th><th>Notes</th></tr>
+      <tr><td>indexUrl</td><td>null</td><td>Fetch a JSON document index instead of calling loadData() yourself</td></tr>
+      <tr><td>showWidget</td><td>true</td><td>Set false for headless-only embedding (no bubble/panel injected)</td></tr>
+      <tr><td>personality</td><td>"sassy"</td><td>or "professional" — changes the answering tone</td></tr>
+      <tr><td>topK</td><td>3</td><td>How many document chunks to retrieve per question</td></tr>
+      <tr><td>title / avatarUrl</td><td>"RAGina" / default logo</td><td>Rebrand the widget for your product</td></tr>
+      <tr><td>theme.primary</td><td>#6C63FF</td><td>Accent color for the widget</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="cases">
+  <div class="wrap">
+    <div class="eyebrow">FIELD REPORTS</div>
+    <h2>Business use cases</h2>
+    <p class="section-sub">Anywhere "answer from our docs" isn't quite enough — because the real answer requires checking something live.</p>
+
+    <div class="cases">
+      <div class="case"><div class="case-index">01</div>
+        <h4>E-commerce support</h4>
+        <p>Answers shipping/return policy from docs, then calls a tool for the one thing docs can't know: this customer's actual order status.</p>
+        <div class="tool-line">tool: lookupOrder(orderId) → live status</div>
+      </div>
+      <div class="case"><div class="case-index">02</div>
+        <h4>SaaS product docs</h4>
+        <p>Replaces a static docs search bar. When a question needs account-specific info, it calls your API instead of guessing.</p>
+        <div class="tool-line">tool: getAccountPlan(userId) → current tier</div>
+      </div>
+      <div class="case"><div class="case-index">03</div>
+        <h4>Internal knowledge base</h4>
+        <p>Point loadFolder() at exported wiki/HTML pages for instant onboarding Q&amp;A — "who owns the deploy pipeline," "what's our PTO policy."</p>
+        <div class="tool-line">tool: none required — pure retrieval</div>
+      </div>
+      <div class="case"><div class="case-index">04</div>
+        <h4>Voice / phone agents</h4>
+        <p>Headless mode is built for exactly this — plug RAGina.query() behind a speech pipeline for a phone-call-style assistant, no chat widget involved.</p>
+        <div class="tool-line">tool: checkCalendar(date) → open slots</div>
+      </div>
+      <div class="case"><div class="case-index">05</div>
+        <h4>Real estate</h4>
+        <p>Answers listing questions from property docs, then books a live showing instead of just describing how to.</p>
+        <div class="tool-line">tool: bookShowing(listingId, time) → confirmed</div>
+      </div>
+      <div class="case"><div class="case-index">06</div>
+        <h4>Front-desk intake</h4>
+        <p>Answers general policy questions and checks appointment availability. Keep it to logistics — not medical, legal, or financial advice.</p>
+        <div class="tool-line">tool: checkAvailability(date) → open times</div>
+      </div>
+      <div class="case"><div class="case-index">07</div>
+        <h4>Education / tutoring</h4>
+        <p>Answers from course material, then grades a quick check with a tool so the "answer" is actually verified, not just plausible-sounding.</p>
+        <div class="tool-line">tool: gradeAnswer(question, response) → score</div>
+      </div>
+      <div class="case"><div class="case-index">08</div>
+        <h4>Professional services intake</h4>
+        <p>Answers FAQ from your service docs, then hands off to a tool that creates a lead or books a consult — no separate contact form.</p>
+        <div class="tool-line">tool: createLead(name, need) → CRM entry</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cdn">
+  <div class="wrap">
+    <div class="eyebrow">CHAIN OF CUSTODY</div>
+    <h2>Getting it via CDN</h2>
+    <div class="cdn-box">
+      <p style="color:var(--text-dim); font-size:.9rem; margin-bottom:1rem;">jsdelivr mirrors the GitHub repo automatically — no separate publish step needed:</p>
+      <div class="code-block" style="margin:0;">
+        <div class="code-head"><span>index.html</span><button class="copy-btn" data-copy="cb4">Copy</button></div>
+        <pre id="cb4">&lt;script src=<span class="tok-str">"https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t1.js"</span>&gt;&lt;/script&gt;</pre>
+      </div>
+      <div class="warn">⚠ <code>@main</code> tracks your latest push live — convenient for testing, risky for production. Tag a release (e.g. <code>v2.2.0</code>) and pin sites to <code>@v2.2.0</code> instead, so a future push to <code>main</code> can't break anything already deployed.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  CASE FILE T1 — RAGina-Pro · <a href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">github.com/suryasticsai/RAGina</a> · MIT License
+</footer>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const el = document.getElementById(btn.dataset.copy);
+      const text = el.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(() => btn.textContent = original, 1400);
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
