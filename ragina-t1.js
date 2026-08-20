@@ -1,0 +1,522 @@
+/*!
+ * RAGina-Pro.js v2.2.0
+ * Mentalist RAG — now with real agentic tool-calling.
+ * Created by suryasticsai@gmail.com | github.com/suryasticsai
+ * ⭐ Star the repo: https://github.com/suryasticsai/RAGina
+ * MIT License
+ *
+ * NEW IN v2.2.0 — Tool / function calling (the agentic core)
+ * -----------------------------------------------------------
+ * RAGina's backend (/api/ask) is a plain prompt-in/text-out endpoint, not a
+ * structured function-calling API. So tool-calling here is implemented as a
+ * classic ReAct loop entirely on the client:
+ *   1. RAGina is told what tools exist and how to invoke them in plain text.
+ *   2. The model replies with either `TOOL_CALL: name({...json args...})`
+ *      or `ANSWER: <final answer>`.
+ *   3. If it's a tool call, we run your registered JS handler, feed the
+ *      result back into the prompt, and ask again — up to a step limit.
+ *   4. Once it replies ANSWER (or we hit the step limit), we're done.
+ *
+ * This works with the existing backend unchanged and works with ANY
+ * plain completion endpoint — no native function-calling support required.
+ *
+ * Usage:
+ *   RAGina.registerTool('getTime', {
+ *     description: 'Get the current local time',
+ *     parameters: {},
+ *     handler: async () => new Date().toLocaleTimeString()
+ *   });
+ *
+ *   RAGina.registerTool('lookupOrder', {
+ *     description: 'Look up an order by its ID',
+ *     parameters: { orderId: 'string, e.g. "A1234"' },
+ *     handler: async ({ orderId }) => {
+ *       const r = await fetch('/api/orders/' + orderId);
+ *       return r.ok ? await r.json() : 'Order not found.';
+ *     }
+ *   });
+ *
+ *   // Headless — for embedders (like PremCall) that don't want the widget:
+ *   const { answer, steps } = await RAGina.query('What time is it?');
+ */
+!function (e) {
+  'use strict';
+
+  const PHRASES = {
+    ready: [
+      "Alright darling, I've read every file in this place. Ask away.",
+      "Mind palace is set. These documents have no secrets from me now.",
+      "I've penetrated every folder. What do you want to know?"
+    ],
+    thinking: [
+      "Scanning the memory palace… hold tight.",
+      "I can see the answer forming in the chaos…",
+      "Give me a second, I'm reading through walls here."
+    ],
+    error: [
+      "Something broke. Not my fault — I blame the network.",
+      "The mind palace glitched. Give me a moment."
+    ]
+  };
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const API_URL = 'https://ragina-crawler-ragina.vercel.app/api/ask';
+
+  /* ================= Retrieval engine (unchanged TF-IDF) ================= */
+  class RetrievalEngine {
+    constructor() { this.chunks = []; this.idf = {}; this.isReady = false; }
+    buildIndex(data, chunkSize = 200) {
+      this.chunks = [];
+      const normalized = (function normalize(input) {
+        if (input && Array.isArray(input.pages)) {
+          const out = {};
+          for (const page of input.pages) {
+            const url = page.url || 'unknown';
+            const chunks = page.chunks || [];
+            if (chunks.length === 0) { if (page.content) out[url] = { bodyText: page.content }; continue; }
+            out[url] = { bodyText: chunks.map(c => c.text || c.content || '').join('\n') };
+          }
+          return out;
+        }
+        return input;
+      })(data);
+
+      for (const [source, doc] of Object.entries(normalized)) {
+        const body = doc.bodyText || doc.body || doc.content || '';
+        if (!body || body.length < 30) continue;
+        const sentences = body.split(/\n+|(?<=[.!?])\s+/);
+        let buf = '';
+        for (const s of sentences) {
+          if ((buf + s).length > chunkSize && buf.length > 0) { this.chunks.push({ text: buf.trim(), source }); buf = ''; }
+          buf += s + ' ';
+        }
+        if (buf.trim()) this.chunks.push({ text: buf.trim(), source });
+      }
+
+      this.idf = {};
+      const N = this.chunks.length || 1;
+      for (const chunk of this.chunks) {
+        const words = new Set(chunk.text.toLowerCase().match(/\b\w+\b/g) || []);
+        for (const w of words) this.idf[w] = (this.idf[w] || 0) + 1;
+      }
+      for (const w in this.idf) this.idf[w] = Math.log(N / (1 + this.idf[w]));
+      this.isReady = true;
+    }
+    retrieve(query, k = 3) {
+      if (!this.isReady || this.chunks.length === 0) return [];
+      const qWords = query.toLowerCase().match(/\b\w+\b/g) || [];
+      const qFreq = {};
+      for (const w of qWords) qFreq[w] = (qFreq[w] || 0) + 1;
+      const scored = this.chunks.map((chunk, idx) => {
+        const cWords = chunk.text.toLowerCase().match(/\b\w+\b/g) || [];
+        const cFreq = {};
+        for (const w of cWords) cFreq[w] = (cFreq[w] || 0) + 1;
+        let score = 0;
+        for (const w of Object.keys(qFreq)) if (cFreq[w] && this.idf[w]) score += qFreq[w] * cFreq[w] * this.idf[w];
+        return { idx, score };
+      });
+      scored.sort((a, b) => b.score - a.score);
+      return scored.slice(0, k).map(s => this.chunks[s.idx]);
+    }
+  }
+
+  /* ================= Backend call ================= */
+  async function callBackend(prompt, model) {
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model })
+    });
+    if (!resp.ok) throw new Error(`LLM error: ${resp.status}`);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    return data.text;
+  }
+
+  async function speak(text, voiceUrl, voiceId, speed) {
+    if (!voiceUrl || !text) return;
+    try {
+      const resp = await fetch(voiceUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language: 'en-US', voice_id: voiceId || 'rachel', speed: speed || 1 })
+      });
+      if (!resp.ok) throw new Error(`TTS error: ${resp.status}`);
+      const blob = await resp.blob();
+      new Audio(URL.createObjectURL(blob)).play();
+    } catch (e) {
+      console.warn('RAGina voice failed:', e.message);
+    }
+  }
+
+  /* ================= Tool registry (the agentic core) ================= */
+  const tools = {}; // name -> { description, parameters, handler }
+
+  function registerTool(name, cfg) {
+    if (!name || typeof cfg?.handler !== 'function') {
+      console.warn('RAGina.registerTool: needs a name and a handler function.');
+      return;
+    }
+    tools[name] = {
+      description: cfg.description || '',
+      parameters: cfg.parameters || {},
+      handler: cfg.handler
+    };
+  }
+  function unregisterTool(name) { delete tools[name]; }
+  function listTools() { return Object.keys(tools); }
+
+  function toolsBlock() {
+    const names = Object.keys(tools);
+    if (!names.length) return '';
+    const lines = names.map(n => {
+      const t = tools[n];
+      const params = Object.keys(t.parameters).length
+        ? Object.entries(t.parameters).map(([k, v]) => `${k}: ${v}`).join(', ')
+        : 'no parameters';
+      return `- ${n}(${params}): ${t.description}`;
+    }).join('\n');
+    return `
+You have access to these tools:
+${lines}
+
+When you need a tool to answer, reply with EXACTLY this and nothing else:
+TOOL_CALL: toolName({"param": "value"})
+
+Once you have enough information, reply with EXACTLY:
+ANSWER: <your final answer>
+
+Always use one of those two formats — never explain outside of them.`;
+  }
+
+  function parseAgentReply(raw) {
+    const text = String(raw).trim();
+    const toolMatch = text.match(/^TOOL_CALL:\s*([A-Za-z0-9_]+)\((.*)\)\s*$/s);
+    if (toolMatch) {
+      let args = {};
+      try { args = toolMatch[2].trim() ? JSON.parse(toolMatch[2]) : {}; } catch (e) { /* malformed args, treat as empty */ }
+      return { type: 'tool_call', name: toolMatch[1], args };
+    }
+    const answerMatch = text.match(/^ANSWER:\s*([\s\S]*)$/);
+    if (answerMatch) return { type: 'answer', text: answerMatch[1].trim() };
+    return { type: 'answer', text }; // model didn't follow the format — treat whole reply as the answer
+  }
+
+  function buildAgentPrompt({ persona, query, contextText, history, toolLog }) {
+    const historyBlock = history && history.length
+      ? '\nRecent conversation:\n' + history.map(m => `${m.who}: ${m.text}`).join('\n') + '\n'
+      : '';
+    const contextBlock = contextText ? `\nDocument context:\n${contextText}\n` : '';
+    const toolLogBlock = toolLog ? `\nTool results so far:${toolLog}\n` : '';
+    return `${persona || 'You are RAGina, a helpful AI agent.'}
+${toolsBlock()}
+${historyBlock}${contextBlock}${toolLogBlock}
+User: ${query}`;
+  }
+
+  /**
+   * Headless agent loop — runs with or without the chat widget.
+   * options: { persona, contextText, history, model, maxSteps, onStep }
+   * onStep(step) fires for every model turn, useful for showing "using tool: x…" in a UI.
+   */
+  async function runAgent(query, options = {}) {
+    const maxSteps = options.maxSteps || 4;
+    let toolLog = '';
+    const stepsTaken = [];
+
+    for (let step = 1; step <= maxSteps; step++) {
+      const prompt = buildAgentPrompt({
+        persona: options.persona,
+        query, contextText: options.contextText, history: options.history, toolLog
+      });
+      let raw;
+      try { raw = await callBackend(prompt, options.model); }
+      catch (e) { return { answer: pick(PHRASES.error) + ' ' + e.message, steps: stepsTaken }; }
+
+      const parsed = parseAgentReply(raw);
+      stepsTaken.push(parsed);
+      if (options.onStep) options.onStep(parsed);
+
+      if (parsed.type === 'answer') return { answer: parsed.text, steps: stepsTaken };
+
+      // tool_call
+      const tool = tools[parsed.name];
+      if (!tool) {
+        toolLog += `\nTool "${parsed.name}" does not exist. Available: ${listTools().join(', ') || '(none registered)'}.`;
+        continue;
+      }
+      let result;
+      try { result = await tool.handler(parsed.args); }
+      catch (e) { result = 'Error running tool: ' + e.message; }
+      toolLog += `\nResult of ${parsed.name}(${JSON.stringify(parsed.args)}): ${typeof result === 'string' ? result : JSON.stringify(result)}`;
+    }
+    return { answer: "I tried a few steps but couldn't finish that — could you rephrase or simplify?", steps: stepsTaken };
+  }
+
+  /* ================= Chat widget UI ================= */
+  class ChatWidget {
+    constructor(engine, config) {
+      this.engine = engine; this.config = config;
+      this.bubble = null; this.panel = null; this.messages = null; this.input = null; this.sendBtn = null;
+      this.history = []; // { who, text } for the widget's own multi-turn context
+    }
+    hexToRgb(hex) {
+      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return m ? `${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}` : '108,99,255';
+    }
+    injectStyles() {
+      if (document.getElementById('ragina-styles')) return;
+      const primary = this.config.theme?.primary || '#6C63FF';
+      const rgb = this.hexToRgb(primary);
+      const side = this.config.position === 'bottom-left' ? 'left:24px;' : 'right:24px;';
+      const css = `
+@keyframes ragina-pulse{0%,100%{box-shadow:0 0 0 0 rgba(${rgb},0.5)}50%{box-shadow:0 0 0 18px rgba(${rgb},0)}}
+@keyframes ragina-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ragina-bubble{position:fixed;${side}bottom:24px;width:60px;height:60px;border-radius:50%;background:transparent;border:2px solid ${primary};cursor:pointer;z-index:99999;font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;animation:ragina-float 4s ease-in-out infinite,ragina-pulse 2s infinite;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+.ragina-bubble:hover{transform:scale(1.15) rotate(360deg);animation:none;box-shadow:0 0 25px rgba(${rgb},0.6)}
+.ragina-bubble img{width:44px;height:44px;border-radius:50%}
+.ragina-panel{position:fixed;${side}bottom:100px;width:380px;max-width:92vw;height:520px;max-height:70vh;background:#0f0f1a;border-radius:20px;z-index:99999;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(${rgb},0.4);box-shadow:0 0 40px rgba(${rgb},0.2),0 20px 60px rgba(0,0,0,0.6);transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);font-family:system-ui,sans-serif}
+.ragina-panel.hidden{opacity:0;pointer-events:none;transform:translateY(30px) scale(0.95)}
+.ragina-header{background:linear-gradient(135deg,${primary},#8b7cff);padding:14px 18px;display:flex;align-items:center;gap:12px}
+.ragina-avatar{width:40px;height:40px;border-radius:50%;border:2px solid white;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px}
+.ragina-header-info{flex:1;color:white}
+.ragina-header-name{font-weight:700;font-size:1.1rem}
+.ragina-header-status{font-size:0.7rem;opacity:0.8}
+.ragina-close{background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px}
+.ragina-messages{flex:1;padding:16px;overflow-y:auto;background:linear-gradient(180deg,#0f0f1a 0%,#1a1a2e 100%)}
+.ragina-messages::-webkit-scrollbar{width:4px}
+.ragina-messages::-webkit-scrollbar-thumb{background:rgba(${rgb},0.4);border-radius:4px}
+.ragina-msg{margin-bottom:14px;display:flex;flex-direction:column}
+.ragina-msg.user{align-items:flex-end}
+.ragina-msg.user .ragina-bubble-text{background:${primary};color:white;border-radius:18px 18px 4px 18px}
+.ragina-msg.ai .ragina-bubble-text{background:rgba(${rgb},0.1);color:#ddd;border:1px solid rgba(${rgb},0.3);border-radius:18px 18px 18px 4px}
+.ragina-bubble-text{max-width:82%;padding:10px 16px;font-size:0.9rem;line-height:1.5;word-break:break-word}
+.ragina-tool-tag{font-size:0.62rem;color:rgba(${rgb},0.85);margin-top:4px;padding-left:8px;font-style:italic}
+.ragina-sources{font-size:0.65rem;color:rgba(${rgb},0.7);margin-top:4px;padding-left:8px;font-style:italic}
+.ragina-input-area{display:flex;padding:10px;border-top:1px solid rgba(${rgb},0.2);background:#0f0f1a}
+.ragina-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(${rgb},0.3);border-radius:24px;padding:10px 16px;color:white;font-size:0.9rem;outline:none}
+.ragina-input::placeholder{color:rgba(255,255,255,0.3)}
+.ragina-send{background:${primary};border:none;border-radius:50%;width:40px;height:40px;margin-left:8px;cursor:pointer;color:white;font-size:16px;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.ragina-send:hover{box-shadow:0 0 15px rgba(${rgb},0.6)}
+.ragina-send:disabled{opacity:0.4;cursor:not-allowed}
+.ragina-typing{display:flex;gap:4px;padding:10px 16px}
+.ragina-typing span{width:8px;height:8px;border-radius:50%;background:rgba(${rgb},0.6);animation:ragina-typing 1.4s infinite}
+.ragina-typing span:nth-child(2){animation-delay:0.2s}
+.ragina-typing span:nth-child(3){animation-delay:0.4s}
+@keyframes ragina-typing{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-8px);opacity:1}}`;
+      const styleEl = document.createElement('style');
+      styleEl.id = 'ragina-styles'; styleEl.textContent = css;
+      document.head.appendChild(styleEl);
+    }
+    build() {
+      this.injectStyles();
+      const bubbleIcon = this.config.avatarUrl
+        ? `<img src="${this.config.avatarUrl}" alt="RAGina" style="width:44px;height:44px;border-radius:50%;" onerror="this.parentElement.innerHTML='🔮'">`
+        : this.config.bubbleIcon || '🔮';
+      this.bubble = document.createElement('button');
+      this.bubble.className = 'ragina-bubble';
+      this.bubble.title = this.config.title || 'RAGina – Your Mentalist RAG';
+      this.bubble.innerHTML = bubbleIcon;
+      document.body.appendChild(this.bubble);
+
+      this.panel = document.createElement('div');
+      this.panel.className = 'ragina-panel hidden';
+      this.panel.innerHTML = `
+        <div class="ragina-header">
+          ${this.config.avatarUrl
+            ? `<img class="ragina-avatar" src="${this.config.avatarUrl}" alt="RAGina" style="object-fit:cover;" onerror="this.outerHTML='<div class=\\'ragina-avatar\\'>🔮</div>'">`
+            : '<div class="ragina-avatar">🔮</div>'}
+          <div class="ragina-header-info">
+            <div class="ragina-header-name">${this.config.title || 'RAGina'}</div>
+            <div class="ragina-header-status">🧠 Mentalist Online</div>
+          </div>
+          <button class="ragina-close">✕</button>
+        </div>
+        <div class="ragina-messages"></div>
+        <div class="ragina-input-area">
+          <input type="text" class="ragina-input" placeholder="${this.config.placeholder || 'Ask me anything...'}" ${this.engine.isReady ? '' : 'disabled'}>
+          <button class="ragina-send" ${this.engine.isReady ? '' : 'disabled'}>➤</button>
+        </div>`;
+      document.body.appendChild(this.panel);
+
+      this.messages = this.panel.querySelector('.ragina-messages');
+      this.input = this.panel.querySelector('.ragina-input');
+      this.sendBtn = this.panel.querySelector('.ragina-send');
+      this.bubble.addEventListener('click', () => this.toggle());
+      this.panel.querySelector('.ragina-close').addEventListener('click', () => this.hide());
+      this.sendBtn.addEventListener('click', () => this.handleSend());
+      this.input.addEventListener('keypress', e => { if (e.key === 'Enter') this.handleSend(); });
+
+      this.addMessage(this.engine.isReady ? pick(PHRASES.ready) : "I'm ready! Upload some files or load an index to get started.", 'ai');
+    }
+    toggle() { this.panel.classList.toggle('hidden'); if (!this.panel.classList.contains('hidden')) this.input.focus(); }
+    hide() { this.panel.classList.add('hidden'); }
+    show() { this.panel.classList.remove('hidden'); this.input.focus(); }
+    addMessage(text, who, meta) {
+      const row = document.createElement('div');
+      row.className = `ragina-msg ${who}`;
+      const bubbleEl = document.createElement('div');
+      bubbleEl.className = 'ragina-bubble-text';
+      bubbleEl.textContent = text;
+      row.appendChild(bubbleEl);
+      if (meta?.sources?.length) {
+        const src = document.createElement('div');
+        src.className = 'ragina-sources';
+        src.textContent = '📌 ' + meta.sources.map(s => (s.source || '').split('/').pop() + '…').join(' · ');
+        row.appendChild(src);
+      }
+      if (meta?.toolsUsed?.length) {
+        const tag = document.createElement('div');
+        tag.className = 'ragina-tool-tag';
+        tag.textContent = '🔧 used: ' + meta.toolsUsed.join(', ');
+        row.appendChild(tag);
+      }
+      this.messages.appendChild(row);
+      this.messages.scrollTop = this.messages.scrollHeight;
+      return row;
+    }
+    showTyping(label) {
+      const row = document.createElement('div');
+      row.className = 'ragina-msg ai';
+      row.innerHTML = '<div class="ragina-typing"><span></span><span></span><span></span></div>' +
+        (label ? `<div class="ragina-tool-tag">${label}</div>` : '');
+      this.messages.appendChild(row);
+      this.messages.scrollTop = this.messages.scrollHeight;
+      return row;
+    }
+    async handleSend() {
+      const query = this.input.value.trim();
+      if (!query || !this.engine.isReady) return;
+      this.input.value = ''; this.sendBtn.disabled = true;
+      this.addMessage(query, 'user');
+      this.history.push({ who: 'User', text: query });
+
+      const typingRow = this.showTyping();
+      const chunks = this.engine.retrieve(query, this.config.topK || 3);
+      const contextText = chunks.length
+        ? chunks.map((c, i) => `[${i + 1}] ${c.source}\n${c.text}`).join('\n\n')
+        : 'No relevant documents found.';
+      const persona = this.config.personality === 'professional'
+        ? 'You are RAGina, a professional research assistant. Answer using ONLY the document context and any tool results. If you cannot find the answer, say so plainly.'
+        : 'You are RAGina, a sassy mentalist who can read any document. Answer using the document context and any tool results, with attitude if the info is missing.';
+
+      const toolsUsed = [];
+      try {
+        const { answer } = await runAgent(query, {
+          persona, contextText,
+          history: this.history.slice(-8),
+          model: this.config.model,
+          onStep: step => {
+            if (step.type === 'tool_call') {
+              toolsUsed.push(step.name);
+              typingRow.querySelector('.ragina-tool-tag')?.remove();
+              const tag = document.createElement('div');
+              tag.className = 'ragina-tool-tag';
+              tag.textContent = '🔧 using ' + step.name + '…';
+              typingRow.appendChild(tag);
+            }
+          }
+        });
+        typingRow.remove();
+        this.addMessage(answer, 'ai', { sources: chunks, toolsUsed });
+        this.history.push({ who: 'RAGina', text: answer });
+        if (this.history.length > 16) this.history = this.history.slice(-16);
+        if (this.config.voiceEnabled && this.config.voiceUrl) speak(answer, this.config.voiceUrl, this.config.voiceId, this.config.voiceSpeed);
+      } catch (e) {
+        typingRow.remove();
+        this.addMessage(pick(PHRASES.error) + ' ' + e.message, 'ai');
+      }
+      this.sendBtn.disabled = false; this.input.focus();
+    }
+  }
+
+  /* ================= Public API ================= */
+  const RAGina = {
+    engine: null, ui: null, config: {},
+    init(userConfig = {}) {
+      this.config = {
+        indexUrl: null, position: 'bottom-right', placeholder: 'Ask me anything...',
+        topK: 3, model: 'openai',
+        avatarUrl: 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png',
+        bubbleIcon: null, title: 'RAGina', personality: 'sassy',
+        theme: { primary: '#6C63FF' }, chunkSize: 200,
+        voiceEnabled: false, voiceUrl: null, voiceId: 'rachel', voiceSpeed: 1,
+        showWidget: true, // set false for headless use (call RAGina.query() yourself)
+        ...userConfig
+      };
+      this.engine = new RetrievalEngine();
+      const buildUI = () => { if (this.config.showWidget) { this.ui = new ChatWidget(this.engine, this.config); this.ui.build(); } };
+
+      if (e.__RAGINA_INDEX__ && typeof e.__RAGINA_INDEX__ === 'object' && Object.keys(e.__RAGINA_INDEX__).length) {
+        this.engine.buildIndex(e.__RAGINA_INDEX__, this.config.chunkSize);
+        buildUI(); if (this.ui) this.ui.show();
+        return;
+      }
+      if (this.config.indexUrl) {
+        fetch(this.config.indexUrl).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+          .then(data => { this.engine.buildIndex(data, this.config.chunkSize); buildUI(); if (this.ui) this.ui.show(); })
+          .catch(err => { console.warn('RAGina: could not load index from URL.', err.message); buildUI(); });
+      } else {
+        buildUI();
+      }
+    },
+    loadData(data) {
+      if (!this.engine) this.engine = new RetrievalEngine();
+      this.engine.buildIndex(data, this.config.chunkSize || 200);
+      if (this.ui) {
+        this.ui.messages.innerHTML = '';
+        this.ui.input.disabled = false; if (this.ui.sendBtn) this.ui.sendBtn.disabled = false;
+        this.ui.addMessage(pick(PHRASES.ready), 'ai');
+      } else if (this.config.showWidget !== false) {
+        this.ui = new ChatWidget(this.engine, this.config); this.ui.build(); this.ui.show();
+      }
+    },
+    async loadFolder(fileList) {
+      const htmlFiles = [...fileList].filter(f => f.name.endsWith('.html') || f.name.endsWith('.htm'));
+      const data = {};
+      for (const file of htmlFiles) {
+        const text = await file.text();
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        data[file.webkitRelativePath || file.name] = { bodyText: (doc.body?.textContent || '').trim() };
+      }
+      this.loadData(data);
+    },
+    getEngine() { return this.engine; },
+    ask(text) { if (this.ui) { this.ui.input.value = text; this.ui.handleSend(); } },
+
+    // ---- Agentic core ----
+    registerTool, unregisterTool, listTools,
+    /**
+     * Headless agent call — no widget required. Great for embedding RAGina's
+     * brain into your own UI (e.g. a phone-call app) without its chat panel.
+     * Returns { answer, steps }. `steps` is the internal tool-call trace.
+     */
+    async query(text, options = {}) {
+      let contextText = options.contextText;
+      if (contextText === undefined && this.engine?.isReady) {
+        const chunks = this.engine.retrieve(text, options.topK || this.config.topK || 3);
+        contextText = chunks.length ? chunks.map((c, i) => `[${i + 1}] ${c.source}\n${c.text}`).join('\n\n') : '';
+      }
+      return runAgent(text, { ...options, contextText });
+    }
+  };
+
+  e.RAGina = RAGina;
+
+  const autoInit = () => {
+    if (e.__RAGINA_INDEX__ && typeof e.__RAGINA_INDEX__ === 'object' && Object.keys(e.__RAGINA_INDEX__).length) {
+      RAGina.init({ ...(e.RAGINA_CONFIG || {}), indexUrl: null });
+      return;
+    }
+    if (e.RAGINA_CONFIG) RAGina.init(e.RAGINA_CONFIG);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoInit);
+  else autoInit();
+
+  setTimeout(() => {
+    if (e.RAGina && e.__RAGINA_INDEX__ && (!e.RAGina.engine || !e.RAGina.engine.isReady)) {
+      document.querySelector('.ragina-bubble')?.remove();
+      document.querySelector('.ragina-panel')?.remove();
+      RAGina.loadData(e.__RAGINA_INDEX__);
+    }
+  }, 500);
+}(typeof window !== 'undefined' ? window : this);
