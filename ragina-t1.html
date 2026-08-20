@@ -3,208 +3,678 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RAGina-T1 — Case File: The Agentic Core</title>
+<title>RAGina-T1 · The Mentalist's Laboratory</title>
+<link rel="icon" href="https://raw.githubusercontent.com/suryasticsai/RAGina/main/ragina-logo.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0a0a12; --panel:#12121e; --panel-2:#181828; --line:#2a2a3e;
-    --text:#eceaf6; --text-dim:#9694ab; --text-faint:#5f5d78;
-    --violet:#6C63FF; --violet-soft:rgba(108,99,255,.15);
-    --amber:#e8b86d; --amber-soft:rgba(232,184,109,.15);
-    --serif:'Fraunces',serif; --mono:'IBM Plex Mono',monospace; --sans:'Inter',sans-serif;
+    --void:#05050a; --ink:#0a0a18; --panel:rgba(20,20,35,.5); --panel-2:rgba(30,28,50,.4);
+    --glass:rgba(108,99,255,.06); --line:rgba(139,124,255,.18);
+    --text:#e8e6f5; --text-dim:#a7a4c2; --text-faint:#6c6a85;
+    --violet:#8b7cff; --violet-2:#6C63FF; --violet-glow:rgba(139,124,255,.5);
+    --amber:#f4c77a; --amber-glow:rgba(244,199,122,.45);
+    --mint:#4ade80;
+    --serif:'Fraunces',serif; --sans:'Space Grotesk',sans-serif; --mono:'JetBrains Mono',monospace;
   }
-  *{box-sizing:border-box;margin:0;padding:0;}
+  *{box-sizing:border-box; margin:0; padding:0;}
   html{scroll-behavior:smooth;}
   body{
+    font-family:var(--sans); color:var(--text); line-height:1.6;
+    background:var(--void);
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ===== Animated nebula background ===== */
+  .nebula{
+    position:fixed; inset:0; z-index:-2; pointer-events:none;
     background:
-      radial-gradient(900px 500px at 85% -10%, rgba(108,99,255,.14), transparent 60%),
-      radial-gradient(700px 400px at 5% 15%, rgba(232,184,109,.06), transparent 55%),
-      var(--ink);
-    color:var(--text); font-family:var(--sans); line-height:1.6; -webkit-font-smoothing:antialiased;
+      radial-gradient(ellipse 900px 600px at 15% 10%, rgba(139,124,255,.18), transparent 60%),
+      radial-gradient(ellipse 800px 500px at 85% 25%, rgba(244,199,122,.08), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 50% 95%, rgba(108,99,255,.12), transparent 60%),
+      var(--void);
   }
-  a{color:var(--violet);}
-  .wrap{max-width:960px; margin:0 auto; padding:0 1.5rem;}
+  .stars{
+    position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.4;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff 50%, transparent),
+      radial-gradient(1px 1px at 60% 70%, #fff 50%, transparent),
+      radial-gradient(1px 1px at 50% 50%, #fff 50%, transparent),
+      radial-gradient(2px 2px at 80% 10%, #fff 50%, transparent),
+      radial-gradient(1px 1px at 90% 60%, #fff 50%, transparent),
+      radial-gradient(1px 1px at 33% 80%, #fff 50%, transparent),
+      radial-gradient(1px 1px at 15% 50%, #fff 50%, transparent);
+    background-size:200% 200%;
+    animation:drift 60s linear infinite;
+  }
+  @keyframes drift { from{background-position:0 0;} to{background-position:200% 200%;} }
 
-  /* ===== Nav ===== */
-  nav{position:sticky; top:0; z-index:50; backdrop-filter:blur(10px); background:rgba(10,10,18,.85); border-bottom:1px solid var(--line);}
-  nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.5rem;}
-  .nav-brand{font-family:var(--mono); font-size:.82rem; letter-spacing:.08em; color:var(--amber);}
-  .nav-links{display:flex; gap:1.4rem; font-size:.82rem; font-family:var(--mono);}
-  .nav-links a{color:var(--text-dim); text-decoration:none; transition:color .15s;}
+  .wrap{max-width:1100px; margin:0 auto; padding:0 1.5rem; position:relative;}
+
+  /* ===== Nav — glass morphism ===== */
+  nav{
+    position:sticky; top:0; z-index:100;
+    backdrop-filter:blur(16px) saturate(180%);
+    -webkit-backdrop-filter:blur(16px) saturate(180%);
+    background:rgba(10,10,24,.55);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:1rem 1.5rem;}
+  .nav-brand{display:flex; align-items:center; gap:.7rem; font-family:var(--mono); font-size:.78rem; letter-spacing:.14em; color:var(--text);}
+  .nav-brand .nav-orb{
+    width:28px; height:28px; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #fff, var(--violet) 40%, #2a1d5c 80%);
+    box-shadow:0 0 18px var(--violet-glow), inset -3px -3px 8px rgba(0,0,0,.3);
+    position:relative;
+  }
+  .nav-brand .nav-orb::after{
+    content:''; position:absolute; inset:-6px; border-radius:50%;
+    border:1px solid rgba(139,124,255,.3);
+    animation:pulse-ring 3s ease-out infinite;
+  }
+  @keyframes pulse-ring { 0%{transform:scale(.9); opacity:.7;} 100%{transform:scale(1.4); opacity:0;} }
+  .nav-brand b{color:var(--amber); font-weight:500;}
+  .nav-links{display:flex; gap:1.8rem; font-size:.82rem; font-family:var(--mono);}
+  .nav-links a{color:var(--text-dim); text-decoration:none; transition:color .2s; position:relative;}
   .nav-links a:hover{color:var(--text);}
-  @media(max-width:640px){ .nav-links{display:none;} }
-
-  /* ===== Hero / case file cover ===== */
-  .hero{padding:5rem 0 4rem; position:relative; overflow:hidden;}
-  .case-no{font-family:var(--mono); font-size:.75rem; letter-spacing:.15em; color:var(--text-faint); margin-bottom:1.2rem; display:flex; align-items:center; gap:.6rem;}
-  .case-no::before{content:''; width:22px; height:1px; background:var(--text-faint);}
-  h1{font-family:var(--serif); font-weight:600; font-size:clamp(2.4rem,6vw,3.6rem); line-height:1.08; letter-spacing:-.01em; max-width:11ch;}
-  h1 em{font-style:italic; color:var(--violet); font-weight:500;}
-  .hero-sub{font-size:1.05rem; color:var(--text-dim); max-width:52ch; margin:1.3rem 0 2rem;}
-  .stamp{
-    position:absolute; top:3.5rem; right:1.5rem; width:132px; height:132px; border-radius:50%;
-    border:2px solid var(--amber); display:flex; align-items:center; justify-content:center;
-    transform:rotate(-14deg); opacity:.85;
+  .nav-links a::after{
+    content:''; position:absolute; left:0; bottom:-4px; width:0; height:1px; background:var(--violet);
+    transition:width .3s;
   }
-  .stamp-inner{font-family:var(--mono); font-size:.62rem; letter-spacing:.1em; color:var(--amber); text-align:center; line-height:1.5;}
-  .stamp-inner b{display:block; font-size:.9rem; letter-spacing:.06em;}
-  @media(max-width:640px){ .stamp{width:96px; height:96px; top:1.5rem; right:1rem;} .stamp-inner{font-size:.5rem;} .stamp-inner b{font-size:.7rem;} }
+  .nav-links a:hover::after{width:100%;}
+  @media(max-width:700px){ .nav-links{display:none;} }
 
-  .cta-row{display:flex; gap:.7rem; flex-wrap:wrap;}
+  /* ===== Hero — 3D mascot & headline ===== */
+  .hero{padding:6rem 0 5rem; position:relative; perspective:1200px;}
+  .hero-grid{display:grid; grid-template-columns:1.1fr .9fr; gap:4rem; align-items:center;}
+  @media(max-width:860px){ .hero-grid{grid-template-columns:1fr; gap:3rem;} }
+
+  .hero-label{
+    display:inline-flex; align-items:center; gap:.5rem;
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.15em;
+    color:var(--amber); margin-bottom:1.4rem;
+    padding:.4rem .9rem; border:1px solid rgba(244,199,122,.3);
+    border-radius:30px; background:rgba(244,199,122,.06);
+  }
+  .hero-label .dot{width:6px; height:6px; border-radius:50%; background:var(--mint); box-shadow:0 0 10px var(--mint); animation:blink 1.4s infinite;}
+  @keyframes blink { 50%{opacity:.3;} }
+
+  h1{
+    font-family:var(--serif); font-weight:500;
+    font-size:clamp(2.6rem, 6.2vw, 4.2rem);
+    line-height:1.02; letter-spacing:-.02em;
+    margin-bottom:1.5rem;
+  }
+  h1 em{font-style:italic; font-weight:400; background:linear-gradient(135deg, var(--violet), var(--amber)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  h1 .glitch{position:relative; display:inline-block;}
+
+  .hero-sub{font-size:1.1rem; color:var(--text-dim); max-width:44ch; margin-bottom:2.2rem; line-height:1.55;}
+
+  .cta-row{display:flex; gap:.8rem; flex-wrap:wrap;}
   .btn{
-    font-family:var(--mono); font-size:.8rem; padding:.7rem 1.2rem; border-radius:6px; text-decoration:none;
-    display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--line); transition:.15s;
+    font-family:var(--mono); font-size:.82rem; padding:.9rem 1.4rem; border-radius:10px; text-decoration:none;
+    display:inline-flex; align-items:center; gap:.55rem; border:1px solid var(--line);
+    transition:.2s; position:relative; overflow:hidden;
   }
-  .btn-primary{background:var(--violet); color:#fff; border-color:var(--violet);}
-  .btn-primary:hover{background:#5a52e0;}
-  .btn-ghost{color:var(--text-dim);}
-  .btn-ghost:hover{color:var(--text); border-color:var(--text-dim);}
+  .btn-primary{
+    background:linear-gradient(135deg, var(--violet), var(--violet-2));
+    color:#fff; border-color:transparent;
+    box-shadow:0 8px 30px -6px var(--violet-glow), 0 0 0 1px rgba(255,255,255,.1) inset;
+  }
+  .btn-primary::before{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%);
+    transform:translateX(-100%); transition:transform .6s;
+  }
+  .btn-primary:hover::before{transform:translateX(100%);}
+  .btn-primary:hover{transform:translateY(-2px); box-shadow:0 12px 40px -6px var(--violet-glow);}
+  .btn-ghost{color:var(--text-dim); background:var(--glass);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--violet); background:rgba(108,99,255,.1);}
+
+  /* ===== 3D Crystal Ball Mascot ===== */
+  .mascot-stage{
+    position:relative; display:flex; align-items:center; justify-content:center;
+    min-height:420px; perspective:1000px;
+  }
+  .mascot-orbit{
+    position:absolute; border:1px dashed rgba(139,124,255,.2); border-radius:50%;
+    animation:orbit 40s linear infinite;
+  }
+  .mascot-orbit.o1{width:360px; height:360px;}
+  .mascot-orbit.o2{width:420px; height:420px; animation-duration:60s; animation-direction:reverse; border-color:rgba(244,199,122,.15);}
+  .mascot-orbit .particle{
+    position:absolute; width:8px; height:8px; border-radius:50%;
+    background:var(--violet); box-shadow:0 0 14px var(--violet-glow);
+    top:50%; left:-4px; transform:translateY(-50%);
+  }
+  .mascot-orbit.o2 .particle{background:var(--amber); box-shadow:0 0 14px var(--amber-glow);}
+  @keyframes orbit { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+
+  .crystal-ball{
+    position:relative; width:280px; height:280px; border-radius:50%;
+    transform-style:preserve-3d;
+    animation:float 6s ease-in-out infinite;
+    cursor:pointer;
+    transition:transform .4s;
+  }
+  .crystal-ball:hover{transform:rotateY(15deg) rotateX(-10deg) scale(1.04);}
+  @keyframes float {
+    0%,100%{transform:translateY(0) rotate(0deg);}
+    50%{transform:translateY(-18px) rotate(3deg);}
+  }
+  .crystal-ball .shell{
+    position:absolute; inset:0; border-radius:50%;
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 40%),
+      radial-gradient(circle at 70% 70%, rgba(244,199,122,.4), transparent 50%),
+      radial-gradient(circle at 50% 50%, #4a3a8a, #1a1140 70%, #0a0520 100%);
+    box-shadow:
+      0 0 80px 20px rgba(139,124,255,.35),
+      0 0 120px 40px rgba(108,99,255,.15),
+      inset -20px -30px 60px rgba(0,0,0,.4),
+      inset 20px 20px 40px rgba(255,255,255,.1);
+    overflow:hidden;
+  }
+  .crystal-ball .shell::before{
+    content:''; position:absolute; inset:0; border-radius:50%;
+    background:conic-gradient(from 0deg, transparent, rgba(139,124,255,.3), transparent 30%);
+    animation:spin 8s linear infinite;
+  }
+  @keyframes spin { to{transform:rotate(360deg);} }
+  .crystal-ball .shell::after{
+    content:''; position:absolute; top:14%; left:20%;
+    width:40%; height:30%; border-radius:50%;
+    background:radial-gradient(ellipse, rgba(255,255,255,.85), transparent 60%);
+    filter:blur(2px);
+  }
+  .crystal-ball .mascot-img{
+    position:absolute; inset:0; border-radius:50%; object-fit:cover;
+    mix-blend-mode:screen; opacity:.9;
+  }
+  .crystal-ball .inner-glow{
+    position:absolute; inset:15%; border-radius:50%;
+    background:radial-gradient(circle, rgba(244,199,122,.3), transparent 70%);
+    animation:pulse-inner 3s ease-in-out infinite;
+  }
+  @keyframes pulse-inner { 50%{opacity:.5; transform:scale(1.1);} }
+  .crystal-ball .base{
+    position:absolute; bottom:-40px; left:50%; transform:translateX(-50%);
+    width:180px; height:60px;
+    background:linear-gradient(180deg, #1a1140, #0a0520);
+    border-radius:50% 50% 20% 20% / 100% 100% 50% 50%;
+    box-shadow:0 10px 30px rgba(0,0,0,.6), inset 0 -5px 15px rgba(139,124,255,.2);
+  }
+  .crystal-ball .base::after{
+    content:''; position:absolute; bottom:-20px; left:50%; transform:translateX(-50%);
+    width:220px; height:30px; border-radius:50%;
+    background:radial-gradient(ellipse, rgba(139,124,255,.4), transparent 70%);
+    filter:blur(8px);
+  }
 
   /* ===== Section scaffolding ===== */
-  section{padding:3.6rem 0; border-top:1px solid var(--line);}
-  .eyebrow{font-family:var(--mono); font-size:.72rem; letter-spacing:.14em; color:var(--amber); margin-bottom:.6rem;}
-  h2{font-family:var(--serif); font-weight:600; font-size:1.9rem; margin-bottom:.5rem;}
-  .section-sub{color:var(--text-dim); max-width:60ch; margin-bottom:2.2rem; font-size:.95rem;}
+  section{padding:5rem 0; position:relative;}
+  .eyebrow{
+    font-family:var(--mono); font-size:.7rem; letter-spacing:.2em;
+    color:var(--amber); margin-bottom:.8rem;
+    display:flex; align-items:center; gap:.7rem;
+  }
+  .eyebrow::before{content:''; width:28px; height:1px; background:var(--amber);}
+  h2{
+    font-family:var(--serif); font-weight:500;
+    font-size:clamp(2rem, 4.5vw, 2.8rem); line-height:1.1;
+    margin-bottom:.8rem; letter-spacing:-.01em;
+  }
+  h2 em{font-style:italic; color:var(--violet);}
+  .section-sub{color:var(--text-dim); max-width:62ch; margin-bottom:2.8rem; font-size:1rem; line-height:1.55;}
 
-  /* ===== Exhibits (features) ===== */
-  .exhibits{display:grid; grid-template-columns:repeat(2,1fr); gap:1rem;}
-  @media(max-width:700px){ .exhibits{grid-template-columns:1fr;} }
-  .exhibit{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.4rem;}
-  .exhibit-tag{font-family:var(--mono); font-size:.68rem; color:var(--text-faint); letter-spacing:.1em; margin-bottom:.6rem;}
-  .exhibit h3{font-family:var(--serif); font-size:1.15rem; font-weight:600; margin-bottom:.5rem;}
-  .exhibit p{color:var(--text-dim); font-size:.87rem; line-height:1.6;}
-  .exhibit .status{display:inline-block; margin-top:.8rem; font-family:var(--mono); font-size:.68rem; padding:.2rem .55rem; border-radius:20px;}
-  .status.new{background:var(--violet-soft); color:#b3aeff;}
-  .status.core{background:var(--amber-soft); color:var(--amber);}
+  /* ===== Live Demo Terminal ===== */
+  .demo-wrap{perspective:1500px;}
+  .terminal{
+    background:linear-gradient(180deg, rgba(15,12,30,.95), rgba(8,6,18,.95));
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:
+      0 30px 80px -20px rgba(0,0,0,.8),
+      0 0 60px rgba(139,124,255,.15),
+      inset 0 1px 0 rgba(255,255,255,.05);
+    overflow:hidden;
+    transform:rotateX(2deg);
+    transition:transform .4s;
+  }
+  .terminal:hover{transform:rotateX(0deg);}
+  .term-head{
+    display:flex; align-items:center; gap:.6rem;
+    padding:.8rem 1.2rem;
+    background:rgba(0,0,0,.4);
+    border-bottom:1px solid var(--line);
+  }
+  .term-dot{width:11px; height:11px; border-radius:50%;}
+  .term-dot.r{background:#ff5f57;} .term-dot.y{background:#febc2e;} .term-dot.g{background:#28c840;}
+  .term-title{margin-left:auto; font-family:var(--mono); font-size:.7rem; color:var(--text-faint);}
+  .term-body{
+    padding:1.6rem 1.4rem;
+    font-family:var(--mono); font-size:.82rem;
+    min-height:320px;
+    color:#c8c6e0;
+  }
+  .term-line{margin-bottom:.5rem; display:flex; gap:.6rem; animation:fadeIn .3s ease-out;}
+  @keyframes fadeIn { from{opacity:0; transform:translateX(-4px);} to{opacity:1; transform:none;} }
+  .term-prompt{color:var(--mint); font-weight:600;}
+  .term-user{color:var(--text);}
+  .term-think{color:var(--text-faint); font-style:italic;}
+  .term-tool{color:var(--amber);}
+  .term-tool b{color:var(--violet); font-weight:600;}
+  .term-success{color:var(--mint);}
+  .term-answer{color:#fff; padding-left:1rem; border-left:2px solid var(--violet); margin:.3rem 0;}
+  .cursor{display:inline-block; width:8px; height:14px; background:var(--violet); animation:caret 1s infinite; vertical-align:middle;}
+  @keyframes caret { 50%{opacity:0;} }
+  .term-replay{
+    margin-top:1rem; padding:.5rem 1rem;
+    background:transparent; border:1px solid var(--line);
+    color:var(--text-dim); font-family:var(--mono); font-size:.75rem;
+    border-radius:8px; cursor:pointer; transition:.2s;
+  }
+  .term-replay:hover{color:var(--text); border-color:var(--violet);}
 
-  /* ===== Flow diagram ===== */
-  .flow{display:flex; align-items:center; gap:0; flex-wrap:wrap; margin:2rem 0; font-family:var(--mono); font-size:.76rem;}
-  .flow-step{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:.7rem 1rem; color:var(--text-dim);}
-  .flow-step b{color:var(--text); display:block; font-size:.82rem; margin-bottom:.15rem;}
-  .flow-arrow{color:var(--text-faint); padding:0 .6rem;}
+  /* ===== Feature grid (3D tilt) ===== */
+  .features{display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem;}
+  @media(max-width:900px){ .features{grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:560px){ .features{grid-template-columns:1fr;} }
+
+  .feat{
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:1.6rem 1.4rem;
+    position:relative;
+    overflow:hidden;
+    transform-style:preserve-3d;
+    transition:transform .3s ease-out, box-shadow .3s;
+    cursor:default;
+  }
+  .feat::before{
+    content:''; position:absolute; inset:0; border-radius:inherit;
+    background:linear-gradient(135deg, rgba(139,124,255,.1), transparent 60%);
+    opacity:0; transition:opacity .3s;
+  }
+  .feat:hover::before{opacity:1;}
+  .feat:hover{box-shadow:0 20px 50px -20px rgba(139,124,255,.35);}
+  .feat .feat-icon{
+    width:44px; height:44px; border-radius:12px;
+    background:linear-gradient(135deg, var(--violet), var(--violet-2));
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.3rem; margin-bottom:1rem;
+    box-shadow:0 6px 20px -4px var(--violet-glow);
+    transform:translateZ(30px);
+  }
+  .feat.amber .feat-icon{background:linear-gradient(135deg, var(--amber), #d89a4a); box-shadow:0 6px 20px -4px var(--amber-glow);}
+  .feat h3{
+    font-family:var(--serif); font-size:1.15rem; font-weight:600;
+    margin-bottom:.45rem; transform:translateZ(20px);
+  }
+  .feat p{color:var(--text-dim); font-size:.88rem; line-height:1.55; transform:translateZ(10px);}
+  .feat .tag{
+    position:absolute; top:1rem; right:1rem;
+    font-family:var(--mono); font-size:.62rem; letter-spacing:.1em;
+    padding:.2rem .55rem; border-radius:20px;
+  }
+  .tag.new{background:rgba(139,124,255,.15); color:#b3aeff;}
+  .tag.core{background:rgba(244,199,122,.12); color:var(--amber);}
+
+  /* ===== ReAct Loop visualization ===== */
+  .loop-wrap{
+    background:linear-gradient(180deg, var(--panel), transparent);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:2.4rem;
+    position:relative;
+    overflow:hidden;
+  }
+  .loop-wrap::before{
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(circle at 50% 0%, rgba(139,124,255,.08), transparent 60%);
+  }
+  .loop{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;
+    position:relative; margin-top:1rem;
+  }
+  @media(max-width:700px){ .loop{grid-template-columns:repeat(2,1fr);} }
+  .loop-step{
+    background:rgba(10,10,24,.6);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:1.3rem 1rem;
+    position:relative;
+    transition:.3s;
+  }
+  .loop-step.active{
+    border-color:var(--violet);
+    box-shadow:0 0 0 1px var(--violet), 0 0 24px var(--violet-glow);
+    transform:translateY(-4px);
+  }
+  .loop-num{
+    font-family:var(--mono); font-size:.68rem; color:var(--text-faint);
+    letter-spacing:.14em; margin-bottom:.3rem;
+  }
+  .loop-step h4{font-family:var(--serif); font-size:1.05rem; margin-bottom:.3rem;}
+  .loop-step p{font-size:.78rem; color:var(--text-dim); line-height:1.5;}
+  .loop-step .loop-icon{
+    position:absolute; top:1rem; right:1rem;
+    width:28px; height:28px; border-radius:50%;
+    background:rgba(139,124,255,.15); color:var(--violet);
+    display:flex; align-items:center; justify-content:center;
+    font-size:.8rem;
+  }
+  .loop-step.active .loop-icon{background:var(--violet); color:#fff; animation:pulse-icon 1.2s infinite;}
+  @keyframes pulse-icon { 50%{box-shadow:0 0 0 6px rgba(139,124,255,.25);} }
 
   /* ===== Code blocks ===== */
-  .code-block{position:relative; background:#08080f; border:1px solid var(--line); border-radius:10px; margin:1rem 0; overflow:hidden;}
-  .code-head{display:flex; justify-content:space-between; align-items:center; padding:.55rem .9rem; border-bottom:1px solid var(--line); font-family:var(--mono); font-size:.68rem; color:var(--text-faint);}
-  .copy-btn{background:none; border:1px solid var(--line); color:var(--text-dim); font-family:var(--mono); font-size:.66rem; padding:.25rem .6rem; border-radius:5px; cursor:pointer; transition:.15s;}
-  .copy-btn:hover{color:var(--text); border-color:var(--text-dim);}
-  pre{margin:0; padding:1rem 1.1rem; overflow-x:auto; font-family:var(--mono); font-size:.8rem; line-height:1.65; color:#d8d6ea;}
+  .code-block{
+    background:rgba(8,6,18,.9);
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin:1.2rem 0;
+    overflow:hidden;
+    box-shadow:0 10px 40px -10px rgba(0,0,0,.6);
+  }
+  .code-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:.55rem 1rem;
+    background:rgba(0,0,0,.4);
+    border-bottom:1px solid var(--line);
+    font-family:var(--mono); font-size:.7rem; color:var(--text-faint);
+  }
+  .copy-btn{
+    background:transparent; border:1px solid var(--line);
+    color:var(--text-dim); font-family:var(--mono); font-size:.68rem;
+    padding:.25rem .7rem; border-radius:5px; cursor:pointer; transition:.15s;
+  }
+  .copy-btn:hover{color:var(--text); border-color:var(--violet);}
+  pre{margin:0; padding:1.1rem 1.2rem; overflow-x:auto; font-family:var(--mono); font-size:.82rem; line-height:1.7; color:#d8d6ea;}
   .tok-kw{color:#c792ea;} .tok-str{color:#a8dba8;} .tok-fn{color:#82aaff;} .tok-com{color:#5f5d78; font-style:italic;} .tok-num{color:var(--amber);}
 
-  /* ===== Config table ===== */
-  table{width:100%; border-collapse:collapse; font-size:.83rem; margin-top:1rem;}
-  th{text-align:left; font-family:var(--mono); font-size:.68rem; letter-spacing:.08em; color:var(--text-faint); padding:.5rem .3rem; border-bottom:1px solid var(--line);}
-  td{padding:.6rem .3rem; border-bottom:1px solid var(--line); color:var(--text-dim); vertical-align:top;}
-  td:first-child{font-family:var(--mono); color:var(--amber); white-space:nowrap;}
-  td:last-child{color:var(--text-faint); font-size:.78rem;}
+  /* ===== Author section ===== */
+  .author-wrap{
+    display:grid; grid-template-columns:.8fr 1.2fr; gap:3rem; align-items:center;
+    background:linear-gradient(135deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line); border-radius:18px;
+    padding:2.4rem;
+    position:relative; overflow:hidden;
+  }
+  .author-wrap::before{
+    content:''; position:absolute; top:-50%; right:-20%; width:500px; height:500px;
+    background:radial-gradient(circle, rgba(139,124,255,.1), transparent 70%);
+    pointer-events:none;
+  }
+  @media(max-width:760px){ .author-wrap{grid-template-columns:1fr; gap:1.5rem; padding:1.8rem;} }
+  .author-avatar{
+    width:180px; height:180px; border-radius:50%;
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,.1), transparent 40%),
+      linear-gradient(135deg, var(--violet), #2a1d5c);
+    border:1px solid var(--line);
+    margin:0 auto;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--serif); font-size:4rem; font-weight:600;
+    color:rgba(255,255,255,.9);
+    box-shadow:0 20px 50px -10px var(--violet-glow), inset -8px -8px 20px rgba(0,0,0,.3);
+    position:relative;
+  }
+  .author-avatar::after{
+    content:''; position:absolute; inset:-12px; border-radius:50%;
+    border:1px dashed rgba(139,124,255,.4);
+    animation:orbit 20s linear infinite;
+  }
+  .author-info h3{font-family:var(--serif); font-size:1.8rem; font-weight:500; margin-bottom:.3rem;}
+  .author-info .author-role{font-family:var(--mono); font-size:.78rem; color:var(--amber); letter-spacing:.1em; margin-bottom:1rem;}
+  .author-info p{color:var(--text-dim); font-size:.95rem; line-height:1.6; margin-bottom:1rem; max-width:52ch;}
+  .author-links{display:flex; gap:.7rem; flex-wrap:wrap;}
+  .author-links a{
+    font-family:var(--mono); font-size:.78rem;
+    padding:.5rem 1rem; border-radius:8px; text-decoration:none;
+    border:1px solid var(--line); color:var(--text-dim); transition:.2s;
+    display:inline-flex; align-items:center; gap:.5rem;
+  }
+  .author-links a:hover{color:var(--text); border-color:var(--violet); background:rgba(139,124,255,.08);}
 
-  /* ===== Business case files ===== */
-  .cases{display:grid; grid-template-columns:repeat(2,1fr); gap:.9rem;}
-  @media(max-width:700px){ .cases{grid-template-columns:1fr;} }
-  .case{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.3rem; position:relative;}
-  .case-index{position:absolute; top:1.1rem; right:1.2rem; font-family:var(--mono); font-size:.68rem; color:var(--text-faint);}
-  .case h4{font-family:var(--serif); font-size:1.05rem; font-weight:600; margin-bottom:.4rem; padding-right:2.5rem;}
-  .case p{color:var(--text-dim); font-size:.85rem; margin-bottom:.6rem;}
-  .case .tool-line{font-family:var(--mono); font-size:.72rem; color:var(--text-faint); background:var(--panel-2); padding:.4rem .6rem; border-radius:6px; border-left:2px solid var(--violet);}
+  /* ===== Roadmap / Tiers ===== */
+  .tiers{display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; position:relative;}
+  @media(max-width:760px){ .tiers{grid-template-columns:1fr;} }
+  .tier{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:1.6rem 1.4rem;
+    position:relative; transition:.3s;
+  }
+  .tier.current{border-color:var(--violet); box-shadow:0 0 0 1px var(--violet), 0 10px 40px -10px var(--violet-glow);}
+  .tier-badge{
+    position:absolute; top:-10px; left:1.4rem;
+    font-family:var(--mono); font-size:.68rem; letter-spacing:.1em;
+    padding:.25rem .7rem; border-radius:20px;
+    background:var(--violet); color:#fff;
+  }
+  .tier.soon .tier-badge{background:var(--amber); color:#1a1140;}
+  .tier.later .tier-badge{background:var(--text-faint); color:#1a1140;}
+  .tier h3{font-family:var(--serif); font-size:1.3rem; margin:.4rem 0 .5rem;}
+  .tier p{color:var(--text-dim); font-size:.85rem; margin-bottom:1rem; line-height:1.5;}
+  .tier ul{list-style:none; font-size:.82rem;}
+  .tier ul li{padding:.35rem 0; color:var(--text-dim); display:flex; gap:.5rem; align-items:flex-start;}
+  .tier ul li::before{content:'◆'; color:var(--violet); font-size:.5rem; margin-top:.55rem;}
+  .tier.current ul li::before{color:var(--mint);}
 
   /* ===== CDN section ===== */
-  .cdn-box{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.4rem;}
-  .warn{border-left:2px solid var(--amber); background:var(--amber-soft); padding:.7rem 1rem; border-radius:0 8px 8px 0; font-size:.82rem; color:#e0cfa5; margin-top:1rem;}
+  .cdn-box{
+    background:linear-gradient(135deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line); border-radius:16px;
+    padding:2rem;
+    position:relative; overflow:hidden;
+  }
+  .cdn-box::before{
+    content:''; position:absolute; top:-100px; right:-100px; width:300px; height:300px;
+    background:radial-gradient(circle, var(--violet-glow), transparent 70%);
+    filter:blur(40px); opacity:.5;
+  }
+  .warn{
+    border-left:2px solid var(--amber); background:rgba(244,199,122,.08);
+    padding:.9rem 1.2rem; border-radius:0 10px 10px 0;
+    font-size:.85rem; color:#e0cfa5; margin-top:1.2rem;
+  }
+  .warn code{background:rgba(0,0,0,.3); padding:.1rem .4rem; border-radius:4px; color:var(--amber);}
 
-  footer{padding:2.5rem 0 4rem; text-align:center; color:var(--text-faint); font-family:var(--mono); font-size:.75rem;}
-  footer a{color:var(--text-faint);}
+  /* ===== Footer ===== */
+  footer{padding:3.5rem 0 4rem; text-align:center; color:var(--text-faint); font-family:var(--mono); font-size:.78rem; border-top:1px solid var(--line);}
+  footer a{color:var(--text-dim); text-decoration:none; transition:color .2s;}
+  footer a:hover{color:var(--violet);}
+  footer .foot-logo{display:flex; align-items:center; justify-content:center; gap:.7rem; margin-bottom:1rem; font-size:.9rem; color:var(--text);}
+  footer .foot-logo .orb{
+    width:22px; height:22px; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #fff, var(--violet) 40%, #2a1d5c 80%);
+    box-shadow:0 0 12px var(--violet-glow);
+  }
+
+  /* ===== Scroll reveals ===== */
+  .reveal{opacity:0; transform:translateY(30px); transition:opacity .8s, transform .8s;}
+  .reveal.in{opacity:1; transform:none;}
+
 </style>
 </head>
 <body>
 
+<div class="nebula"></div>
+<div class="stars"></div>
+
 <nav>
   <div class="wrap">
-    <div class="nav-brand">RAGINA · CASE FILE T1</div>
+    <div class="nav-brand">
+      <div class="nav-orb"></div>
+      RAGINA <b>/ T1</b>
+    </div>
     <div class="nav-links">
-      <a href="#features">Exhibits</a>
-      <a href="#usage">Usage</a>
-      <a href="#cases">Case Files</a>
-      <a href="#cdn">Install</a>
+      <a href="#demo">Demo</a>
+      <a href="#features">Features</a>
+      <a href="#loop">Agentic Loop</a>
+      <a href="#author">Author</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#cdn">CDN</a>
     </div>
   </div>
 </nav>
 
 <header class="hero">
   <div class="wrap">
-    <div class="stamp"><div class="stamp-inner">VERIFIED<b>AGENTIC</b>CORE · v2.2</div></div>
-    <div class="case-no">CASE FILE NO. T1 — OPENED</div>
-    <h1>The mentalist<br>learned to <em>act</em>, not just read.</h1>
-    <p class="hero-sub">RAGina-T1 is a single-file, CDN-hosted RAG engine that answers from your documents — and now, when the documents run out, it reaches for tools you register and takes action before it replies.</p>
-    <div class="cta-row">
-      <a class="btn btn-primary" href="#cdn">Get the CDN tag →</a>
-      <a class="btn btn-ghost" href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">View source on GitHub</a>
+    <div class="hero-grid">
+
+      <div class="reveal">
+        <div class="hero-label"><span class="dot"></span> VERSION T1 · AGENTIC CORE LIVE</div>
+        <h1>The mentalist<br>learned to <em>act</em>,<br>not just read.</h1>
+        <p class="hero-sub">RAGina-T1 is a single-file, CDN-hosted RAG engine that answers from your documents — and now, when the documents run out, it reaches for tools you register and takes action before it replies.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#cdn">↓ Get the CDN tag</a>
+          <a class="btn btn-ghost" href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">→ View source</a>
+        </div>
+      </div>
+
+      <div class="mascot-stage reveal">
+        <div class="mascot-orbit o1"><div class="particle"></div></div>
+        <div class="mascot-orbit o2"><div class="particle"></div></div>
+        <div class="crystal-ball">
+          <div class="shell"></div>
+          <img class="mascot-img" src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/ragina-logo.png" alt="RAGina"
+               onerror="this.style.display='none'" />
+          <div class="inner-glow"></div>
+          <div class="base"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 </header>
 
-<section id="features">
+<!-- ============ LIVE DEMO TERMINAL ============ -->
+<section id="demo">
   <div class="wrap">
-    <div class="eyebrow">EXHIBITS A–D</div>
-    <h2>What's actually in the file</h2>
-    <p class="section-sub">Four capabilities, all in one ~25KB script. No build step, no server changes required.</p>
+    <div class="eyebrow reveal">LIVE SIMULATION</div>
+    <h2 class="reveal">Watch the <em>agentic loop</em> in real time.</h2>
+    <p class="section-sub reveal">This isn't a mock-up — it's a faithful trace of what happens inside RAGina-T1 when you ask it something documents alone can't answer.</p>
 
-    <div class="exhibits">
-      <div class="exhibit">
-        <div class="exhibit-tag">EXHIBIT A</div>
-        <h3>Document retrieval</h3>
-        <p>A client-side TF-IDF search index. Load documents via a folder, a JSON index, or a URL — RAGina chunks, scores, and retrieves the most relevant passages for any question, entirely in the browser.</p>
-        <span class="status core">core</span>
+    <div class="demo-wrap reveal">
+      <div class="terminal">
+        <div class="term-head">
+          <div class="term-dot r"></div>
+          <div class="term-dot y"></div>
+          <div class="term-dot g"></div>
+          <div class="term-title">ragina@t1 · ~/react-loop</div>
+        </div>
+        <div class="term-body" id="termBody"></div>
       </div>
-      <div class="exhibit">
-        <div class="exhibit-tag">EXHIBIT B</div>
-        <h3>Tool calling — the agentic core</h3>
-        <p>Register any JS function as a tool. When documents alone can't answer a question, RAGina asks for a tool, runs it, reads the result, and only then replies — a ReAct loop that works with a plain text-completion backend.</p>
-        <span class="status new">new in T1</span>
-      </div>
-      <div class="exhibit">
-        <div class="exhibit-tag">EXHIBIT C</div>
-        <h3>Headless mode</h3>
-        <p><code>RAGina.query()</code> returns an answer (with tools) with zero UI. Built for embedding RAGina's reasoning inside your own interface — a phone-call app, a Slack bot, a support console.</p>
-        <span class="status new">new in T1</span>
-      </div>
-      <div class="exhibit">
-        <div class="exhibit-tag">EXHIBIT D</div>
-        <h3>Chat widget</h3>
-        <p>An optional floating bubble + panel, ready out of the box. Now shows a live "🔧 using toolName…" tag while a tool call is in flight, so tool use is visible, not silent.</p>
-        <span class="status core">core</span>
-      </div>
-    </div>
-
-    <div class="eyebrow" style="margin-top:2.6rem;">HOW THE AGENTIC LOOP WORKS</div>
-    <p class="section-sub" style="margin-bottom:0;">The backend is a plain prompt-in/text-out endpoint — not a structured function-calling API. So the loop runs entirely on the client:</p>
-    <div class="flow">
-      <div class="flow-step"><b>1. Ask</b>question + tool list go in one prompt</div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><b>2. Decide</b>model replies TOOL_CALL or ANSWER</div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><b>3. Act</b>your JS handler runs, result recorded</div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><b>4. Repeat</b>up to 4 steps, then final ANSWER</div>
+      <button class="term-replay" onclick="runDemo()">↻ Replay simulation</button>
     </div>
   </div>
 </section>
 
+<!-- ============ FEATURES ============ -->
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow reveal">EXHIBITS A–F</div>
+    <h2 class="reveal">What's actually inside <em>the file</em>.</h2>
+    <p class="section-sub reveal">Six capabilities, all in one ~25KB script. No build step, no server changes required. Just a `<script>` tag.</p>
+
+    <div class="features">
+      <div class="feat reveal">
+        <span class="tag core">CORE</span>
+        <div class="feat-icon">📚</div>
+        <h3>Document retrieval</h3>
+        <p>Client-side TF-IDF search index. Load docs via folder, JSON, or URL — RAGina chunks, scores, and retrieves passages entirely in the browser.</p>
+      </div>
+      <div class="feat amber reveal">
+        <span class="tag new">NEW IN T1</span>
+        <div class="feat-icon">🔧</div>
+        <h3>Tool calling</h3>
+        <p>Register any JS function as a tool. When docs can't answer, RAGina asks for a tool, runs it, reads the result, and only then replies — a true ReAct loop.</p>
+      </div>
+      <div class="feat reveal">
+        <span class="tag new">NEW IN T1</span>
+        <div class="feat-icon">👻</div>
+        <h3>Headless mode</h3>
+        <p><code>RAGina.query()</code> returns an answer with zero UI. Built for embedding inside your own interface — phone apps, bots, consoles.</p>
+      </div>
+      <div class="feat amber reveal">
+        <span class="tag core">CORE</span>
+        <div class="feat-icon">💬</div>
+        <h3>Chat widget</h3>
+        <p>Optional floating bubble + panel. Shows live "🔧 using toolName…" tags while a tool call is in flight, so tool use is visible, not silent.</p>
+      </div>
+      <div class="feat reveal">
+        <span class="tag new">NEW IN T1</span>
+        <div class="feat-icon">🌐</div>
+        <h3>Web search tool</h3>
+        <p>Built-in Wikipedia + DuckDuckGo fallback. No API key required — the agent can look up anything documents don't cover.</p>
+      </div>
+      <div class="feat reveal">
+        <span class="tag new">NEW IN T1</span>
+        <div class="feat-icon">📅</div>
+        <h3>Calendar & email</h3>
+        <p>Pre-filled Google Calendar events and mailto: drafts. The agent takes action in the real world, not just inside the chat.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REACT LOOP ============ -->
+<section id="loop">
+  <div class="wrap">
+    <div class="eyebrow reveal">HOW THE BRAIN WORKS</div>
+    <h2 class="reveal">The <em>ReAct</em> loop — visualised.</h2>
+    <p class="section-sub reveal">Your backend is a plain prompt-in / text-out endpoint. So the agentic reasoning happens entirely on the client — up to 4 steps per question, then a final answer.</p>
+
+    <div class="loop-wrap reveal">
+      <div class="loop" id="reactLoop">
+        <div class="loop-step" data-idx="0">
+          <div class="loop-icon">①</div>
+          <div class="loop-num">STEP 01</div>
+          <h4>Ask</h4>
+          <p>Question + tool list + recent context go into a single prompt.</p>
+        </div>
+        <div class="loop-step" data-idx="1">
+          <div class="loop-icon">②</div>
+          <div class="loop-num">STEP 02</div>
+          <h4>Decide</h4>
+          <p>Model replies <code>TOOL_CALL</code> or <code>ANSWER</code> — nothing in between.</p>
+        </div>
+        <div class="loop-step" data-idx="2">
+          <div class="loop-icon">③</div>
+          <div class="loop-num">STEP 03</div>
+          <h4>Act</h4>
+          <p>Your JS handler runs. Result is recorded into the tool log.</p>
+        </div>
+        <div class="loop-step" data-idx="3">
+          <div class="loop-icon">④</div>
+          <div class="loop-num">STEP 04</div>
+          <h4>Repeat</h4>
+          <p>Up to 4 iterations, then a final <code>ANSWER</code> is produced.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ USAGE ============ -->
 <section id="usage">
   <div class="wrap">
-    <div class="eyebrow">DEPOSITION</div>
-    <h2>Usage</h2>
-    <p class="section-sub">Three lines to start answering from documents. A few more to give it hands.</p>
+    <div class="eyebrow reveal">DEPOSITION</div>
+    <h2 class="reveal">Three lines to get <em>started</em>.</h2>
+    <p class="section-sub reveal">A few more to give it hands.</p>
 
-    <div class="code-block">
+    <div class="code-block reveal">
       <div class="code-head"><span>quick-start.html</span><button class="copy-btn" data-copy="cb1">Copy</button></div>
       <pre id="cb1"><span class="tok-com">&lt;!-- 1. include the script --&gt;</span>
 &lt;script src=<span class="tok-str">"https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t1.js"</span>&gt;&lt;/script&gt;
 
 &lt;script&gt;
   <span class="tok-com">// 2. load what it should know</span>
-  RAGina.<span class="tok-fn">loadData</span>({
+  <span class="tok-kw">RAGina</span>.<span class="tok-fn">loadData</span>({
     <span class="tok-str">"faq.html"</span>: { bodyText: <span class="tok-str">"Refunds take 5–7 business days..."</span> }
   });
 
@@ -212,7 +682,7 @@
 &lt;/script&gt;</pre>
     </div>
 
-    <div class="code-block">
+    <div class="code-block reveal">
       <div class="code-head"><span>register-a-tool.js</span><button class="copy-btn" data-copy="cb2">Copy</button></div>
       <pre id="cb2"><span class="tok-kw">RAGina</span>.<span class="tok-fn">registerTool</span>(<span class="tok-str">'lookupOrder'</span>, {
   description: <span class="tok-str">'Look up an order by its ID'</span>,
@@ -224,108 +694,234 @@
 });</pre>
     </div>
 
-    <div class="code-block">
+    <div class="code-block reveal">
       <div class="code-head"><span>headless-query.js</span><button class="copy-btn" data-copy="cb3">Copy</button></div>
       <pre id="cb3"><span class="tok-com">// No widget — use RAGina's brain inside your own UI</span>
 <span class="tok-kw">const</span> { answer, steps } = <span class="tok-kw">await</span> <span class="tok-kw">RAGina</span>.<span class="tok-fn">query</span>(<span class="tok-str">'Where is order A1234?'</span>);
 <span class="tok-fn">console</span>.<span class="tok-fn">log</span>(answer);   <span class="tok-com">// "Order A1234 shipped yesterday, arriving Thursday."</span>
 <span class="tok-fn">console</span>.<span class="tok-fn">log</span>(steps);    <span class="tok-com">// full trace — which tool ran, with what args</span></pre>
     </div>
-
-    <div class="eyebrow" style="margin-top:2.6rem;">CONFIG OPTIONS</div>
-    <table>
-      <tr><th>Key</th><th>Default</th><th>Notes</th></tr>
-      <tr><td>indexUrl</td><td>null</td><td>Fetch a JSON document index instead of calling loadData() yourself</td></tr>
-      <tr><td>showWidget</td><td>true</td><td>Set false for headless-only embedding (no bubble/panel injected)</td></tr>
-      <tr><td>personality</td><td>"sassy"</td><td>or "professional" — changes the answering tone</td></tr>
-      <tr><td>topK</td><td>3</td><td>How many document chunks to retrieve per question</td></tr>
-      <tr><td>title / avatarUrl</td><td>"RAGina" / default logo</td><td>Rebrand the widget for your product</td></tr>
-      <tr><td>theme.primary</td><td>#6C63FF</td><td>Accent color for the widget</td></tr>
-    </table>
   </div>
 </section>
 
-<section id="cases">
+<!-- ============ AUTHOR ============ -->
+<section id="author">
   <div class="wrap">
-    <div class="eyebrow">FIELD REPORTS</div>
-    <h2>Business use cases</h2>
-    <p class="section-sub">Anywhere "answer from our docs" isn't quite enough — because the real answer requires checking something live.</p>
+    <div class="eyebrow reveal">THE MENTALIST</div>
+    <h2 class="reveal">Built by <em>a human</em>, for humans.</h2>
+    <p class="section-sub reveal">RAGina is an open-source experiment in making agentic AI feel lightweight, local, and honest.</p>
 
-    <div class="cases">
-      <div class="case"><div class="case-index">01</div>
-        <h4>E-commerce support</h4>
-        <p>Answers shipping/return policy from docs, then calls a tool for the one thing docs can't know: this customer's actual order status.</p>
-        <div class="tool-line">tool: lookupOrder(orderId) → live status</div>
-      </div>
-      <div class="case"><div class="case-index">02</div>
-        <h4>SaaS product docs</h4>
-        <p>Replaces a static docs search bar. When a question needs account-specific info, it calls your API instead of guessing.</p>
-        <div class="tool-line">tool: getAccountPlan(userId) → current tier</div>
-      </div>
-      <div class="case"><div class="case-index">03</div>
-        <h4>Internal knowledge base</h4>
-        <p>Point loadFolder() at exported wiki/HTML pages for instant onboarding Q&amp;A — "who owns the deploy pipeline," "what's our PTO policy."</p>
-        <div class="tool-line">tool: none required — pure retrieval</div>
-      </div>
-      <div class="case"><div class="case-index">04</div>
-        <h4>Voice / phone agents</h4>
-        <p>Headless mode is built for exactly this — plug RAGina.query() behind a speech pipeline for a phone-call-style assistant, no chat widget involved.</p>
-        <div class="tool-line">tool: checkCalendar(date) → open slots</div>
-      </div>
-      <div class="case"><div class="case-index">05</div>
-        <h4>Real estate</h4>
-        <p>Answers listing questions from property docs, then books a live showing instead of just describing how to.</p>
-        <div class="tool-line">tool: bookShowing(listingId, time) → confirmed</div>
-      </div>
-      <div class="case"><div class="case-index">06</div>
-        <h4>Front-desk intake</h4>
-        <p>Answers general policy questions and checks appointment availability. Keep it to logistics — not medical, legal, or financial advice.</p>
-        <div class="tool-line">tool: checkAvailability(date) → open times</div>
-      </div>
-      <div class="case"><div class="case-index">07</div>
-        <h4>Education / tutoring</h4>
-        <p>Answers from course material, then grades a quick check with a tool so the "answer" is actually verified, not just plausible-sounding.</p>
-        <div class="tool-line">tool: gradeAnswer(question, response) → score</div>
-      </div>
-      <div class="case"><div class="case-index">08</div>
-        <h4>Professional services intake</h4>
-        <p>Answers FAQ from your service docs, then hands off to a tool that creates a lead or books a consult — no separate contact form.</p>
-        <div class="tool-line">tool: createLead(name, need) → CRM entry</div>
+    <div class="author-wrap reveal">
+      <div class="author-avatar">S</div>
+      <div class="author-info">
+        <h3>Surya S.</h3>
+        <div class="author-role">FULL-STACK DEVELOPER · AI EXPERIMENTER</div>
+        <p>Building small, sharp tools at the intersection of retrieval, agents, and voice. Based on the belief that the best AI is one you can inspect, modify, and own — not a black-box API you can't debug.</p>
+        <p>When not coding RAGina, you'll find me working on PremCall (a voice-agent POC), PremCall RAGina-agent, and the occasional weekend side-quest with vector databases.</p>
+        <div class="author-links">
+          <a href="https://github.com/suryasticsai" target="_blank" rel="noopener">
+            <span>⚡</span> github.com/suryasticsai
+          </a>
+          <a href="mailto:suryasticsai@gmail.com">
+            <span>✉</span> suryasticsai@gmail.com
+          </a>
+          <a href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">
+            <span>⭐</span> Star the repo
+          </a>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
+<!-- ============ ROADMAP ============ -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="eyebrow reveal">WHAT'S NEXT</div>
+    <h2 class="reveal">From T1 to <em>T3</em> — the roadmap.</h2>
+    <p class="section-sub reveal">Each tier adds a layer of autonomy. T1 is live. T2 and T3 are in progress.</p>
+
+    <div class="tiers">
+      <div class="tier current reveal">
+        <div class="tier-badge">● LIVE · T1</div>
+        <h3>Tier 1 — Agentic Core</h3>
+        <p>Document retrieval + tool-calling via ReAct loop. The foundation.</p>
+        <ul>
+          <li>Client-side TF-IDF retrieval</li>
+          <li>registerTool() / unregisterTool() API</li>
+          <li>Headless query() mode</li>
+          <li>Built-in: webSearch, scheduleEvent, draftEmail, getTime, calculate, openUrl</li>
+          <li>Chat widget with live tool-use tags</li>
+        </ul>
+      </div>
+      <div class="tier soon reveal">
+        <div class="tier-badge">◆ SOON · T2</div>
+        <h3>Tier 2 — Memory & Multi-tool</h3>
+        <p>Long-term memory and chained tool use across a conversation.</p>
+        <ul>
+          <li>Vector DB memory (Supabase/Pinecone)</li>
+          <li>Multi-step tool chains</li>
+          <li>Sub-agent router (researcher / coder / writer)</li>
+          <li>Voice-activated wake word</li>
+          <li>Per-user persistent profiles</li>
+        </ul>
+      </div>
+      <div class="tier later reveal">
+        <div class="tier-badge">◇ LATER · T3</div>
+        <h3>Tier 3 — Autonomy</h3>
+        <p>RAGina as an embedded agent that can act on your behalf.</p>
+        <ul>
+          <li>Vision understanding (screenshots, images)</li>
+          <li>Browser automation (form fill, clicks)</li>
+          <li>Self-correction loop (quality scoring)</li>
+          <li>Proactive suggestions from page context</li>
+          <li>PSTN/SIP dial-in for phone agents</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CDN ============ -->
 <section id="cdn">
   <div class="wrap">
-    <div class="eyebrow">CHAIN OF CUSTODY</div>
-    <h2>Getting it via CDN</h2>
-    <div class="cdn-box">
-      <p style="color:var(--text-dim); font-size:.9rem; margin-bottom:1rem;">jsdelivr mirrors the GitHub repo automatically — no separate publish step needed:</p>
+    <div class="eyebrow reveal">CHAIN OF CUSTODY</div>
+    <h2 class="reveal">Get it via <em>CDN</em>.</h2>
+    <p class="section-sub reveal">jsDelivr mirrors the GitHub repo automatically — no publish step needed.</p>
+
+    <div class="cdn-box reveal">
       <div class="code-block" style="margin:0;">
         <div class="code-head"><span>index.html</span><button class="copy-btn" data-copy="cb4">Copy</button></div>
         <pre id="cb4">&lt;script src=<span class="tok-str">"https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t1.js"</span>&gt;&lt;/script&gt;</pre>
       </div>
-      <div class="warn">⚠ <code>@main</code> tracks your latest push live — convenient for testing, risky for production. Tag a release (e.g. <code>v2.2.0</code>) and pin sites to <code>@v2.2.0</code> instead, so a future push to <code>main</code> can't break anything already deployed.</div>
+      <div class="warn">⚠ <code>@main</code> tracks your latest push live — convenient for testing, risky for production. Tag a release (e.g. <code>v2.2.0</code>) and pin sites to <code>@v2.2.0</code> so a future push can't break anything deployed.</div>
     </div>
   </div>
 </section>
 
 <footer>
-  CASE FILE T1 — RAGina-Pro · <a href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">github.com/suryasticsai/RAGina</a> · MIT License
+  <div class="wrap">
+    <div class="foot-logo"><div class="orb"></div> RAGina / T1 · Agentic Core</div>
+    <div>
+      Built by <a href="https://github.com/suryasticsai" target="_blank" rel="noopener">suryasticsai</a> ·
+      <a href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">Source on GitHub</a> ·
+      MIT License
+    </div>
+  </div>
 </footer>
 
 <script>
+  // ===== Copy buttons =====
   document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const el = document.getElementById(btn.dataset.copy);
       const text = el.innerText;
       navigator.clipboard.writeText(text).then(() => {
         const original = btn.textContent;
-        btn.textContent = 'Copied';
-        setTimeout(() => btn.textContent = original, 1400);
+        btn.textContent = 'Copied ✓';
+        btn.style.color = 'var(--mint)';
+        btn.style.borderColor = 'var(--mint)';
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }, 1400);
       });
     });
+  });
+
+  // ===== 3D Tilt on feature cards =====
+  document.querySelectorAll('.feat').forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const r = card.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      const cx = r.width / 2, cy = r.height / 2;
+      const rx = ((y - cy) / cy) * -6;
+      const ry = ((x - cx) / cx) * 8;
+      card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-4px)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+    });
+  });
+
+  // ===== Scroll reveals =====
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ===== ReAct loop animated steps =====
+  const loopSteps = document.querySelectorAll('#reactLoop .loop-step');
+  let loopIdx = 0;
+  function advanceLoop() {
+    loopSteps.forEach(s => s.classList.remove('active'));
+    loopSteps[loopIdx].classList.add('active');
+    loopIdx = (loopIdx + 1) % loopSteps.length;
+  }
+  setInterval(advanceLoop, 1800);
+
+  // ===== Terminal simulation =====
+  const termBody = document.getElementById('termBody');
+  const DEMO = [
+    { type:'prompt', user:'Schedule a meeting with John tomorrow at 3pm about Q4 launch.' },
+    { type:'think', text:'Scanning tools: scheduleEvent ✓ · matching parameters…' },
+    { type:'tool', html:'<b>TOOL_CALL</b> : scheduleEvent({ title:"Q4 launch", date:"tomorrow", time:"15:00" })' },
+    { type:'success', text:'✓ tool executed — opened Google Calendar in new tab' },
+    { type:'think', text:'Composing final answer…' },
+    { type:'answer', text:'"I\'ve scheduled your Q4 launch meeting with John for tomorrow at 3 PM. Google Calendar is open — feel free to tweak the details there. Anything else?"' }
+  ];
+  let demoRunning = false;
+
+  async function typeLine(html) {
+    const line = document.createElement('div');
+    line.className = 'term-line';
+    line.innerHTML = html;
+    line.style.opacity = '0';
+    termBody.appendChild(line);
+    await new Promise(r => setTimeout(r, 40));
+    line.style.transition = 'opacity .3s';
+    line.style.opacity = '1';
+    termBody.scrollTop = termBody.scrollHeight;
+  }
+
+  async function runDemo() {
+    if (demoRunning) return;
+    demoRunning = true;
+    termBody.innerHTML = '';
+
+    for (const step of DEMO) {
+      await new Promise(r => setTimeout(r, 600));
+      if (step.type === 'prompt') {
+        await typeLine(`<span class="term-prompt">❯</span><span class="term-user">${step.user}</span>`);
+      } else if (step.type === 'think') {
+        await typeLine(`<span class="term-think">… ${step.text}</span>`);
+      } else if (step.type === 'tool') {
+        await typeLine(`<span class="term-tool">${step.html}</span>`);
+      } else if (step.type === 'success') {
+        await typeLine(`<span class="term-success">✓ ${step.text}</span>`);
+      } else if (step.type === 'answer') {
+        await new Promise(r => setTimeout(r, 400));
+        await typeLine(`<div class="term-answer"><b style="color:var(--violet)">ANSWER →</b> ${step.text}</div>`);
+      }
+    }
+
+    // Add blinking cursor at end
+    const cursorLine = document.createElement('div');
+    cursorLine.className = 'term-line';
+    cursorLine.innerHTML = '<span class="term-prompt">❯</span> <span class="cursor"></span>';
+    termBody.appendChild(cursorLine);
+    demoRunning = false;
+  }
+
+  // Auto-run on load
+  setTimeout(runDemo, 800);
+
+  // ===== Mascot click sparkle =====
+  document.querySelector('.crystal-ball').addEventListener('click', function() {
+    this.style.animation = 'none';
+    void this.offsetWidth;
+    this.style.animation = 'float 6s ease-in-out infinite';
   });
 </script>
 
