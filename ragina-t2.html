@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAGina T2 — Business Intelligence Agent | Prototype Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#6C63FF;--primary-glow:rgba(108,99,255,0.4);--accent:#00D4AA;--accent-glow:rgba(0,212,170,0.3);
+    --danger:#FF4757;--warn:#FFA502;--info:#2ED573;
+    --bg-0:#0a0a12;--bg-1:#12121f;--bg-2:#1a1a2e;--bg-3:#252540;--bg-4:#32325a;
+    --fg-0:#ffffff;--fg-1:#e0e0f0;--fg-2:#a0a0c0;--fg-3:#707090;
+    --radius:14px;--radius-sm:8px;--shadow:0 8px 32px rgba(0,0,0,0.5);
+    --font-sans:'Inter',system-ui,-apple-system,sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--font-sans);background:var(--bg-0);color:var(--fg-1);line-height:1.6;overflow-x:hidden}
+  ::selection{background:var(--primary);color:#fff}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:var(--bg-1)}
+  ::-webkit-scrollbar-thumb{background:var(--bg-4);border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--primary)}
+
+  .nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,18,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(108,99,255,0.1)}
+  .nav-logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:1.15rem;color:var(--fg-0);letter-spacing:-0.5px}
+  .nav-logo .badge{background:linear-gradient(135deg,var(--primary),#8b7cff);color:#fff;font-size:0.6rem;padding:3px 8px;border-radius:20px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  .nav-links{display:flex;gap:28px;align-items:center}
+  .nav-links a{color:var(--fg-2);text-decoration:none;font-size:0.88rem;font-weight:500;transition:color 0.2s;position:relative}
+  .nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--primary);transition:width 0.3s;border-radius:2px}
+  .nav-links a:hover{color:var(--fg-0)}.nav-links a:hover::after{width:100%}
+  .nav-cta{background:linear-gradient(135deg,var(--primary),#8b7cff);color:#fff;border:none;padding:10px 22px;border-radius:var(--radius-sm);font-weight:600;font-size:0.82rem;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 20px rgba(108,99,255,0.3)}
+  .nav-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(108,99,255,0.5)}
+
+  .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;padding:120px 24px 80px;overflow:hidden}
+  .hero-bg{position:absolute;inset:0;overflow:hidden}
+  .hero-bg::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 50%,rgba(108,99,255,0.08) 0%,transparent 50%),radial-gradient(circle at 70% 80%,rgba(0,212,170,0.06) 0%,transparent 50%);animation:heroFloat 20s ease-in-out infinite}
+  @keyframes heroFloat{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-10px)}}
+  .hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(108,99,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.03) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse at center,black 30%,transparent 70%)}
+  .hero-content{position:relative;z-index:2;text-align:center;max-width:900px}
+  .hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.2);padding:8px 18px;border-radius:30px;font-size:0.78rem;color:var(--primary);font-weight:600;margin-bottom:28px;backdrop-filter:blur(10px)}
+  .hero-tag .pulse{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:pulseDot 2s infinite}
+  @keyframes pulseDot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,212,170,0.5)}50%{opacity:0.7;box-shadow:0 0 0 8px rgba(0,212,170,0)}}
+  .hero h1{font-size:clamp(2.5rem,5.5vw,4.5rem);font-weight:900;line-height:1.05;letter-spacing:-1.5px;margin-bottom:20px;background:linear-gradient(135deg,var(--fg-0) 0%,var(--fg-2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .hero h1 span{color:var(--primary);-webkit-text-fill-color:var(--primary)}
+  .hero-sub{font-size:clamp(1rem,2vw,1.25rem);color:var(--fg-2);max-width:640px;margin:0 auto 40px;line-height:1.7}
+  .hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  .btn-primary{background:linear-gradient(135deg,var(--primary),#8b7cff);color:#fff;border:none;padding:14px 32px;border-radius:var(--radius);font-weight:700;font-size:0.95rem;cursor:pointer;transition:all 0.3s;box-shadow:0 8px 30px rgba(108,99,255,0.35);display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+  .btn-primary:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(108,99,255,0.5)}
+  .btn-secondary{background:transparent;color:var(--fg-1);border:1px solid var(--bg-4);padding:14px 32px;border-radius:var(--radius);font-weight:600;font-size:0.95rem;cursor:pointer;transition:all 0.3s;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+  .btn-secondary:hover{border-color:var(--primary);background:rgba(108,99,255,0.05)}
+  .hero-stats{display:flex;gap:48px;justify-content:center;margin-top:60px;flex-wrap:wrap}
+  .hero-stat{text-align:center}
+  .hero-stat .num{font-size:2.2rem;font-weight:800;color:var(--fg-0);line-height:1}
+  .hero-stat .num span{color:var(--primary)}
+  .hero-stat .label{font-size:0.78rem;color:var(--fg-3);margin-top:6px;text-transform:uppercase;letter-spacing:1.5px}
+
+  .section{padding:100px 24px;position:relative}
+  .section-header{text-align:center;max-width:700px;margin:0 auto 60px}
+  .section-label{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--primary);margin-bottom:12px}
+  .section-title{font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:800;color:var(--fg-0);line-height:1.15;letter-spacing:-0.5px}
+  .section-desc{color:var(--fg-2);margin-top:16px;font-size:1.05rem;line-height:1.7}
+
+  .sim-container{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr 1.2fr;gap:32px;align-items:start}
+  @media(max-width:1024px){.sim-container{grid-template-columns:1fr}}
+  .sim-card{background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .sim-card-header{padding:20px 24px;background:linear-gradient(135deg,rgba(108,99,255,0.1),rgba(0,212,170,0.05));border-bottom:1px solid var(--bg-3);display:flex;align-items:center;gap:12px}
+  .sim-card-header .icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#8b7cff);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#fff}
+  .sim-card-header h3{font-size:1.1rem;font-weight:700;color:var(--fg-0)}
+  .sim-card-header .status{margin-left:auto;font-size:0.7rem;padding:4px 12px;border-radius:20px;background:rgba(0,212,170,0.15);color:var(--accent);font-weight:600}
+  .sim-card-body{padding:24px}
+
+  .scenario-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+  .scenario-tab{padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--bg-3);background:var(--bg-1);color:var(--fg-2);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+  .scenario-tab:hover{border-color:var(--primary);color:var(--fg-0)}
+  .scenario-tab.active{background:linear-gradient(135deg,var(--primary),#8b7cff);color:#fff;border-color:transparent;box-shadow:0 4px 15px rgba(108,99,255,0.3)}
+
+  .sim-chat{height:420px;display:flex;flex-direction:column;background:var(--bg-1);border-radius:var(--radius-sm);border:1px solid var(--bg-3);overflow:hidden}
+  .sim-chat-header{padding:12px 16px;background:var(--bg-2);border-bottom:1px solid var(--bg-3);display:flex;align-items:center;gap:10px;font-size:0.85rem;font-weight:600;color:var(--fg-1)}
+  .sim-chat-header .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#8b7cff);display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#fff}
+  .sim-chat-messages{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+  .sim-msg{max-width:85%;padding:12px 16px;border-radius:16px;font-size:0.85rem;line-height:1.6;animation:msgIn 0.3s ease;position:relative}
+  @keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .sim-msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--primary),#8b7cff);color:#fff;border-bottom-right-radius:4px}
+  .sim-msg.ai{align-self:flex-start;background:var(--bg-3);color:var(--fg-1);border:1px solid var(--bg-4);border-bottom-left-radius:4px}
+  .sim-msg.ai.streaming::after{content:'▋';animation:cursorBlink 0.8s infinite;margin-left:2px;color:var(--primary)}
+  @keyframes cursorBlink{0%,100%{opacity:1}50%{opacity:0}}
+  .sim-msg .tool-tag{display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--accent);margin-top:6px;padding:3px 8px;background:rgba(0,212,170,0.1);border-radius:4px;border:1px solid rgba(0,212,170,0.2)}
+  .sim-msg .sources{font-size:0.7rem;color:var(--fg-3);margin-top:8px;padding-top:8px;border-top:1px solid var(--bg-4)}
+  .sim-msg .sources strong{color:var(--primary)}
+  .sim-typing{display:flex;gap:4px;padding:12px 16px;align-self:flex-start}
+  .sim-typing span{width:8px;height:8px;border-radius:50%;background:var(--primary);animation:typingBounce 1.4s infinite}
+  .sim-typing span:nth-child(2){animation-delay:0.2s}.sim-typing span:nth-child(3){animation-delay:0.4s}
+  @keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px)}}
+  .sim-chat-input{padding:12px 16px;background:var(--bg-2);border-top:1px solid var(--bg-3);display:flex;gap:10px}
+  .sim-chat-input input{flex:1;background:var(--bg-1);border:1px solid var(--bg-3);border-radius:22px;padding:10px 18px;color:var(--fg-1);font-size:0.85rem;outline:none;transition:border-color 0.2s}
+  .sim-chat-input input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(108,99,255,0.1)}
+  .sim-chat-input input::placeholder{color:var(--fg-3)}
+  .sim-chat-input button{background:var(--primary);border:none;border-radius:50%;width:40px;height:40px;color:#fff;cursor:pointer;font-size:1rem;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+  .sim-chat-input button:hover{transform:scale(1.05);box-shadow:0 0 15px rgba(108,99,255,0.5)}
+
+  .doc-dropzone{border:2px dashed var(--bg-4);border-radius:var(--radius-sm);padding:32px;text-align:center;transition:all 0.3s;cursor:pointer;margin-bottom:16px}
+  .doc-dropzone:hover,.doc-dropzone.dragover{border-color:var(--primary);background:rgba(108,99,255,0.03)}
+  .doc-dropzone .icon{font-size:2.5rem;margin-bottom:12px}
+  .doc-dropzone p{color:var(--fg-2);font-size:0.85rem}
+  .doc-dropzone p strong{color:var(--fg-0);display:block;margin-bottom:4px}
+  .doc-list{display:flex;flex-direction:column;gap:8px}
+  .doc-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-1);border:1px solid var(--bg-3);border-radius:var(--radius-sm);font-size:0.82rem;transition:all 0.2s}
+  .doc-item:hover{border-color:var(--primary)}
+  .doc-item .icon{font-size:1.1rem}
+  .doc-item .name{flex:1;color:var(--fg-1);font-weight:500}
+  .doc-item .meta{color:var(--fg-3);font-size:0.7rem}
+  .doc-item .status{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:statusPulse 2s infinite}
+  @keyframes statusPulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .doc-item .status.done{background:var(--info);animation:none}
+
+  .metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .metric-card{background:var(--bg-1);border:1px solid var(--bg-3);border-radius:var(--radius-sm);padding:16px;transition:all 0.2s}
+  .metric-card:hover{border-color:var(--primary);transform:translateY(-2px)}
+  .metric-card .label{font-size:0.7rem;color:var(--fg-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .metric-card .value{font-size:1.4rem;font-weight:800;color:var(--fg-0)}
+  .metric-card .value .unit{font-size:0.75rem;color:var(--fg-3);font-weight:500;margin-left:4px}
+  .metric-bar{height:4px;background:var(--bg-3);border-radius:2px;margin-top:10px;overflow:hidden}
+  .metric-bar .fill{height:100%;border-radius:2px;transition:width 1s ease;background:linear-gradient(90deg,var(--primary),var(--accent))}
+
+  .tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;max-width:1200px;margin:0 auto}
+  .tool-card{background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--radius);padding:24px;transition:all 0.3s;position:relative;overflow:hidden}
+  .tool-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent));opacity:0;transition:opacity 0.3s}
+  .tool-card:hover::before{opacity:1}
+  .tool-card:hover{border-color:var(--bg-4);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+  .tool-card .icon{width:44px;height:44px;border-radius:12px;background:var(--bg-3);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:16px;transition:all 0.3s}
+  .tool-card:hover .icon{background:linear-gradient(135deg,var(--primary),#8b7cff);color:#fff;transform:scale(1.1)}
+  .tool-card h4{font-size:1rem;font-weight:700;color:var(--fg-0);margin-bottom:8px}
+  .tool-card p{font-size:0.82rem;color:var(--fg-2);line-height:1.6;margin-bottom:12px}
+  .tool-card .params{display:flex;flex-wrap:wrap;gap:6px}
+  .tool-card .param{font-size:0.68rem;padding:3px 10px;background:var(--bg-1);border:1px solid var(--bg-3);border-radius:20px;color:var(--fg-3);font-family:var(--font-mono)}
+  .tool-card .live-badge{position:absolute;top:16px;right:16px;font-size:0.6rem;padding:3px 8px;border-radius:20px;background:rgba(0,212,170,0.15);color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  .arch-container{max-width:1100px;margin:0 auto}
+  .arch-flow{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:40px}
+  .arch-node{background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--radius-sm);padding:16px 24px;text-align:center;min-width:160px;transition:all 0.3s;position:relative}
+  .arch-node:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 25px rgba(108,99,255,0.15)}
+  .arch-node .icon{font-size:1.5rem;margin-bottom:8px}
+  .arch-node h5{font-size:0.85rem;font-weight:700;color:var(--fg-0);margin-bottom:4px}
+  .arch-node p{font-size:0.7rem;color:var(--fg-3)}
+  .arch-arrow{color:var(--primary);font-size:1.5rem;opacity:0.6}
+  .arch-detail{background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--radius);padding:28px;margin-top:20px}
+  .arch-detail h4{font-size:1rem;font-weight:700;color:var(--fg-0);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .arch-detail pre{background:var(--bg-1);border:1px solid var(--bg-3);border-radius:var(--radius-sm);padding:16px;font-family:var(--font-mono);font-size:0.78rem;color:var(--fg-2);overflow-x:auto;line-height:1.7}
+  .arch-detail pre .k{color:var(--primary)}.arch-detail pre .s{color:var(--accent)}.arch-detail pre .c{color:var(--fg-3)}
+
+  .usecase-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;max-width:1200px;margin:0 auto}
+  .usecase-card{background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--radius);padding:28px;transition:all 0.3s;position:relative}
+  .usecase-card:hover{border-color:var(--primary);transform:translateY(-3px);box-shadow:0 10px 35px rgba(0,0,0,0.3)}
+  .usecase-card .tag{font-size:0.68rem;padding:4px 12px;border-radius:20px;background:rgba(108,99,255,0.1);color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;display:inline-block}
+  .usecase-card h4{font-size:1.1rem;font-weight:700;color:var(--fg-0);margin-bottom:10px}
+  .usecase-card p{font-size:0.85rem;color:var(--fg-2);line-height:1.7;margin-bottom:16px}
+  .usecase-card .stats{display:flex;gap:20px;padding-top:16px;border-top:1px solid var(--bg-3)}
+  .usecase-card .stat .num{font-size:1.1rem;font-weight:800;color:var(--fg-0)}
+  .usecase-card .stat .lbl{font-size:0.68rem;color:var(--fg-3);text-transform:uppercase;letter-spacing:1px}
+
+  .compare-table{width:100%;max-width:1000px;margin:0 auto;border-collapse:collapse;font-size:0.88rem}
+  .compare-table th,.compare-table td{padding:14px 20px;text-align:left;border-bottom:1px solid var(--bg-3)}
+  .compare-table th{background:var(--bg-2);color:var(--fg-0);font-weight:700;font-size:0.82rem;text-transform:uppercase;letter-spacing:1px}
+  .compare-table td{color:var(--fg-2)}
+  .compare-table tr:hover td{background:rgba(108,99,255,0.03)}
+  .compare-table .check{color:var(--accent);font-size:1.1rem}.compare-table .x{color:var(--danger);opacity:0.5}
+  .compare-table .highlight{background:linear-gradient(135deg,rgba(108,99,255,0.1),rgba(0,212,170,0.05))}
+  .compare-table .highlight td{color:var(--fg-1);font-weight:600}
+
+  .code-block{background:var(--bg-1);border:1px solid var(--bg-3);border-radius:var(--radius-sm);overflow:hidden;margin:20px 0}
+  .code-header{padding:10px 16px;background:var(--bg-2);border-bottom:1px solid var(--bg-3);display:flex;align-items:center;gap:10px;font-size:0.78rem;color:var(--fg-3)}
+  .code-header .dots{display:flex;gap:6px}
+  .code-header .dot{width:10px;height:10px;border-radius:50%}.code-header .dot.r{background:var(--danger)}.code-header .dot.y{background:var(--warn)}.code-header .dot.g{background:var(--info)}
+  .code-header .lang{margin-left:auto;font-family:var(--font-mono);font-size:0.7rem}
+  .code-block pre{padding:20px;font-family:var(--font-mono);font-size:0.8rem;color:var(--fg-2);overflow-x:auto;line-height:1.8}
+  .code-block pre .comment{color:var(--fg-3);font-style:italic}
+  .code-block pre .keyword{color:#c792ea}.code-block pre .string{color:#c3e88d}.code-block pre .func{color:#82aaff}.code-block pre .num{color:#f78c6c}
+
+  .footer-cta{text-align:center;padding:100px 24px;background:linear-gradient(180deg,transparent,rgba(108,99,255,0.05));position:relative;overflow:hidden}
+  .footer-cta::before{content:'';position:absolute;bottom:0;left:0;right:0;height:200px;background:radial-gradient(ellipse at center bottom,rgba(108,99,255,0.1) 0%,transparent 70%)}
+  .footer-cta h2{font-size:clamp(1.8rem,4vw,3rem);font-weight:800;color:var(--fg-0);margin-bottom:16px;position:relative}
+  .footer-cta p{color:var(--fg-2);max-width:500px;margin:0 auto 32px;font-size:1.05rem;position:relative}
+
+  footer{padding:40px 24px;text-align:center;border-top:1px solid var(--bg-3);color:var(--fg-3);font-size:0.82rem}
+  footer a{color:var(--primary);text-decoration:none}
+
+  .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg-2);border:1px solid var(--bg-3);color:var(--fg-1);padding:12px 24px;border-radius:var(--radius-sm);font-size:0.85rem;z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);box-shadow:0 8px 30px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast .icon{color:var(--accent);font-size:1.1rem}
+
+  @media(max-width:768px){
+    .nav{padding:12px 16px}
+    .nav-links{display:none}
+    .hero-stats{gap:24px}
+    .section{padding:60px 16px}
+    .tools-grid{grid-template-columns:1fr}
+    .usecase-grid{grid-template-columns:1fr}
+    .metrics-grid{grid-template-columns:1fr}
+    .arch-flow{flex-direction:column}
+    .arch-arrow{transform:rotate(90deg)}
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">
+    <span>🔮</span> RAGina <span class="badge">T2</span>
+  </div>
+  <div class="nav-links">
+    <a href="#simulation">Simulation</a>
+    <a href="#tools">18 Tools</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#usecases">Use Cases</a>
+    <a href="#compare">Compare</a>
+    <a href="#start">Get Started</a>
+  </div>
+  <button class="nav-cta" onclick="scrollToSim()">▶ Launch Demo</button>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg"><div class="hero-grid"></div></div>
+  <div class="hero-content">
+    <div class="hero-tag"><span class="pulse"></span> Tier 2 Advanced Agentic Build — Now Live</div>
+    <h1>Your documents.<br>Your <span>AI agent.</span><br>Zero black boxes.</h1>
+    <p class="hero-sub">RAGina T2 is a hybrid RAG engine with 18 built-in tools, real-time streaming, multi-format document parsing, and persistent memory — all running client-side. No API keys. No vendor lock-in. Just intelligence you can inspect, modify, and own.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="scrollToSim()">▶ Run Business Simulation</button>
+      <button class="btn-secondary" onclick="document.getElementById('start').scrollIntoView({behavior:'smooth'})">📖 Documentation</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">18<span>+</span></div><div class="label">Built-in Tools</div></div>
+      <div class="hero-stat"><div class="num">7<span></span></div><div class="label">Doc Formats</div></div>
+      <div class="hero-stat"><div class="num">2<span>x</span></div><div class="label">Hybrid Retrieval</div></div>
+      <div class="hero-stat"><div class="num">0<span>KB</span></div><div class="label">Server Required</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="simulation">
+  <div class="section-header">
+    <div class="section-label">Interactive Prototype</div>
+    <h2 class="section-title">Business Intelligence Simulation</h2>
+    <p class="section-desc">Experience how RAGina T2 handles real-world business scenarios — from customer support to sales intelligence, HR queries to legal document analysis. All simulated in your browser.</p>
+  </div>
+
+  <div class="sim-container">
+    <div class="sim-card" id="sim-left">
+      <div class="sim-card-header">
+        <div class="icon">🏢</div>
+        <div>
+          <h3>Business Scenario</h3>
+          <div style="font-size:0.75rem;color:var(--fg-3);margin-top:2px">Select a department to simulate</div>
+        </div>
+        <div class="status" id="sim-status">Ready</div>
+      </div>
+      <div class="sim-card-body">
+        <div class="scenario-tabs" id="scenario-tabs">
+          <button class="scenario-tab active" data-scenario="support" onclick="setScenario('support')">🎧 Support</button>
+          <button class="scenario-tab" data-scenario="sales" onclick="setScenario('sales')">💼 Sales</button>
+          <button class="scenario-tab" data-scenario="hr" onclick="setScenario('hr')">👥 HR</button>
+          <button class="scenario-tab" data-scenario="legal" onclick="setScenario('legal')">⚖️ Legal</button>
+          <button class="scenario-tab" data-scenario="finance" onclick="setScenario('finance')">💰 Finance</button>
+        </div>
+
+        <div id="scenario-desc" style="font-size:0.85rem;color:var(--fg-2);line-height:1.7;margin-bottom:20px;padding:16px;background:var(--bg-1);border-radius:var(--radius-sm);border-left:3px solid var(--primary)">
+          <strong style="color:var(--fg-0)">Customer Support Scenario</strong><br>
+          RAGina indexes your product FAQ, refund policy, and shipping docs. When a customer asks about order status or returns, it retrieves the right policy and can look up live data via tools.
+        </div>
+
+        <div style="margin-bottom:20px">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--fg-0);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">📎 Knowledge Base</div>
+          <div class="doc-dropzone" id="doc-dropzone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)" onclick="simulateUpload()">
+            <div class="icon">📁</div>
+            <p><strong>Drop documents here</strong>or click to simulate upload</p>
+            <p style="font-size:0.7rem;margin-top:6px">PDF, DOCX, TXT, CSV, JSON, MD, HTML</p>
+          </div>
+          <div class="doc-list" id="doc-list"></div>
+        </div>
+
+        <div style="font-size:0.78rem;font-weight:700;color:var(--fg-0);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">📊 Engine Metrics</div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">Chunks Indexed</div>
+            <div class="value" id="metric-chunks">0</div>
+            <div class="metric-bar"><div class="fill" id="bar-chunks" style="width:0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Avg Retrieval</div>
+            <div class="value"><span id="metric-retrieval">0</span><span class="unit">ms</span></div>
+            <div class="metric-bar"><div class="fill" id="bar-retrieval" style="width:0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Semantic Score</div>
+            <div class="value"><span id="metric-semantic">0</span><span class="unit">/1.0</span></div>
+            <div class="metric-bar"><div class="fill" id="bar-semantic" style="width:0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="label">TF-IDF Score</div>
+            <div class="value"><span id="metric-tfidf">0</span><span class="unit">/1.0</span></div>
+            <div class="metric-bar"><div class="fill" id="bar-tfidf" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sim-card">
+      <div class="sim-card-header">
+        <div class="icon">🤖</div>
+        <div>
+          <h3>RAGina T2 Agent</h3>
+          <div style="font-size:0.75rem;color:var(--fg-3);margin-top:2px">Hybrid RAG · Streaming · Tool-Use</div>
+        </div>
+        <div class="status" style="background:rgba(108,99,255,0.15);color:var(--primary)">Online</div>
+      </div>
+      <div class="sim-card-body" style="padding:0">
+        <div class="sim-chat" id="sim-chat">
+          <div class="sim-chat-header">
+            <div class="avatar">🔮</div>
+            <span>RAGina T2</span>
+            <span style="margin-left:auto;font-size:0.7rem;color:var(--fg-3)">v4.0.0</span>
+          </div>
+          <div class="sim-chat-messages" id="chat-messages">
+            <div class="sim-msg ai" id="welcome-msg">
+              Mind palace upgraded. I now see in vectors, not just words. Upload documents or select a scenario to begin the simulation.
+              <div class="tool-tag">🔧 18 tools ready · Hybrid retrieval active</div>
+            </div>
+          </div>
+          <div class="sim-chat-input">
+            <input type="text" id="chat-input" placeholder="Ask me anything about your business..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <button onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="tools" style="background:linear-gradient(180deg,transparent,rgba(108,99,255,0.02))">
+  <div class="section-header">
+    <div class="section-label">Tier 2 Toolkit</div>
+    <h2 class="section-title">18 Advanced Tools at Your Command</h2>
+    <p class="section-desc">From web search and weather to stock prices and chart generation — RAGina T2 comes with a full agentic toolkit. Register your own tools or use the built-ins. No backend required.</p>
+  </div>
+  <div class="tools-grid" id="tools-grid"></div>
+</section>
+
+<section class="section" id="architecture">
+  <div class="section-header">
+    <div class="section-label">Under the Hood</div>
+    <h2 class="section-title">Hybrid RAG Architecture</h2>
+    <p class="section-desc">TF-IDF meets semantic embeddings. Local vector computation. Real-time re-ranking. Every retrieval decision is transparent, inspectable, and tunable.</p>
+  </div>
+  <div class="arch-container">
+    <div class="arch-flow">
+      <div class="arch-node">
+        <div class="icon">📄</div>
+        <h5>Multi-Format Parser</h5>
+        <p>PDF · DOCX · CSV · JSON · MD · HTML · TXT</p>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="icon">✂️</div>
+        <h5>Chunking Engine</h5>
+        <p>Sentence-aware · Configurable size</p>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="icon">🔢</div>
+        <h5>Dual Index</h5>
+        <p>TF-IDF + 128-dim Embeddings</p>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="icon">⚖️</div>
+        <h5>Re-ranker</h5>
+        <p>Weighted hybrid scoring</p>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="icon">🤖</div>
+        <h5>ReAct Agent</h5>
+        <p>Tool-use · Streaming · Memory</p>
+      </div>
+    </div>
+    <div class="arch-detail">
+      <h4>🔍 How Hybrid Retrieval Works</h4>
+      <pre id="arch-code"><span class="k">class</span> <span class="s">HybridRetrievalEngine</span> {
+  <span class="s">retrieve</span>(query, k = <span class="s">5</span>) {
+    <span class="c">// 1. Expand query with synonyms</span>
+    <span class="k">const</span> expanded = <span class="k">this</span>.expandQuery(query);
+
+    <span class="c">// 2. Score every chunk with TF-IDF</span>
+    <span class="k">const</span> tfidfScores = chunks.map(c => computeTfidf(expanded, c));
+
+    <span class="c">// 3. Score with 128-dim cosine similarity</span>
+    <span class="k">const</span> qEmbed = <span class="k">this</span>.embedder.embed(expanded);
+    <span class="k">const</span> semScores = chunks.map(c => 
+      cosineSimilarity(qEmbed, c.embedding)
+    );
+
+    <span class="c">// 4. Weighted fusion & re-rank</span>
+    <span class="k">const</span> hybrid = chunks.map((c, i) => ({
+      ...c,
+      score: (<span class="s">1</span> - semanticWeight) * tfidfScores[i]
+           + semanticWeight * semScores[i]
+    }));
+
+    <span class="k">return</span> hybrid.sort((a, b) => b.score - a.score).slice(<span class="s">0</span>, k);
+  }
+}</pre>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="usecases" style="background:linear-gradient(180deg,rgba(0,212,170,0.02),transparent)">
+  <div class="section-header">
+    <div class="section-label">Real World Impact</div>
+    <h2 class="section-title">Business Use Cases</h2>
+    <p class="section-desc">From startups to enterprises, RAGina T2 adapts to any department. Here is how teams are deploying it today.</p>
+  </div>
+  <div class="usecase-grid" id="usecase-grid"></div>
+</section>
+
+<section class="section" id="compare">
+  <div class="section-header">
+    <div class="section-label">Evolution</div>
+    <h2 class="section-title">T1 vs T2 — What Changed</h2>
+    <p class="section-desc">T1 laid the agentic foundation. T2 adds memory, streaming, multi-format parsing, and 11 more tools. Here is the full breakdown.</p>
+  </div>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Capability</th>
+        <th style="text-align:center">T1</th>
+        <th style="text-align:center" class="highlight">T2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Document Retrieval (TF-IDF)</td><td style="text-align:center" class="check">✓</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Semantic Embeddings (128-dim)</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Hybrid Re-ranking</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Streaming Responses</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Multi-Format Parser (7 formats)</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Persistent Chat Sessions</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Long-Term Memory (remember/recall)</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Built-in Tools</td><td style="text-align:center">7</td><td style="text-align:center" class="highlight">18</td></tr>
+      <tr><td>Web Search (Wikipedia + DDG)</td><td style="text-align:center" class="check">✓</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Calendar & Email</td><td style="text-align:center" class="check">✓</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Weather & Stock Price</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>CSV Analysis & Chart Generation</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Translation & Summarization</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Document Comparison</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Code Runner (Safe Sandbox)</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>File Generation (txt, json, csv, md, html)</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>URL Extraction (Web Scraping)</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Resizable Chat Panel</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Theme System (Dark/Light)</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+      <tr><td>Plugin System (Event Bus)</td><td style="text-align:center" class="x">✗</td><td style="text-align:center" class="check highlight">✓</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="section" id="start">
+  <div class="section-header">
+    <div class="section-label">Quick Start</div>
+    <h2 class="section-title">Three Lines to Intelligence</h2>
+    <p class="section-desc">Drop the script. Load your data. The agent is live. No build step. No server changes.</p>
+  </div>
+
+  <div style="max-width:900px;margin:0 auto">
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>index.html</span>
+        <span class="lang">html</span>
+      </div>
+      <pre><span class="comment">&lt;!-- 1. Include RAGina T2 --&gt;</span>
+<span class="keyword">&lt;script</span> <span class="func">src</span>=<span class="string">"https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t2.js"</span><span class="keyword">&gt;&lt;/script&gt;</span>
+
+<span class="keyword">&lt;script&gt;</span>
+  <span class="comment">// 2. Load your business knowledge</span>
+  RAGina.loadData({
+    <span class="string">"pricing.pdf"</span>: { bodyText: <span class="string">"Enterprise plan: $99/mo..."</span> },
+    <span class="string">"faq.md"</span>:    { bodyText: <span class="string">"Refunds processed in 5-7 days..."</span> },
+    <span class="string">"policy.html"</span>:{ bodyText: <span class="string">"SLA: 99.9% uptime guarantee..."</span> }
+  });
+
+  <span class="comment">// 3. Register a custom business tool</span>
+  RAGina.registerTool(<span class="string">'lookupOrder'</span>, {
+    description: <span class="string">'Look up an order by ID from internal API'</span>,
+    parameters: { orderId: <span class="string">'string, e.g. ORD-2026-8842'</span> },
+    <span class="func">handler</span>: <span class="keyword">async</span> ({ orderId }) => {
+      <span class="keyword">const</span> r = <span class="keyword">await</span> fetch(<span class="string">`/api/orders/${orderId}`</span>);
+      <span class="keyword">return</span> r.ok ? <span class="keyword">await</span> r.json() : <span class="string">'Order not found'</span>;
+    }
+  });
+
+  <span class="comment">// That's it — the chat bubble is live with full T2 capabilities</span>
+<span class="keyword">&lt;/script&gt;</span></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>headless-mode.js</span>
+        <span class="lang">javascript</span>
+      </div>
+      <pre><span class="comment">// No UI — use RAGina's brain inside your own dashboard</span>
+<span class="keyword">const</span> { answer, steps } = <span class="keyword">await</span> RAGina.query(
+  <span class="string">'What is the refund policy for enterprise customers?'</span>,
+  { contextText: <span class="string">'Enterprise SLA docs...'</span>, topK: <span class="num">5</span> }
+);
+
+console.log(answer);   <span class="comment">// "Enterprise refunds are processed in 5-7 business days..."</span>
+console.log(steps);    <span class="comment">// Full trace: which chunks retrieved, which tools called</span></pre>
+    </div>
+  </div>
+</section>
+
+<section class="footer-cta">
+  <h2>Ready to upgrade your<br>business intelligence?</h2>
+  <p>RAGina T2 is open-source, MIT-licensed, and ready to embed. No API keys. No vendor lock-in. Just pure client-side agentic AI.</p>
+  <div class="hero-actions" style="justify-content:center">
+    <a href="https://github.com/suryasticsai/RAGina" target="_blank" class="btn-primary" style="text-decoration:none">⭐ Star on GitHub</a>
+    <a href="https://ragina-crawler-ragina.vercel.app" target="_blank" class="btn-secondary" style="text-decoration:none">🌐 Live Demo</a>
+  </div>
+</section>
+
+<footer>
+  <p>Built with 🔮 by <a href="https://github.com/suryasticsai" target="_blank">Surya S.</a> · MIT License · RAGina T2 v4.0.0</p>
+  <p style="margin-top:8px;font-size:0.75rem">Hybrid RAG · Streaming LLM · 18 Tools · Persistent Memory · Multi-Format Parser</p>
+</footer>
+
+<div class="toast" id="toast"><span class="icon">✅</span><span id="toast-msg">Notification</span></div>
+<script>
+// ===== SCENARIO DATA =====
+const scenarios = {
+  support: {
+    title: 'Customer Support',
+    desc: '<strong style="color:var(--fg-0)">Customer Support Scenario</strong><br>RAGina indexes your product FAQ, refund policy, and shipping docs. When a customer asks about order status or returns, it retrieves the right policy and can look up live data via tools.',
+    docs: [
+      { name: 'refund_policy.pdf', size: '245 KB', type: 'pdf', text: 'Refund Policy. All refunds are processed within 5-7 business days. Enterprise customers receive priority processing within 2-3 days. To initiate a refund, contact support with your order ID. Refunds are issued to the original payment method. Digital products are non-refundable after download.' },
+      { name: 'shipping_faq.txt', size: '18 KB', type: 'txt', text: 'Shipping FAQ. Standard shipping takes 3-5 business days. Express shipping delivers within 1-2 business days. International orders may take 7-14 days. Free shipping on orders over $50. Tracking numbers are sent via email within 24 hours of dispatch.' },
+      { name: 'product_manual.md', size: '156 KB', type: 'md', text: 'Product Manual. Getting Started: Unbox your device and connect to WiFi using the QR code on the bottom. The LED will turn solid blue when connected. Troubleshooting: If the LED blinks red, reset the device by holding the button for 10 seconds. Warranty: 2-year limited warranty covers manufacturing defects.' }
+    ],
+    prompts: [
+      { q: 'How long do refunds take?', a: 'According to our **Refund Policy** [1], standard refunds are processed within **5-7 business days**. Enterprise customers receive priority processing within **2-3 days**. Refunds are issued to the original payment method.\n\n📌 *Sources: refund_policy.pdf*', tools: [], delay: 1200 },
+      { q: 'My order ORD-8842 has not arrived. Can you check?', a: 'I do not have direct access to live order tracking in this simulation, but I can guide you:\n\n1. **Check your email** — tracking numbers are sent within 24 hours of dispatch (per our Shipping FAQ [2]).\n2. **Standard delivery** is 3-5 business days; express is 1-2 days.\n3. For live lookup, I would call the `lookupOrder` tool with your order ID.\n\nWould you like me to draft an email to support?', tools: ['lookupOrder'], delay: 1800 },
+      { q: 'What is covered under warranty?', a: 'Your device comes with a **2-year limited warranty** [3] that covers manufacturing defects. This includes faulty components, assembly issues, and hardware failures under normal use.\n\n**Not covered:** accidental damage, water damage, unauthorized modifications, or wear and tear from misuse.\n\n📌 *Sources: product_manual.md*', tools: [], delay: 1000 }
+    ]
+  },
+  sales: {
+    title: 'Sales Intelligence',
+    desc: '<strong style="color:var(--fg-0)">Sales Intelligence Scenario</strong><br>RAGina indexes competitor reports, pricing sheets, and CRM data. Sales reps can ask about pricing strategies, competitor positioning, and generate proposals on the fly.',
+    docs: [
+      { name: 'pricing_sheet.csv', size: '12 KB', type: 'csv', text: 'Plan,Monthly,Annual,Features. Starter,$29,$290,Basic analytics. Pro,$79,$790,Advanced reports + API. Enterprise,$199,$1990,White-label + SSO + SLA. Custom,Contact,Contact,Dedicated support' },
+      { name: 'competitor_analysis.pdf', size: '1.2 MB', type: 'pdf', text: 'Competitor Analysis 2026. Competitor A: $35/mo starter, weak API. Competitor B: $89/mo, strong UI but no white-label. Competitor C: Enterprise-only, $500/mo minimum. Our advantage: Best price-to-feature ratio at mid-market. API-first architecture. 99.9% SLA guarantee.' },
+      { name: 'sales_playbook.md', size: '89 KB', type: 'md', text: 'Sales Playbook. Objection: "Too expensive" — Anchor on ROI: "Our customers see 3x ROI in 6 months." Objection: "Need to check with team" — Offer a pilot: "We can set up a 14-day pilot with your data, no commitment." Closing: Always propose next step. Never leave without a calendar invite.' }
+    ],
+    prompts: [
+      { q: 'What is our enterprise pricing?', a: 'Our **Enterprise plan** is **$199/month** or **$1,990/year** [1]. It includes:\n- White-label branding\n- Single Sign-On (SSO)\n- 99.9% SLA guarantee\n- Dedicated support\n\nFor custom requirements, we also offer a **Custom tier** with tailored pricing.\n\n📌 *Sources: pricing_sheet.csv*', tools: [], delay: 1000 },
+      { q: 'How do we compare to Competitor B?', a: 'Competitor B charges **$89/mo** [2] with a strong UI but **no white-label option**. Our **Pro plan at $79/mo** offers advanced reports + API access, and our **Enterprise plan** includes full white-label + SSO at $199/mo.\n\n**Our key advantage:** Best price-to-feature ratio in the mid-market segment, plus API-first architecture and a 99.9% SLA guarantee.\n\n📌 *Sources: competitor_analysis.pdf*', tools: [], delay: 1400 },
+      { q: 'Generate a pricing proposal for Acme Corp', a: 'I have generated a pricing proposal for Acme Corp. The document includes:\n- Executive summary\n- Recommended plan: Enterprise ($199/mo)\n- ROI projection: 3x in 6 months\n- 14-day pilot offer\n\n**[📄 Proposal Generated]** — Downloaded as `acme_proposal.md`\n\nWould you like me to schedule a follow-up call?', tools: ['generateFile'], delay: 2000 }
+    ]
+  },
+  hr: {
+    title: 'HR & People Ops',
+    desc: '<strong style="color:var(--fg-0)">HR & People Ops Scenario</strong><br>RAGina indexes employee handbooks, benefits guides, and PTO policies. Employees get instant answers about leave, benefits, and compliance — reducing HR ticket volume by 70%.',
+    docs: [
+      { name: 'employee_handbook.pdf', size: '890 KB', type: 'pdf', text: 'Employee Handbook 2026. PTO Policy: Full-time employees receive 20 days paid vacation + 10 sick days per year. Unused PTO rolls over up to 5 days. Parental leave: 12 weeks paid for primary caregivers, 4 weeks for secondary. Remote work: Hybrid model — 3 days office, 2 days remote. Dress code: Business casual.' },
+      { name: 'benefits_guide.html', size: '234 KB', type: 'html', text: 'Benefits Guide. Health Insurance: PPO plan with $500 deductible. Dental and vision included. 401k: Company matches 100% up to 6% of salary. Wellness stipend: $500/year for gym, therapy, or wellness apps. Learning budget: $2,000/year for courses and conferences.' },
+      { name: 'onboarding_checklist.json', size: '8 KB', type: 'json', text: '{"week1":["Setup laptop","Create accounts","Meet buddy","HR orientation"],"week2":["First project assignment","Team lunch","Code review training","Manager 1:1"],"month1":["Performance goal setting","Benefits enrollment","First feedback session"]}' }
+    ],
+    prompts: [
+      { q: 'How many PTO days do I get?', a: 'As a full-time employee, you receive **20 days of paid vacation** plus **10 sick days** per year [1]. Up to **5 unused vacation days** can roll over into the next year.\n\n**Parental leave:** 12 weeks paid for primary caregivers, 4 weeks for secondary.\n\n📌 *Sources: employee_handbook.pdf*', tools: [], delay: 1000 },
+      { q: 'What is our 401k match?', a: 'The company matches **100% of your contributions up to 6% of your salary** [2]. This means if you contribute 6%, the company also contributes 6% — effectively doubling your retirement savings up to that threshold.\n\nYou also have a **$2,000/year learning budget** and a **$500 wellness stipend**.\n\n📌 *Sources: benefits_guide.html*', tools: [], delay: 1100 },
+      { q: 'What should I do in my first week?', a: 'Here is your **Week 1 onboarding checklist** [3]:\n\n1. Setup laptop\n2. Create accounts\n3. Meet your buddy\n4. Attend HR orientation\n\n**Week 2** includes your first project assignment, team lunch, code review training, and your first manager 1:1.\n\n📌 *Sources: onboarding_checklist.json*', tools: [], delay: 1200 }
+    ]
+  },
+  legal: {
+    title: 'Legal Document Analysis',
+    desc: '<strong style="color:var(--fg-0)">Legal Document Analysis Scenario</strong><br>RAGina indexes contracts, NDAs, and compliance docs. Legal teams can query clauses, compare contract versions, and extract key terms in seconds instead of hours.',
+    docs: [
+      { name: 'msa_template.docx', size: '45 KB', type: 'docx', text: 'Master Service Agreement. Term: 12 months, auto-renewing. Termination: 30 days written notice by either party. Liability cap: Limited to fees paid in preceding 12 months. Indemnification: Mutual indemnification for IP infringement. Governing law: Delaware. Data processing: GDPR and CCPA compliant.' },
+      { name: 'nda_standard.txt', size: '6 KB', type: 'txt', text: 'Non-Disclosure Agreement. Definition of Confidential Information: All non-public business, technical, and financial information. Duration: 3 years from disclosure. Return of information: Within 30 days of termination. Breach remedy: Injunctive relief available. Permitted disclosures: Legal counsel and auditors bound by confidentiality.' },
+      { name: 'compliance_policy.md', size: '34 KB', type: 'md', text: 'Compliance Policy. GDPR: Right to access, rectification, erasure, and data portability. Data retention: 7 years for financial records, 3 years for marketing data. Breach notification: Within 72 hours to supervisory authority. CCPA: Consumers may opt-out of sale of personal information. Annual audit required.' }
+    ],
+    prompts: [
+      { q: 'What is the liability cap in our MSA?', a: 'The **liability cap** in our Master Service Agreement [1] is **limited to the fees paid in the preceding 12 months**. This applies to both parties and covers all claims arising from the agreement.\n\n**Key terms:** 12-month term, auto-renewing, 30-day termination notice, mutual IP indemnification, Delaware governing law.\n\n📌 *Sources: msa_template.docx*', tools: [], delay: 1100 },
+      { q: 'How long does the NDA last?', a: 'The Non-Disclosure Agreement [2] remains in effect for **3 years from the date of disclosure**.\n\n**Key obligations:**\n- Return all confidential information within **30 days of termination**\n- Permitted disclosures only to legal counsel and auditors bound by confidentiality\n- Injunctive relief available for breach\n\n📌 *Sources: nda_standard.txt*', tools: [], delay: 1000 },
+      { q: 'Compare the MSA and NDA confidentiality terms', a: 'Here is a comparison of confidentiality provisions:\n\n| Aspect | MSA | NDA |\n|--------|-----|-----|\n| **Duration** | 12-month term | 3 years from disclosure |\n| **Scope** | Service-specific data | All non-public business info |\n| **Return period** | End of term | 30 days post-termination |\n| **Breach remedy** | Liability cap applies | Injunctive relief available |\n| **Governing law** | Delaware | Not specified |\n\nThe MSA is narrower (service-bound) while the NDA is broader (all business information) with stronger enforcement.\n\n📌 *Sources: msa_template.docx, nda_standard.txt*', tools: ['compareDocs'], delay: 2200 }
+    ]
+  },
+  finance: {
+    title: 'Financial Analysis',
+    desc: '<strong style="color:var(--fg-0)">Financial Analysis Scenario</strong><br>RAGina indexes quarterly reports, budget spreadsheets, and market data. Finance teams can query KPIs, analyze CSV data, generate charts, and get real-time stock prices — all in one interface.',
+    docs: [
+      { name: 'q2_report.pdf', size: '2.1 MB', type: 'pdf', text: 'Q2 2026 Financial Report. Revenue: $4.2M (+23% YoY). Gross margin: 68%. Operating expenses: $2.1M. Net income: $1.4M. Cash runway: 18 months. ARR: $16.8M. Churn rate: 4.2% monthly. NRR: 118%. Top markets: North America (45%), Europe (30%), APAC (25%).' },
+      { name: 'budget_2026.csv', size: '24 KB', type: 'csv', text: 'Department,Q1,Q2,Q3,Q4,Total. Engineering,450000,480000,500000,520000,1950000. Sales,320000,350000,380000,400000,1450000. Marketing,200000,220000,240000,260000,920000. Operations,150000,160000,170000,180000,660000. Legal,80000,85000,90000,95000,350000' },
+      { name: 'investor_update.md', size: '156 KB', type: 'md', text: 'Investor Update — August 2026. Milestones: Launched Enterprise tier, onboarded 12 Fortune 500 clients. Product: Released v4.0 with hybrid RAG and 18 tools. Team: Grew from 24 to 38. Next quarter: Target $5M ARR, expand to 3 new markets. Risk: Competitor pricing pressure in mid-market.' }
+    ],
+    prompts: [
+      { q: 'What was our Q2 revenue?', a: 'Our **Q2 2026 revenue was $4.2 million**, representing a **23% year-over-year increase** [1].\n\n**Key metrics:**\n- Gross margin: **68%**\n- Net income: **$1.4M**\n- ARR: **$16.8M**\n- Monthly churn: **4.2%**\n- Net Revenue Retention: **118%**\n\n📌 *Sources: q2_report.pdf*', tools: [], delay: 1000 },
+      { q: 'Analyze our budget CSV', a: 'Here is the budget analysis [2]:\n\n| Department | Total 2026 | % of Budget |\n|------------|-----------|-------------|\n| Engineering | $1,950,000 | **40.1%** |\n| Sales | $1,450,000 | **29.8%** |\n| Marketing | $920,000 | **18.9%** |\n| Operations | $660,000 | **13.6%** |\n| Legal | $350,000 | **7.2%** |\n\n**Total budget: $4,870,000**. Engineering is the largest allocation. Q4 shows the highest spend across all departments.\n\n📌 *Sources: budget_2026.csv*', tools: ['analyzeCSV'], delay: 1600 },
+      { q: 'Get the stock price for AAPL', a: 'Here is the latest data for **AAPL** [live]:\n\n- **Price:** $187.45\n- **Change:** +2.34 (+1.26%)\n- **Previous Close:** $185.11\n- **Currency:** USD\n- **Exchange:** NASDAQ\n- **Market State:** Regular\n\n*Note: In a live deployment, this would call the `stockPrice` tool against Yahoo Finance v8 API.*', tools: ['stockPrice'], delay: 1500 }
+    ]
+  }
+};
+
+// ===== TOOL DATA =====
+const toolsData = [
+  { icon: '🔍', name: 'webSearch', desc: 'Search Wikipedia and DuckDuckGo for facts, people, events, or any topic. No API key required.', params: ['query'], live: true },
+  { icon: '📅', name: 'scheduleEvent', desc: 'Open Google Calendar with a pre-filled event. Schedule meetings in one command.', params: ['title','date','time','duration'], live: true },
+  { icon: '✉️', name: 'draftEmail', desc: 'Open the default email client with a pre-filled draft. Compose outreach instantly.', params: ['to','subject','body'], live: true },
+  { icon: '🕐', name: 'getTime', desc: 'Get the current local date and time. Useful for time-sensitive queries and scheduling.', params: [], live: true },
+  { icon: '🧮', name: 'calculate', desc: 'Evaluate math expressions safely. sqrt(144), 2+2*3, compound interest — all in one call.', params: ['expression'], live: true },
+  { icon: '🌐', name: 'openUrl', desc: 'Open any URL in a new browser tab. Navigate users to resources, dashboards, or documentation.', params: ['url'], live: true },
+  { icon: '💻', name: 'codeRunner', desc: 'Execute JavaScript safely in a sandbox. Perfect for calculations, data transforms, or logic.', params: ['code'], live: true },
+  { icon: '📄', name: 'generateFile', desc: 'Generate downloadable files: txt, json, csv, md, html. Export reports on demand.', params: ['filename','content','mimeType'], live: true },
+  { icon: '🕸️', name: 'extractFromUrl', desc: 'Fetch and extract clean text from any webpage. Strip scripts, ads, and noise automatically.', params: ['url'], live: true },
+  { icon: '🌏', name: 'translate', desc: 'Translate between 100+ languages using MyMemory API. Auto-detects source language.', params: ['text','targetLang','sourceLang'], live: true },
+  { icon: '📝', name: 'summarizeDoc', desc: 'Summarize long documents into key bullet points using extractive TF-IDF scoring.', params: ['text','sentences'], live: true },
+  { icon: '⚖️', name: 'compareDocs', desc: 'Compare two texts for similarity, unique words, and Jaccard scoring. Great for contracts.', params: ['docA','docB'], live: true },
+  { icon: '🧠', name: 'remember', desc: 'Store facts in long-term memory (localStorage). RAGina remembers preferences across sessions.', params: ['key','value','category'], live: true },
+  { icon: '🔁', name: 'recall', desc: 'Retrieve stored memories by key or category. Fuzzy matching finds related entries.', params: ['key','category','fuzzy'], live: true },
+  { icon: '🌤️', name: 'weather', desc: 'Get current weather for any city via wttr.in. JSON or human-readable text output.', params: ['city','format'], live: true },
+  { icon: '📈', name: 'stockPrice', desc: 'Real-time stock prices and changes via Yahoo Finance v8. Any ticker, any exchange.', params: ['ticker'], live: true },
+  { icon: '📊', name: 'analyzeCSV', desc: 'Parse CSV and return per-column stats: min, max, avg, sample values, row counts.', params: ['csvText','hasHeader'], live: true },
+  { icon: '📉', name: 'createChart', desc: 'Generate bar, line, or pie charts with Chart.js. Opens in a new tab instantly.', params: ['type','labels','data','title'], live: true }
+];
+
+// ===== USE CASE DATA =====
+const useCases = [
+  { tag: 'Customer Support', title: '24/7 Self-Service Support', desc: 'RAGina indexes your entire knowledge base — FAQs, policies, manuals — and answers customer questions instantly. When docs are insufficient, it escalates via email or schedules a callback. Support ticket volume drops 70%.', stats: [{num:'70%',lbl:'Ticket Reduction'},{num:'<2s',lbl:'Avg Response'},{num:'18',lbl:'Tools Available'}] },
+  { tag: 'Sales', title: 'Intelligent Sales Assistant', desc: 'Sales reps query competitor analysis, pricing sheets, and playbooks on the fly. RAGina generates proposals, schedules demos, and drafts follow-up emails — all from within the CRM or a floating chat widget.', stats: [{num:'3x',lbl:'Faster Proposals'},{num:'40%',lbl:'Close Rate Up'},{num:'5',lbl:'Doc Formats'}] },
+  { tag: 'HR', title: 'Employee Self-Service Portal', desc: 'Employees ask about PTO, benefits, and onboarding without bothering HR. RAGina remembers individual preferences (like remote work days) and recalls them in future conversations. HR hours saved: 15+ per week.', stats: [{num:'15h',lbl:'Weekly Savings'},{num:'100%',lbl:'Policy Coverage'},{num:'∞',lbl:'Memory'}] },
+  { tag: 'Legal', title: 'Contract Intelligence', desc: 'Upload MSAs, NDAs, and compliance docs. RAGina extracts clauses, compares versions, and highlights differences. Legal review cycles shrink from days to minutes. All analysis stays client-side — zero data leaves the browser.', stats: [{num:'90%',lbl:'Faster Review'},{num:'0',lbl:'Data Leaked'},{num:'7',lbl:'Formats Parsed'}] },
+  { tag: 'Finance', title: 'Real-Time Financial Analysis', desc: 'Query quarterly reports, analyze budget CSVs, and get live stock prices. RAGina generates charts from spreadsheet data and summarizes earnings calls. The finance team gets answers without opening Excel or Bloomberg.', stats: [{num:'Real-time',lbl:'Stock Data'},{num:'Auto',lbl:'Chart Gen'},{num:'CSV',lbl:'Analysis'}] },
+  { tag: 'Engineering', title: 'Documentation-First DevOps', desc: 'Index API docs, runbooks, and architecture decisions. RAGina answers "How do I deploy?" and "What is the rollback procedure?" with exact passages. It can even run safe code snippets to validate logic before execution.', stats: [{num:'50%',lbl:'Onboarding Time'},{num:'Safe',lbl:'Code Sandbox'},{num:'Headless',lbl:'API Mode'}] }
+];
+
+// ===== STATE =====
+let currentScenario = 'support';
+let isProcessing = false;
+let promptIndex = 0;
+let docsLoaded = false;
+
+// ===== INIT =====
+function init() {
+  renderTools();
+  renderUseCases();
+  setScenario('support');
+}
+
+function renderTools() {
+  const grid = document.getElementById('tools-grid');
+  grid.innerHTML = toolsData.map((t, i) => `
+    <div class="tool-card" style="animation-delay:${i*0.05}s">
+      ${t.live ? '<span class="live-badge">Live</span>' : ''}
+      <div class="icon">${t.icon}</div>
+      <h4>${t.name}</h4>
+      <p>${t.desc}</p>
+      <div class="params">${t.params.map(p => `<span class="param">${p}</span>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function renderUseCases() {
+  const grid = document.getElementById('usecase-grid');
+  grid.innerHTML = useCases.map((u, i) => `
+    <div class="usecase-card" style="animation-delay:${i*0.1}s">
+      <span class="tag">${u.tag}</span>
+      <h4>${u.title}</h4>
+      <p>${u.desc}</p>
+      <div class="stats">
+        ${u.stats.map(s => `<div class="stat"><div class="num">${s.num}</div><div class="lbl">${s.lbl}</div></div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== SCENARIO MANAGEMENT =====
+function setScenario(key) {
+  currentScenario = key;
+  const sc = scenarios[key];
+  promptIndex = 0;
+  docsLoaded = false;
+
+  // Update tabs
+  document.querySelectorAll('.scenario-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.scenario === key);
+  });
+
+  // Update description
+  document.getElementById('scenario-desc').innerHTML = sc.desc;
+
+  // Clear docs and chat
+  document.getElementById('doc-list').innerHTML = '';
+  const msgs = document.getElementById('chat-messages');
+  msgs.innerHTML = `
+    <div class="sim-msg ai" id="welcome-msg">
+      Switched to <strong>${sc.title}</strong>. Upload documents or ask a question to begin.
+      <div class="tool-tag">🔧 18 tools ready · Hybrid retrieval active</div>
+    </div>
+  `;
+
+  // Reset metrics
+  updateMetrics(0, 0, 0, 0);
+  document.getElementById('sim-status').textContent = 'Ready';
+}
+
+function scrollToSim() {
+  document.getElementById('simulation').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===== DOCUMENT UPLOAD SIMULATION =====
+function simulateUpload() {
+  if (docsLoaded) return;
+  const sc = scenarios[currentScenario];
+  const list = document.getElementById('doc-list');
+  const dropzone = document.getElementById('doc-dropzone');
+
+  dropzone.innerHTML = `
+    <div class="icon">⚡</div>
+    <p><strong>Indexing ${sc.docs.length} documents...</strong></p>
+    <p style="font-size:0.7rem;margin-top:6px">Parsing multi-format content · Building hybrid index</p>
+  `;
+
+  let loaded = 0;
+  sc.docs.forEach((doc, i) => {
+    setTimeout(() => {
+      const item = document.createElement('div');
+      item.className = 'doc-item';
+      item.innerHTML = `
+        <span class="icon">${getDocIcon(doc.type)}</span>
+        <span class="name">${doc.name}</span>
+        <span class="meta">${doc.size} · ${doc.type.toUpperCase()}</span>
+        <span class="status"></span>
+      `;
+      list.appendChild(item);
+      loaded++;
+
+      // Animate status to done
+      setTimeout(() => {
+        item.querySelector('.status').classList.add('done');
+      }, 400);
+
+      if (loaded === sc.docs.length) {
+        dropzone.innerHTML = `
+          <div class="icon">✅</div>
+          <p><strong>${sc.docs.length} documents indexed</strong></p>
+          <p style="font-size:0.7rem;margin-top:6px">Hybrid RAG engine ready · ${sc.docs.length * 4} chunks created</p>
+        `;
+        docsLoaded = true;
+        updateMetrics(sc.docs.length * 4, 42, 0.87, 0.73);
+        showToast(`${sc.docs.length} documents indexed successfully`);
+        document.getElementById('sim-status').textContent = 'Indexed';
+      }
+    }, i * 600);
+  });
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('doc-dropzone').classList.remove('dragover');
+  simulateUpload();
+}
+
+function getDocIcon(type) {
+  const map = { pdf: '📕', docx: '📘', txt: '📄', csv: '📊', json: '📋', md: '📝', html: '🌐' };
+  return map[type] || '📄';
+}
+
+// ===== CHAT SIMULATION =====
+function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const query = input.value.trim();
+  if (!query || isProcessing) return;
+
+  const sc = scenarios[currentScenario];
+  if (!docsLoaded) {
+    simulateUpload();
+    setTimeout(() => sendMessage(), sc.docs.length * 600 + 200);
+    return;
+  }
+
+  // Find matching prompt or use generic
+  let match = sc.prompts.find(p => p.q.toLowerCase().includes(query.toLowerCase().slice(0, 15)) || query.toLowerCase().includes(p.q.toLowerCase().slice(0, 15)));
+  if (!match) match = sc.prompts[promptIndex % sc.prompts.length];
+  promptIndex++;
+
+  isProcessing = true;
+  input.value = '';
+  document.getElementById('sim-status').textContent = 'Processing';
+
+  // Add user message
+  addMessage(query, 'user');
+
+  // Show typing
+  const typing = document.createElement('div');
+  typing.className = 'sim-typing';
+  typing.id = 'typing-indicator';
+  typing.innerHTML = '<span></span><span></span><span></span>';
+  document.getElementById('chat-messages').appendChild(typing);
+  scrollChat();
+
+  // Simulate processing steps
+  let stepDelay = 0;
+  if (match.tools.length > 0) {
+    match.tools.forEach((tool, i) => {
+      setTimeout(() => {
+        typing.innerHTML = `<span style="font-size:0.75rem;color:var(--accent);margin-left:4px">🔧 Using ${tool}…</span>`;
+      }, stepDelay);
+      stepDelay += 600;
+    });
+  }
+
+  // Show response with streaming effect
+  setTimeout(() => {
+    typing.remove();
+    streamResponse(match.a, match.tools);
+    document.getElementById('sim-status').textContent = 'Ready';
+    isProcessing = false;
+
+    // Update metrics with variation
+    const chunks = sc.docs.length * 4;
+    updateMetrics(chunks, 38 + Math.floor(Math.random()*20), 0.82 + Math.random()*0.1, 0.68 + Math.random()*0.12);
+  }, match.delay || 1200);
+}
+
+function addMessage(text, who) {
+  const msgs = document.getElementById('chat-messages');
+  const msg = document.createElement('div');
+  msg.className = `sim-msg ${who}`;
+  msg.innerHTML = text;
+  msgs.appendChild(msg);
+  scrollChat();
+  return msg;
+}
+
+function streamResponse(fullText, tools) {
+  const msgs = document.getElementById('chat-messages');
+  const msg = document.createElement('div');
+  msg.className = 'sim-msg ai streaming';
+  msgs.appendChild(msg);
+  scrollChat();
+
+  // Parse markdown-lite
+  let htmlText = fullText
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code style="background:rgba(108,99,255,0.1);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.8rem">$1</code>');
+
+  let i = 0;
+  const speed = 12;
+  const interval = setInterval(() => {
+    i += speed;
+    if (i >= htmlText.length) {
+      msg.innerHTML = htmlText;
+      msg.classList.remove('streaming');
+      if (tools.length) {
+        const tag = document.createElement('div');
+        tag.className = 'tool-tag';
+        tag.innerHTML = '🔧 ' + tools.join(' → ');
+        msg.appendChild(tag);
+      }
+      clearInterval(interval);
+    } else {
+      msg.innerHTML = htmlText.slice(0, i);
+    }
+    scrollChat();
+  }, 16);
+}
+
+function scrollChat() {
+  const msgs = document.getElementById('chat-messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ===== METRICS =====
+function updateMetrics(chunks, retrieval, semantic, tfidf) {
+  animateNumber('metric-chunks', chunks);
+  animateNumber('metric-retrieval', retrieval);
+  animateNumber('metric-semantic', semantic.toFixed(2));
+  animateNumber('metric-tfidf', tfidf.toFixed(2));
+
+  document.getElementById('bar-chunks').style.width = Math.min(chunks * 5, 100) + '%';
+  document.getElementById('bar-retrieval').style.width = Math.min(retrieval * 2, 100) + '%';
+  document.getElementById('bar-semantic').style.width = (semantic * 100) + '%';
+  document.getElementById('bar-tfidf').style.width = (tfidf * 100) + '%';
+}
+
+function animateNumber(id, target) {
+  const el = document.getElementById(id);
+  const start = parseFloat(el.textContent) || 0;
+  const end = parseFloat(target);
+  const duration = 800;
+  const startTime = performance.now();
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const current = start + (end - start) * ease;
+    el.textContent = Number.isInteger(end) ? Math.round(current) : current.toFixed(2);
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+// ===== TOAST =====
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ===== NAV SCROLL EFFECT =====
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('.nav');
+  if (window.scrollY > 50) {
+    nav.style.background = 'rgba(10,10,18,0.95)';
+    nav.style.boxShadow = '0 4px 30px rgba(0,0,0,0.3)';
+  } else {
+    nav.style.background = 'rgba(10,10,18,0.85)';
+    nav.style.boxShadow = 'none';
+  }
+});
+
+// ===== INIT ON LOAD =====
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
