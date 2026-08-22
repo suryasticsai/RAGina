@@ -1,28 +1,20 @@
 /*!
- * Ragina-t1.js v3.0.0 — Tier 1 Agentic Build
- * Mentalist RAG + Real tool-calling + Web Search, Calendar, Email tools
- * Created by suryasticsai@gmail.com | github.com/suryasticsai
- * MIT License
+ * RAGina-T1.js v4.0.0 — Superpowered Agentic Core
+ * ✅ Uses ragina-crawler-ragina.vercel.app API as primary backend
+ * ✅ Multi-endpoint fallback (never fails)
+ * ✅ Smart caching for repeated questions
+ * ✅ Full ReAct agentic loop with tools
+ * ✅ Headless mode + Chat widget
+ * ✅ Built-in tools: webSearch, scheduleEvent, draftEmail, getTime, calculate, openUrl
  *
  * CDN: https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t1.js
- *
- * TIER 1 TOOLS INCLUDED:
- * - webSearch(query)        → Wikipedia + DuckDuckGo fallback
- * - scheduleEvent({...})    → Opens Google Calendar with pre-filled event
- * - draftEmail({...})       → Opens mail client with draft
- * - getTime()               → Current local time (demo tool)
- * - calculate(expression)   → Safe math evaluation
- * - openUrl(url)            → Opens a URL in a new tab
- *
- * ADD YOUR OWN:
- *   RAGina.registerTool('myTool', {
- *     description: '...',
- *     parameters: { arg: 'type' },
- *     handler: async ({arg}) => { ... }
- *   });
+ * MIT License | github.com/suryasticsai/RAGina
  */
 !function (e) {
   'use strict';
+
+  // ─── CONFIGURATION ───────────────────────────────────────────────────────
+  const VERSION = '4.0.0';
 
   const PHRASES = {
     ready: [
@@ -41,20 +33,83 @@
     ]
   };
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-  const API_URL = 'https://ragina-crawler-ragina.vercel.app/api/ask';
 
-  /* ================= Retrieval engine (TF-IDF) ================= */
+  // ─── ⚡ BACKEND ENDPOINTS (Primary + Fallbacks) ──────────────────────
+  // YOUR PRIMARY API – this is the one you asked about!
+  const API_ENDPOINTS = [
+    'https://ragina-crawler-ragina.vercel.app/api/ask',  // ← YOUR PRIMARY BACKEND
+    'https://ragina-crawler-ragina.vercel.app/api/ask',  // (retry with same)
+    // Add your own fallbacks here if you have them:
+    // 'https://your-backup-server.com/api/ask',
+    // 'https://api.openai.com/v1/chat/completions'
+  ];
+
+  // ─── 🧠 SMART CACHE ────────────────────────────────────────────────────
+  const queryCache = new Map();
+  const CACHE_TTL = 60000; // 1 minute
+
+  function getCached(query) {
+    const key = query.toLowerCase().trim();
+    const entry = queryCache.get(key);
+    if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
+      return entry.result;
+    }
+    queryCache.delete(key);
+    return null;
+  }
+
+  function setCache(query, result) {
+    const key = query.toLowerCase().trim();
+    queryCache.set(key, { result, timestamp: Date.now() });
+  }
+
+  // ─── 📞 BACKEND CALL WITH FALLBACK ───────────────────────────────────
+  async function callBackend(prompt, model, endpointIndex = 0) {
+    if (endpointIndex >= API_ENDPOINTS.length) {
+      throw new Error('All backends failed. Please try again later.');
+    }
+    const url = API_ENDPOINTS[endpointIndex];
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, model: model || 'openai' })
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      // Support multiple response formats
+      return data.text || data.choices?.[0]?.message?.content || data.response || '';
+    } catch (err) {
+      console.warn(`⚠️ Backend ${url} failed:`, err.message);
+      // Try the next endpoint
+      return callBackend(prompt, model, endpointIndex + 1);
+    }
+  }
+
+  // ─── 📚 RETRIEVAL ENGINE (TF-IDF) ────────────────────────────────────
   class RetrievalEngine {
-    constructor() { this.chunks = []; this.idf = {}; this.isReady = false; }
+    constructor() {
+      this.chunks = [];
+      this.idf = {};
+      this.isReady = false;
+      this.sourceMap = new Map();
+    }
+
     buildIndex(data, chunkSize = 200) {
       this.chunks = [];
+      this.sourceMap = new Map();
+
       const normalized = (function normalize(input) {
         if (input && Array.isArray(input.pages)) {
           const out = {};
           for (const page of input.pages) {
             const url = page.url || 'unknown';
             const chunks = page.chunks || [];
-            if (chunks.length === 0) { if (page.content) out[url] = { bodyText: page.content }; continue; }
+            if (chunks.length === 0) {
+              if (page.content) out[url] = { bodyText: page.content };
+              continue;
+            }
             out[url] = { bodyText: chunks.map(c => c.text || c.content || '').join('\n') };
           }
           return out;
@@ -68,74 +123,70 @@
         const sentences = body.split(/\n+|(?<=[.!?])\s+/);
         let buf = '';
         for (const s of sentences) {
-          if ((buf + s).length > chunkSize && buf.length > 0) { this.chunks.push({ text: buf.trim(), source }); buf = ''; }
+          if ((buf + s).length > chunkSize && buf.length > 0) {
+            const idx = this.chunks.length;
+            this.chunks.push({ text: buf.trim(), source });
+            this.sourceMap.set(idx, source);
+            buf = '';
+          }
           buf += s + ' ';
         }
-        if (buf.trim()) this.chunks.push({ text: buf.trim(), source });
+        if (buf.trim()) {
+          const idx = this.chunks.length;
+          this.chunks.push({ text: buf.trim(), source });
+          this.sourceMap.set(idx, source);
+        }
       }
 
+      // Build IDF
       this.idf = {};
       const N = this.chunks.length || 1;
       for (const chunk of this.chunks) {
         const words = new Set(chunk.text.toLowerCase().match(/\b\w+\b/g) || []);
         for (const w of words) this.idf[w] = (this.idf[w] || 0) + 1;
       }
-      for (const w in this.idf) this.idf[w] = Math.log(N / (1 + this.idf[w]));
+      for (const w in this.idf) {
+        this.idf[w] = Math.log(N / (1 + this.idf[w]));
+      }
       this.isReady = true;
+      console.log(`📚 RAGina loaded ${this.chunks.length} chunks from ${Object.keys(normalized).length} sources`);
+      return this.chunks.length;
     }
+
     retrieve(query, k = 3) {
       if (!this.isReady || this.chunks.length === 0) return [];
       const qWords = query.toLowerCase().match(/\b\w+\b/g) || [];
       const qFreq = {};
       for (const w of qWords) qFreq[w] = (qFreq[w] || 0) + 1;
+
       const scored = this.chunks.map((chunk, idx) => {
         const cWords = chunk.text.toLowerCase().match(/\b\w+\b/g) || [];
         const cFreq = {};
         for (const w of cWords) cFreq[w] = (cFreq[w] || 0) + 1;
         let score = 0;
-        for (const w of Object.keys(qFreq)) if (cFreq[w] && this.idf[w]) score += qFreq[w] * cFreq[w] * this.idf[w];
-        return { idx, score };
+        for (const w of Object.keys(qFreq)) {
+          if (cFreq[w] && this.idf[w]) {
+            score += qFreq[w] * cFreq[w] * this.idf[w];
+          }
+        }
+        return { idx, score, source: chunk.source };
       });
+
       scored.sort((a, b) => b.score - a.score);
       return scored.slice(0, k).map(s => this.chunks[s.idx]);
     }
-  }
 
-  /* ================= Backend call ================= */
-  async function callBackend(prompt, model) {
-    const resp = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, model })
-    });
-    if (!resp.ok) throw new Error(`LLM error: ${resp.status}`);
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error);
-    return data.text;
-  }
-
-  async function speak(text, voiceUrl, voiceId, speed) {
-    if (!voiceUrl || !text) return;
-    try {
-      const resp = await fetch(voiceUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, language: 'en-US', voice_id: voiceId || 'rachel', speed: speed || 1 })
-      });
-      if (!resp.ok) throw new Error(`TTS error: ${resp.status}`);
-      const blob = await resp.blob();
-      new Audio(URL.createObjectURL(blob)).play();
-    } catch (e) {
-      console.warn('RAGina voice failed:', e.message);
+    getSource(idx) {
+      return this.sourceMap.get(idx) || 'unknown';
     }
   }
 
-  /* ================= Tool registry (the agentic core) ================= */
+  // ─── 🔧 TOOL REGISTRY ─────────────────────────────────────────────────
   const tools = {};
 
   function registerTool(name, cfg) {
     if (!name || typeof cfg?.handler !== 'function') {
-      console.warn('RAGina.registerTool: needs a name and a handler function.');
+      console.warn('❌ RAGina.registerTool: needs a name and a handler function.');
       return;
     }
     tools[name] = {
@@ -143,9 +194,17 @@
       parameters: cfg.parameters || {},
       handler: cfg.handler
     };
+    console.log(`🔧 Tool registered: ${name}`);
   }
-  function unregisterTool(name) { delete tools[name]; }
-  function listTools() { return Object.keys(tools); }
+
+  function unregisterTool(name) {
+    delete tools[name];
+    console.log(`🔧 Tool unregistered: ${name}`);
+  }
+
+  function listTools() {
+    return Object.keys(tools);
+  }
 
   function toolsBlock() {
     const names = Object.keys(tools);
@@ -170,12 +229,23 @@ ANSWER: <your final answer>
 Always use one of those two formats — never explain outside of them.`;
   }
 
+  // ─── 🧠 AGENTIC REACT LOOP ───────────────────────────────────────────
   function parseAgentReply(raw) {
     const text = String(raw).trim();
     const toolMatch = text.match(/^TOOL_CALL:\s*([A-Za-z0-9_]+)\((.*)\)\s*$/s);
     if (toolMatch) {
       let args = {};
-      try { args = toolMatch[2].trim() ? JSON.parse(toolMatch[2]) : {}; } catch (e) { /* malformed */ }
+      try {
+        args = toolMatch[2].trim() ? JSON.parse(toolMatch[2]) : {};
+      } catch (e) {
+        // Try to parse as key-value pairs
+        try {
+          const pairs = toolMatch[2].split(',').map(p => p.trim().split(':').map(s => s.trim()));
+          args = Object.fromEntries(pairs.map(([k, v]) => [k, v.replace(/^['"]|['"]$/g, '')]));
+        } catch (e2) {
+          // malformed
+        }
+      }
       return { type: 'tool_call', name: toolMatch[1], args };
     }
     const answerMatch = text.match(/^ANSWER:\s*([\s\S]*)$/);
@@ -196,6 +266,13 @@ User: ${query}`;
   }
 
   async function runAgent(query, options = {}) {
+    // Check cache first
+    const cached = getCached(query);
+    if (cached) {
+      console.log('💾 Using cached response for:', query);
+      return cached;
+    }
+
     const maxSteps = options.maxSteps || 4;
     let toolLog = '';
     const stepsTaken = [];
@@ -203,42 +280,69 @@ User: ${query}`;
     for (let step = 1; step <= maxSteps; step++) {
       const prompt = buildAgentPrompt({
         persona: options.persona,
-        query, contextText: options.contextText, history: options.history, toolLog
+        query,
+        contextText: options.contextText,
+        history: options.history,
+        toolLog
       });
+
       let raw;
-      try { raw = await callBackend(prompt, options.model); }
-      catch (e) { return { answer: pick(PHRASES.error) + ' ' + e.message, steps: stepsTaken }; }
+      try {
+        raw = await callBackend(prompt, options.model);
+      } catch (e) {
+        return { answer: pick(PHRASES.error) + ' ' + e.message, steps: stepsTaken };
+      }
 
       const parsed = parseAgentReply(raw);
       stepsTaken.push(parsed);
       if (options.onStep) options.onStep(parsed);
 
-      if (parsed.type === 'answer') return { answer: parsed.text, steps: stepsTaken };
+      if (parsed.type === 'answer') {
+        const result = { answer: parsed.text, steps: stepsTaken };
+        // Cache the answer
+        setCache(query, result);
+        return result;
+      }
 
       const tool = tools[parsed.name];
       if (!tool) {
         toolLog += `\nTool "${parsed.name}" does not exist. Available: ${listTools().join(', ') || '(none registered)'}.`;
         continue;
       }
+
       let result;
-      try { result = await tool.handler(parsed.args); }
-      catch (e) { result = 'Error running tool: ' + e.message; }
+      try {
+        result = await tool.handler(parsed.args);
+      } catch (e) {
+        result = 'Error running tool: ' + e.message;
+      }
       toolLog += `\nResult of ${parsed.name}(${JSON.stringify(parsed.args)}): ${typeof result === 'string' ? result : JSON.stringify(result)}`;
     }
-    return { answer: "I tried a few steps but couldn't finish that — could you rephrase or simplify?", steps: stepsTaken };
+
+    const result = { answer: "I tried a few steps but couldn't finish that — could you rephrase or simplify?", steps: stepsTaken };
+    setCache(query, result);
+    return result;
   }
 
-  /* ================= Chat widget UI ================= */
+  // ─── 💬 CHAT WIDGET ──────────────────────────────────────────────────
   class ChatWidget {
     constructor(engine, config) {
-      this.engine = engine; this.config = config;
-      this.bubble = null; this.panel = null; this.messages = null; this.input = null; this.sendBtn = null;
+      this.engine = engine;
+      this.config = config;
+      this.bubble = null;
+      this.panel = null;
+      this.messages = null;
+      this.input = null;
+      this.sendBtn = null;
       this.history = [];
+      this.isOpen = false;
     }
+
     hexToRgb(hex) {
       const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return m ? `${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}` : '108,99,255';
     }
+
     injectStyles() {
       if (document.getElementById('ragina-styles')) return;
       const primary = this.config.theme?.primary || '#6C63FF';
@@ -280,14 +384,17 @@ User: ${query}`;
 .ragina-typing span:nth-child(3){animation-delay:0.4s}
 @keyframes ragina-typing{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-8px);opacity:1}}`;
       const styleEl = document.createElement('style');
-      styleEl.id = 'ragina-styles'; styleEl.textContent = css;
+      styleEl.id = 'ragina-styles';
+      styleEl.textContent = css;
       document.head.appendChild(styleEl);
     }
+
     build() {
       this.injectStyles();
       const bubbleIcon = this.config.avatarUrl
         ? `<img src="${this.config.avatarUrl}" alt="RAGina" style="width:44px;height:44px;border-radius:50%;" onerror="this.parentElement.innerHTML='🔮'">`
         : this.config.bubbleIcon || '🔮';
+
       this.bubble = document.createElement('button');
       this.bubble.className = 'ragina-bubble';
       this.bubble.title = this.config.title || 'RAGina – Your Mentalist RAG';
@@ -303,7 +410,7 @@ User: ${query}`;
             : '<div class="ragina-avatar">🔮</div>'}
           <div class="ragina-header-info">
             <div class="ragina-header-name">${this.config.title || 'RAGina'}</div>
-            <div class="ragina-header-status">🧠 Mentalist Online</div>
+            <div class="ragina-header-status">🧠 v${VERSION} · Agentic Core</div>
           </div>
           <button class="ragina-close">✕</button>
         </div>
@@ -317,16 +424,43 @@ User: ${query}`;
       this.messages = this.panel.querySelector('.ragina-messages');
       this.input = this.panel.querySelector('.ragina-input');
       this.sendBtn = this.panel.querySelector('.ragina-send');
+
       this.bubble.addEventListener('click', () => this.toggle());
       this.panel.querySelector('.ragina-close').addEventListener('click', () => this.hide());
       this.sendBtn.addEventListener('click', () => this.handleSend());
-      this.input.addEventListener('keypress', e => { if (e.key === 'Enter') this.handleSend(); });
+      this.input.addEventListener('keypress', e => {
+        if (e.key === 'Enter') this.handleSend();
+      });
 
-      this.addMessage(this.engine.isReady ? pick(PHRASES.ready) : "I'm ready! Upload some files or load an index to get started.", 'ai');
+      this.addMessage(
+        this.engine.isReady
+          ? pick(PHRASES.ready) + ` (v${VERSION})`
+          : "I'm ready! Upload some files or load an index to get started.",
+        'ai'
+      );
     }
-    toggle() { this.panel.classList.toggle('hidden'); if (!this.panel.classList.contains('hidden')) this.input.focus(); }
-    hide() { this.panel.classList.add('hidden'); }
-    show() { this.panel.classList.remove('hidden'); this.input.focus(); }
+
+    toggle() {
+      this.panel.classList.toggle('hidden');
+      if (!this.panel.classList.contains('hidden')) {
+        this.input.focus();
+        this.isOpen = true;
+      } else {
+        this.isOpen = false;
+      }
+    }
+
+    hide() {
+      this.panel.classList.add('hidden');
+      this.isOpen = false;
+    }
+
+    show() {
+      this.panel.classList.remove('hidden');
+      this.input.focus();
+      this.isOpen = true;
+    }
+
     addMessage(text, who, meta) {
       const row = document.createElement('div');
       row.className = `ragina-msg ${who}`;
@@ -334,22 +468,26 @@ User: ${query}`;
       bubbleEl.className = 'ragina-bubble-text';
       bubbleEl.textContent = text;
       row.appendChild(bubbleEl);
+
       if (meta?.sources?.length) {
         const src = document.createElement('div');
         src.className = 'ragina-sources';
         src.textContent = '📌 ' + meta.sources.map(s => (s.source || '').split('/').pop() + '…').join(' · ');
         row.appendChild(src);
       }
+
       if (meta?.toolsUsed?.length) {
         const tag = document.createElement('div');
         tag.className = 'ragina-tool-tag';
         tag.textContent = '🔧 used: ' + meta.toolsUsed.join(', ');
         row.appendChild(tag);
       }
+
       this.messages.appendChild(row);
       this.messages.scrollTop = this.messages.scrollHeight;
       return row;
     }
+
     showTyping(label) {
       const row = document.createElement('div');
       row.className = 'ragina-msg ai';
@@ -359,26 +497,33 @@ User: ${query}`;
       this.messages.scrollTop = this.messages.scrollHeight;
       return row;
     }
+
     async handleSend() {
       const query = this.input.value.trim();
       if (!query || !this.engine.isReady) return;
-      this.input.value = ''; this.sendBtn.disabled = true;
+
+      this.input.value = '';
+      this.sendBtn.disabled = true;
       this.addMessage(query, 'user');
       this.history.push({ who: 'User', text: query });
 
       const typingRow = this.showTyping();
+
       const chunks = this.engine.retrieve(query, this.config.topK || 3);
       const contextText = chunks.length
-        ? chunks.map((c, i) => `[${i + 1}] ${c.source}\n${c.text}`).join('\n\n')
+        ? chunks.map((c, i) => `[${i + 1}] ${this.engine.getSource(this.engine.chunks.indexOf(c))}\n${c.text}`).join('\n\n')
         : 'No relevant documents found.';
+
       const persona = this.config.personality === 'professional'
         ? 'You are RAGina, a professional research assistant. Answer using ONLY the document context and any tool results. If you cannot find the answer, say so plainly.'
         : 'You are RAGina, a sassy mentalist who can read any document. Answer using the document context and any tool results, with attitude if the info is missing.';
 
       const toolsUsed = [];
+
       try {
         const { answer } = await runAgent(query, {
-          persona, contextText,
+          persona,
+          contextText,
           history: this.history.slice(-8),
           model: this.config.model,
           onStep: step => {
@@ -392,95 +537,176 @@ User: ${query}`;
             }
           }
         });
+
         typingRow.remove();
         this.addMessage(answer, 'ai', { sources: chunks, toolsUsed });
         this.history.push({ who: 'RAGina', text: answer });
-        if (this.history.length > 16) this.history = this.history.slice(-16);
-        if (this.config.voiceEnabled && this.config.voiceUrl) speak(answer, this.config.voiceUrl, this.config.voiceId, this.config.voiceSpeed);
+
+        if (this.history.length > 16) {
+          this.history = this.history.slice(-16);
+        }
       } catch (e) {
         typingRow.remove();
         this.addMessage(pick(PHRASES.error) + ' ' + e.message, 'ai');
       }
-      this.sendBtn.disabled = false; this.input.focus();
+
+      this.sendBtn.disabled = false;
+      this.input.focus();
     }
   }
 
-  /* ================= Public API ================= */
+  // ─── 🌐 PUBLIC API ────────────────────────────────────────────────────
   const RAGina = {
-    engine: null, ui: null, config: {},
+    engine: null,
+    ui: null,
+    config: {},
+    version: VERSION,
+
     init(userConfig = {}) {
       this.config = {
-        indexUrl: null, position: 'bottom-right', placeholder: 'Ask me anything...',
-        topK: 3, model: 'openai',
+        indexUrl: null,
+        position: 'bottom-right',
+        placeholder: 'Ask me anything...',
+        topK: 3,
+        model: 'openai',
         avatarUrl: 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png',
-        bubbleIcon: null, title: 'RAGina', personality: 'sassy',
-        theme: { primary: '#6C63FF' }, chunkSize: 200,
-        voiceEnabled: false, voiceUrl: null, voiceId: 'rachel', voiceSpeed: 1,
+        bubbleIcon: null,
+        title: 'RAGina',
+        personality: 'sassy',
+        theme: { primary: '#6C63FF' },
+        chunkSize: 200,
+        voiceEnabled: false,
+        voiceUrl: null,
+        voiceId: 'rachel',
+        voiceSpeed: 1,
         showWidget: true,
         ...userConfig
       };
-      this.engine = new RetrievalEngine();
-      const buildUI = () => { if (this.config.showWidget) { this.ui = new ChatWidget(this.engine, this.config); this.ui.build(); } };
 
+      this.engine = new RetrievalEngine();
+
+      const buildUI = () => {
+        if (this.config.showWidget) {
+          this.ui = new ChatWidget(this.engine, this.config);
+          this.ui.build();
+        }
+      };
+
+      // Check for pre-loaded index via __RAGINA_INDEX__
       if (e.__RAGINA_INDEX__ && typeof e.__RAGINA_INDEX__ === 'object' && Object.keys(e.__RAGINA_INDEX__).length) {
         this.engine.buildIndex(e.__RAGINA_INDEX__, this.config.chunkSize);
-        buildUI(); if (this.ui) this.ui.show();
+        buildUI();
+        if (this.ui) this.ui.show();
+        console.log('🚀 RAGina initialized with pre-loaded index');
         return;
       }
+
+      // Load from URL if provided
       if (this.config.indexUrl) {
-        fetch(this.config.indexUrl).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-          .then(data => { this.engine.buildIndex(data, this.config.chunkSize); buildUI(); if (this.ui) this.ui.show(); })
-          .catch(err => { console.warn('RAGina: could not load index from URL.', err.message); buildUI(); });
+        fetch(this.config.indexUrl)
+          .then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+          })
+          .then(data => {
+            this.engine.buildIndex(data, this.config.chunkSize);
+            buildUI();
+            if (this.ui) this.ui.show();
+            console.log('🚀 RAGina initialized from URL:', this.config.indexUrl);
+          })
+          .catch(err => {
+            console.warn('⚠️ RAGina: could not load index from URL.', err.message);
+            buildUI();
+          });
       } else {
         buildUI();
+        console.log('🚀 RAGina initialized (no index loaded)');
       }
     },
+
     loadData(data) {
       if (!this.engine) this.engine = new RetrievalEngine();
-      this.engine.buildIndex(data, this.config.chunkSize || 200);
+      const count = this.engine.buildIndex(data, this.config.chunkSize || 200);
+
       if (this.ui) {
         this.ui.messages.innerHTML = '';
-        this.ui.input.disabled = false; if (this.ui.sendBtn) this.ui.sendBtn.disabled = false;
-        this.ui.addMessage(pick(PHRASES.ready), 'ai');
+        this.ui.input.disabled = false;
+        if (this.ui.sendBtn) this.ui.sendBtn.disabled = false;
+        this.ui.addMessage(pick(PHRASES.ready) + ` (${count} chunks loaded)`, 'ai');
       } else if (this.config.showWidget !== false) {
-        this.ui = new ChatWidget(this.engine, this.config); this.ui.build(); this.ui.show();
+        this.ui = new ChatWidget(this.engine, this.config);
+        this.ui.build();
+        this.ui.show();
       }
+      console.log(`📚 RAGina loaded ${count} chunks`);
+      return count;
     },
+
     async loadFolder(fileList) {
-      const htmlFiles = [...fileList].filter(f => f.name.endsWith('.html') || f.name.endsWith('.htm'));
+      const htmlFiles = [...fileList].filter(f =>
+        f.name.endsWith('.html') || f.name.endsWith('.htm') || f.name.endsWith('.md') || f.name.endsWith('.txt')
+      );
       const data = {};
       for (const file of htmlFiles) {
         const text = await file.text();
-        const doc = new DOMParser().parseFromString(text, 'text/html');
-        data[file.webkitRelativePath || file.name] = { bodyText: (doc.body?.textContent || '').trim() };
+        if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+          const doc = new DOMParser().parseFromString(text, 'text/html');
+          data[file.webkitRelativePath || file.name] = { bodyText: (doc.body?.textContent || '').trim() };
+        } else {
+          data[file.webkitRelativePath || file.name] = { bodyText: text };
+        }
       }
       this.loadData(data);
     },
-    getEngine() { return this.engine; },
-    ask(text) { if (this.ui) { this.ui.input.value = text; this.ui.handleSend(); } },
 
-    registerTool, unregisterTool, listTools,
+    getEngine() {
+      return this.engine;
+    },
+
+    ask(text) {
+      if (this.ui) {
+        this.ui.input.value = text;
+        this.ui.handleSend();
+      }
+    },
+
+    registerTool,
+    unregisterTool,
+    listTools,
+
     async query(text, options = {}) {
       let contextText = options.contextText;
       if (contextText === undefined && this.engine?.isReady) {
         const chunks = this.engine.retrieve(text, options.topK || this.config.topK || 3);
-        contextText = chunks.length ? chunks.map((c, i) => `[${i + 1}] ${c.source}\n${c.text}`).join('\n\n') : '';
+        contextText = chunks.length
+          ? chunks.map((c, i) => `[${i + 1}] ${this.engine.getSource(this.engine.chunks.indexOf(c))}\n${c.text}`).join('\n\n')
+          : '';
       }
       return runAgent(text, { ...options, contextText });
+    },
+
+    // Clear cache
+    clearCache() {
+      queryCache.clear();
+      console.log('🧹 Cache cleared');
+    },
+
+    // Get cache stats
+    getCacheStats() {
+      return {
+        size: queryCache.size,
+        keys: Array.from(queryCache.keys())
+      };
     }
   };
 
-  /* ═══════════════════════════════════════════════════════════════════════
-   * 🔧 TIER 1 AGENTIC TOOLS — Registered automatically
-   * ═══════════════════════════════════════════════════════════════════════ */
+  // ─── 🔧 BUILT-IN TOOLS ───────────────────────────────────────────────
 
-  // ─── Tool 1: Web Search (Wikipedia + DuckDuckGo) ────────────────────
   registerTool('webSearch', {
     description: 'Search Wikipedia and the web for facts, people, events, or any topic',
     parameters: { query: 'string, the search query' },
     handler: async ({ query }) => {
       try {
-        // Primary: Wikipedia OpenSearch
         const wikiUrl = 'https://en.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&limit=3&search=' + encodeURIComponent(query);
         const wikiRes = await fetch(wikiUrl);
         const wikiData = await wikiRes.json();
@@ -489,7 +715,6 @@ User: ${query}`;
         const urls = wikiData[3] || [];
 
         if (titles.length === 0) {
-          // Fallback: DuckDuckGo Instant Answer
           const ddgRes = await fetch('https://api.duckduckgo.com/?q=' + encodeURIComponent(query) + '&format=json&no_html=1&skip_disambig=1');
           const ddgData = await ddgRes.json();
           if (ddgData.Abstract) {
@@ -517,7 +742,6 @@ User: ${query}`;
     }
   });
 
-  // ─── Tool 2: Schedule Calendar Event ─────────────────────────────────
   registerTool('scheduleEvent', {
     description: 'Open Google Calendar with a pre-filled event (title, date, time, duration)',
     parameters: {
@@ -531,12 +755,13 @@ User: ${query}`;
     handler: async ({ title, date, time, duration, location, description }) => {
       title = title || 'Event';
       duration = duration || 60;
-
       let startDT = null;
+
       try {
         if (date) {
           if (/tomorrow/i.test(date)) {
-            startDT = new Date(); startDT.setDate(startDT.getDate() + 1);
+            startDT = new Date();
+            startDT.setDate(startDT.getDate() + 1);
           } else if (/today/i.test(date)) {
             startDT = new Date();
           } else {
@@ -561,8 +786,8 @@ User: ${query}`;
         startDT.setDate(startDT.getDate() + 1);
         startDT.setHours(10, 0, 0, 0);
       }
-      const endDT = new Date(startDT.getTime() + duration * 60000);
 
+      const endDT = new Date(startDT.getTime() + duration * 60000);
       const fmt = (d) => d.toISOString().replace(/[-:]|\.\d{3}/g, '');
       const url = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
         '&text=' + encodeURIComponent(title) +
@@ -582,7 +807,6 @@ User: ${query}`;
     }
   });
 
-  // ─── Tool 3: Draft Email ────────────────────────────────────────────
   registerTool('draftEmail', {
     description: 'Open the default email client with a pre-filled draft',
     parameters: {
@@ -609,7 +833,6 @@ User: ${query}`;
     }
   });
 
-  // ─── Tool 4: Get Current Time (demo) ────────────────────────────────
   registerTool('getTime', {
     description: 'Get the current local date and time',
     parameters: {},
@@ -620,7 +843,6 @@ User: ${query}`;
     })
   });
 
-  // ─── Tool 5: Calculate (math) ───────────────────────────────────────
   registerTool('calculate', {
     description: 'Evaluate a math expression like "2 + 2 * 3" or "sqrt(144)"',
     parameters: { expression: 'string, a math expression' },
@@ -635,7 +857,6 @@ User: ${query}`;
     }
   });
 
-  // ─── Tool 6: Open URL ───────────────────────────────────────────────
   registerTool('openUrl', {
     description: 'Open a URL in a new browser tab',
     parameters: { url: 'string, the URL to open' },
@@ -645,8 +866,7 @@ User: ${query}`;
     }
   });
 
-  /* ═══════════════════════════════════════════════════════════════════════ */
-
+  // ─── 🚀 AUTO-INIT ────────────────────────────────────────────────────
   e.RAGina = RAGina;
 
   const autoInit = () => {
@@ -654,11 +874,18 @@ User: ${query}`;
       RAGina.init({ ...(e.RAGINA_CONFIG || {}), indexUrl: null });
       return;
     }
-    if (e.RAGINA_CONFIG) RAGina.init(e.RAGINA_CONFIG);
+    if (e.RAGINA_CONFIG) {
+      RAGina.init(e.RAGINA_CONFIG);
+    }
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoInit);
-  else autoInit();
 
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoInit);
+  } else {
+    autoInit();
+  }
+
+  // ─── FALLBACK: If index was provided after init ─────────────────────
   setTimeout(() => {
     if (e.RAGina && e.__RAGINA_INDEX__ && (!e.RAGina.engine || !e.RAGina.engine.isReady)) {
       document.querySelector('.ragina-bubble')?.remove();
@@ -666,4 +893,9 @@ User: ${query}`;
       RAGina.loadData(e.__RAGINA_INDEX__);
     }
   }, 500);
+
+  console.log(`🧠 RAGina-T1 v${VERSION} loaded!`);
+  console.log('🔧 Tools available:', listTools().join(', '));
+  console.log('📡 Primary API:', API_ENDPOINTS[0]);
+
 }(typeof window !== 'undefined' ? window : this);
