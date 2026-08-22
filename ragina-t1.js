@@ -577,6 +577,12 @@ ${historyBlock}${contextBlock}${toolLogBlock}User: ${query}`;
     }
   }
 
+  // ===== Local alias so the tool-registration block below can call
+  //       registerTool(...) directly instead of RAGina.registerTool(...) =====
+  function registerTool(name, def) {
+    RAGina._tools[name] = def;
+  }
+
   // ===== Public API =====
   const RAGina = {
     engine: null,
