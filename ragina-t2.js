@@ -1,10 +1,8 @@
-/**
- * ╔═══════════════════════════════════════════════════════════════════════╗
- * ║ RAGina-t2.js v4.0.1 — Tier 2 Advanced Agentic Build (HEADLESS FIXED)║
- * ║ Hybrid RAG (TF-IDF + Semantic) · Streaming · Multi-format · Memory   ║
- * ║ Created by suryasticsai@gmail.com | github.com/suryasticsai          ║
- * ║ MIT License                                                          ║
- * ╚═══════════════════════════════════════════════════════════════════════╝
+/*!
+ * RAGina-t2.js v4.0.1 — Tier 2 Advanced Agentic Build (HEADLESS FIXED)
+ * Hybrid RAG (TF-IDF + Semantic) · Streaming · Multi-format · Memory
+ * Created by suryasticsai@gmail.com | github.com/suryasticsai
+ * MIT License
  *
  * NEW IN T2:
  * ─ Hybrid Retrieval Engine (TF-IDF + local semantic embeddings + re-rank)
@@ -164,10 +162,54 @@
       }
       return { bodyText: await file.text(), format: 'unknown' };
     }
-    static async _parsePDF(file) { /* ... same as original ... */ return { bodyText: 'PDF content extracted', format: 'pdf' }; }
-    static async _parseDOCX(file) { /* ... same ... */ return { bodyText: 'DOCX content extracted', format: 'docx' }; }
-    static async _parseCSV(file) { /* ... same ... */ return { bodyText: await file.text(), format: 'csv' }; }
-    static async _parseJSON(file) { /* ... same ... */ return { bodyText: await file.text(), format: 'json' }; }
+    static async _parsePDF(file) {
+      // Simplified PDF extraction (for demo purposes)
+      const buf = await file.arrayBuffer();
+      const text = new TextDecoder('utf-8').decode(buf);
+      const streams = [];
+      const streamRegex = /stream\s*([\s\S]*?)\s*endstream/g;
+      let m;
+      while ((m = streamRegex.exec(text)) !== null) {
+        const chunk = m[1].replace(/\x00/g, '').replace(/\s+/g, ' ').trim();
+        if (chunk.length > 20 && /[a-zA-Z]{3,}/.test(chunk)) streams.push(chunk);
+      }
+      const btRegex = /BT\s*([\s\S]*?)\s*ET/g;
+      while ((m = btRegex.exec(text)) !== null) {
+        const chunk = m[1].replace(/\(.*?\)/g, '$1').replace(/\s+/g, ' ').trim();
+        if (chunk.length > 10) streams.push(chunk);
+      }
+      const bodyText = streams.join('\n').slice(0, 500000) || text.slice(0, 50000);
+      return { bodyText, format: 'pdf' };
+    }
+    static async _parseDOCX(file) {
+      try {
+        const JSZip = global.JSZip;
+        if (!JSZip) return { bodyText: await file.text(), format: 'docx-no-jszip' };
+        const zip = await JSZip.loadAsync(file);
+        const xml = await zip.file('word/document.xml')?.async('text');
+        if (!xml) return { bodyText: '', format: 'docx' };
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xml, 'application/xml');
+        const texts = [...doc.querySelectorAll('w\\:t, t')].map(t => t.textContent);
+        return { bodyText: texts.join(' '), format: 'docx' };
+      } catch {
+        return { bodyText: await file.text(), format: 'docx-fallback' };
+      }
+    }
+    static async _parseCSV(file) {
+      const text = await file.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      return { bodyText: lines.join('\n'), format: 'csv', structured: lines.map(l => l.split(',')) };
+    }
+    static async _parseJSON(file) {
+      const text = await file.text();
+      try {
+        const obj = JSON.parse(text);
+        return { bodyText: JSON.stringify(obj, null, 2), format: 'json', structured: obj };
+      } catch {
+        return { bodyText: text, format: 'json-invalid' };
+      }
+    }
   }
 
   /* ========================================================================
@@ -666,7 +708,7 @@
       }
     }
 
-    // ─── UI methods (unchanged from original, but all DOM operations are safe) ───
+    // ─── UI methods ───
     toggle() { if (!hasDOM) return; this.elements.panel.classList.toggle('hidden'); if (!this.elements.panel.classList.contains('hidden')) this.elements.input.focus(); }
     hide() { if (!hasDOM) return; this.elements.panel.classList.add('hidden'); }
     show() { if (!hasDOM) return; this.elements.panel.classList.remove('hidden'); this.elements.input.focus(); }
@@ -750,9 +792,6 @@
       return row;
     }
 
-    // ─── handleSend, handleFiles, newSession, etc. (same as original) ───
-    // (I'll keep them as in the original, but they rely on hasDOM already checked)
-
     async handleSend() {
       if (!hasDOM || this._dummy) return;
       const query = this.elements.input.value.trim();
@@ -832,8 +871,11 @@
           data[file.webkitRelativePath || file.name] = parsed;
         } catch (e) { console.warn('Parse error:', e); }
       }
-      RAGina.loadData(data);
-      this.addMessage(`✅ Indexed ${Object.keys(data).length} document(s). Ready to answer!`, 'ai');
+      // Use the global RAGina to load data
+      if (typeof RAGina !== 'undefined') {
+        RAGina.loadData(data);
+        this.addMessage(`✅ Indexed ${Object.keys(data).length} document(s). Ready to answer!`, 'ai');
+      }
     }
 
     newSession() {
@@ -858,7 +900,7 @@
         }
       }
     }
-    toggleSessionMenu() { if (!hasDOM || this._dummy) return; /* ... same as original ... */ }
+    toggleSessionMenu() { if (!hasDOM || this._dummy) return; /* ... */ }
     toggleTheme() { if (!hasDOM) return; /* ... */ }
     exportChat() { if (!hasDOM) return; /* ... */ }
     clearMessages() { if (!hasDOM || this._dummy) return; /* ... */ }
