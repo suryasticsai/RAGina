@@ -34,6 +34,12 @@
   };
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
+  // ─── 🖥️ ENVIRONMENT CHECK ─────────────────────────────────────────────
+  // True only when a real DOM is present. Node, workers, and any headless
+  // context (even one that stubs a bare `window` object) will be false here,
+  // so the widget and other browser-only paths never touch `document`.
+  const hasDOM = typeof document !== 'undefined';
+
   // ─── ⚡ BACKEND ENDPOINTS (Primary + Fallbacks) ──────────────────────
   // YOUR PRIMARY API – this is the one you asked about!
   const API_ENDPOINTS = [
@@ -586,9 +592,11 @@ User: ${query}`;
       this.engine = new RetrievalEngine();
 
       const buildUI = () => {
-        if (this.config.showWidget) {
+        if (this.config.showWidget && hasDOM) {
           this.ui = new ChatWidget(this.engine, this.config);
           this.ui.build();
+        } else if (this.config.showWidget && !hasDOM) {
+          console.warn('⚠️ RAGina: showWidget is true but there is no document — running headless, skipping the chat widget. Use RAGina.query() instead.');
         }
       };
 
@@ -633,7 +641,7 @@ User: ${query}`;
         this.ui.input.disabled = false;
         if (this.ui.sendBtn) this.ui.sendBtn.disabled = false;
         this.ui.addMessage(pick(PHRASES.ready) + ` (${count} chunks loaded)`, 'ai');
-      } else if (this.config.showWidget !== false) {
+      } else if (this.config.showWidget !== false && hasDOM) {
         this.ui = new ChatWidget(this.engine, this.config);
         this.ui.build();
         this.ui.show();
@@ -795,14 +803,15 @@ User: ${query}`;
         (location ? '&location=' + encodeURIComponent(location) : '') +
         (description ? '&details=' + encodeURIComponent(description) : '');
 
-      window.open(url, '_blank');
+      if (hasDOM && typeof window !== 'undefined' && window.open) window.open(url, '_blank');
       return {
         success: true,
         title,
         start: startDT.toLocaleString(),
         end: endDT.toLocaleString(),
         location: location || '—',
-        url
+        url,
+        note: hasDOM ? undefined : 'Headless environment — returning the calendar link instead of opening it.'
       };
     }
   });
@@ -823,12 +832,14 @@ User: ${query}`;
       if (cc) q.push('cc=' + encodeURIComponent(cc));
       if (q.length) url += '?' + q.join('&');
 
-      window.open(url, '_self');
+      if (hasDOM && typeof window !== 'undefined' && window.open) window.open(url, '_self');
       return {
         success: true,
         to: to || '(no recipient)',
         subject: subject || '(no subject)',
-        bodyPreview: body ? (body.length > 120 ? body.slice(0, 120) + '…' : body) : ''
+        bodyPreview: body ? (body.length > 120 ? body.slice(0, 120) + '…' : body) : '',
+        mailto: url,
+        note: hasDOM ? undefined : 'Headless environment — returning the mailto link instead of opening it.'
       };
     }
   });
@@ -861,8 +872,11 @@ User: ${query}`;
     description: 'Open a URL in a new browser tab',
     parameters: { url: 'string, the URL to open' },
     handler: async ({ url }) => {
-      window.open(url, '_blank');
-      return { opened: url };
+      if (hasDOM && typeof window !== 'undefined' && window.open) {
+        window.open(url, '_blank');
+        return { opened: url };
+      }
+      return { url, note: 'Headless environment — returning the URL instead of opening it.' };
     }
   });
 
@@ -879,20 +893,27 @@ User: ${query}`;
     }
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoInit);
+  if (hasDOM) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', autoInit);
+    } else {
+      autoInit();
+    }
+
+    // ─── FALLBACK: If index was provided after init ─────────────────────
+    setTimeout(() => {
+      if (e.RAGina && e.__RAGINA_INDEX__ && (!e.RAGina.engine || !e.RAGina.engine.isReady)) {
+        document.querySelector('.ragina-bubble')?.remove();
+        document.querySelector('.ragina-panel')?.remove();
+        RAGina.loadData(e.__RAGINA_INDEX__);
+      }
+    }, 500);
   } else {
+    // Headless: no DOMContentLoaded to wait for. Run auto-init immediately
+    // if a config/index was pre-set; otherwise it's up to the caller to run
+    // RAGina.init()/loadData()/query() themselves.
     autoInit();
   }
-
-  // ─── FALLBACK: If index was provided after init ─────────────────────
-  setTimeout(() => {
-    if (e.RAGina && e.__RAGINA_INDEX__ && (!e.RAGina.engine || !e.RAGina.engine.isReady)) {
-      document.querySelector('.ragina-bubble')?.remove();
-      document.querySelector('.ragina-panel')?.remove();
-      RAGina.loadData(e.__RAGINA_INDEX__);
-    }
-  }, 500);
 
   console.log(`🧠 RAGina-T1 v${VERSION} loaded!`);
   console.log('🔧 Tools available:', listTools().join(', '));
