@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  /* ─── All CSS from your original file (unchanged) ─── */
   :root{
     --void:#05050a; --ink:#0a0a18; --panel:rgba(20,20,35,.5); --panel-2:rgba(30,28,50,.4);
     --glass:rgba(108,99,255,.06); --line:rgba(139,124,255,.18);
@@ -159,7 +160,9 @@
   .term-dot{width:11px; height:11px; border-radius:50%;}
   .term-dot.r{background:#ff5f57;} .term-dot.y{background:#febc2e;} .term-dot.g{background:#28c840;}
   .term-title{margin-left:auto; font-family:var(--mono); font-size:.7rem; color:var(--text-faint);}
-  .term-body{padding:1.6rem 1.4rem; font-family:var(--mono); font-size:.82rem; min-height:320px; color:#c8c6e0;}
+  .term-body{padding:1.6rem 1.4rem; font-family:var(--mono); font-size:.82rem; min-height:320px; color:#c8c6e0; max-height:450px; overflow-y:auto;}
+  .term-body::-webkit-scrollbar{width:5px;}
+  .term-body::-webkit-scrollbar-thumb{background:rgba(139,124,255,.3); border-radius:3px;}
   .term-line{margin-bottom:.5rem; display:flex; gap:.6rem; animation:fadeIn .3s ease-out;}
   @keyframes fadeIn { from{opacity:0; transform:translateX(-4px);} to{opacity:1; transform:none;} }
   .term-prompt{color:var(--mint); font-weight:600;}
@@ -329,6 +332,7 @@
 <div class="nebula"></div>
 <div class="stars"></div>
 
+<!-- ===== NAVIGATION ===== -->
 <nav>
   <div class="wrap">
     <div class="nav-brand">
@@ -347,6 +351,7 @@
   </div>
 </nav>
 
+<!-- ===== HERO ===== -->
 <header class="hero">
   <div class="wrap">
     <div class="hero-grid">
@@ -359,7 +364,6 @@
           <a class="btn btn-ghost" href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">→ View source</a>
         </div>
       </div>
-
       <div class="mascot-stage reveal">
         <div class="mascot-orbit o1"><div class="particle"></div></div>
         <div class="mascot-orbit o2"><div class="particle"></div></div>
@@ -374,13 +378,12 @@
   </div>
 </header>
 
-<!-- ============ LIVE SIMULATED TERMINAL ============ -->
+<!-- ===== LIVE SIMULATED TERMINAL ===== -->
 <section id="demo">
   <div class="wrap">
     <div class="eyebrow reveal">LIVE SIMULATION</div>
     <h2 class="reveal">Watch the <em>agentic loop</em> in real time.</h2>
     <p class="section-sub reveal">This isn't a mock-up — it's a faithful trace of what happens inside RAGina-T1 when you ask it something documents alone can't answer.</p>
-
     <div class="demo-wrap reveal">
       <div class="terminal">
         <div class="term-head">
@@ -394,13 +397,12 @@
   </div>
 </section>
 
-<!-- ============ LIVE PLAYGROUND (REAL RAGina) ============ -->
+<!-- ===== LIVE PLAYGROUND ===== -->
 <section id="playground">
   <div class="wrap">
     <div class="eyebrow reveal">HANDS-ON LAB</div>
     <h2 class="reveal">Now <em>talk</em> to RAGina.</h2>
     <p class="section-sub reveal">Same library from the CDN — actually running in your browser. Ask anything about RAGina (it knows this page), or try the tools: web search, time, math, calendar, email.</p>
-
     <div class="playground reveal">
       <div class="play-head">
         <div class="play-title">🔮 RAGina-T1 · interactive</div>
@@ -428,13 +430,12 @@
   </div>
 </section>
 
-<!-- ============ FEATURES ============ -->
+<!-- ===== FEATURES ===== -->
 <section id="features">
   <div class="wrap">
     <div class="eyebrow reveal">EXHIBITS A–F</div>
     <h2 class="reveal">What's actually inside <em>the file</em>.</h2>
     <p class="section-sub reveal">Six capabilities, all in one ~25KB script. No build step, no server changes required. Just a &lt;script&gt; tag.</p>
-
     <div class="features">
       <div class="feat reveal"><span class="tag core">CORE</span><div class="feat-icon">📚</div><h3>Document retrieval</h3><p>Client-side TF-IDF search index. Load docs via folder, JSON, or URL — RAGina chunks, scores, and retrieves passages entirely in the browser.</p></div>
       <div class="feat amber reveal"><span class="tag new">NEW IN T1</span><div class="feat-icon">🔧</div><h3>Tool calling</h3><p>Register any JS function as a tool. When docs can't answer, RAGina asks for a tool, runs it, reads the result, and only then replies — a true ReAct loop.</p></div>
@@ -446,13 +447,12 @@
   </div>
 </section>
 
-<!-- ============ REACT LOOP ============ -->
+<!-- ===== REACT LOOP ===== -->
 <section id="loop">
   <div class="wrap">
     <div class="eyebrow reveal">HOW THE BRAIN WORKS</div>
     <h2 class="reveal">The <em>ReAct</em> loop — visualised.</h2>
     <p class="section-sub reveal">Your backend is a plain prompt-in / text-out endpoint. So the agentic reasoning happens entirely on the client — up to 4 steps per question, then a final answer.</p>
-
     <div class="loop-wrap reveal">
       <div class="loop" id="reactLoop">
         <div class="loop-step" data-idx="0"><div class="loop-icon">①</div><div class="loop-num">STEP 01</div><h4>Ask</h4><p>Question + tool list + recent context go into a single prompt.</p></div>
@@ -464,13 +464,12 @@
   </div>
 </section>
 
-<!-- ============ USAGE ============ -->
+<!-- ===== USAGE ===== -->
 <section id="usage">
   <div class="wrap">
     <div class="eyebrow reveal">DEPOSITION</div>
     <h2 class="reveal">Three lines to get <em>started</em>.</h2>
     <p class="section-sub reveal">A few more to give it hands.</p>
-
     <div class="code-block reveal">
       <div class="code-head"><span>quick-start.html</span><button class="copy-btn" data-copy="cb1">Copy</button></div>
       <pre id="cb1">&lt;!-- 1. include the script --&gt;
@@ -485,7 +484,6 @@
   // 3. that's it — the chat bubble is live
 &lt;/script&gt;</pre>
     </div>
-
     <div class="code-block reveal">
       <div class="code-head"><span>register-a-tool.js</span><button class="copy-btn" data-copy="cb2">Copy</button></div>
       <pre id="cb2">RAGina.registerTool('lookupOrder', {
@@ -497,7 +495,6 @@
   }
 });</pre>
     </div>
-
     <div class="code-block reveal">
       <div class="code-head"><span>headless-query.js</span><button class="copy-btn" data-copy="cb3">Copy</button></div>
       <pre id="cb3">// No widget — use RAGina's brain inside your own UI
@@ -508,13 +505,12 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
   </div>
 </section>
 
-<!-- ============ AUTHOR ============ -->
+<!-- ===== AUTHOR ===== -->
 <section id="author">
   <div class="wrap">
     <div class="eyebrow reveal">THE MENTALIST</div>
     <h2 class="reveal">Built by <em>a human</em>, for humans.</h2>
     <p class="section-sub reveal">RAGina is an open-source experiment in making agentic AI feel lightweight, local, and honest.</p>
-
     <div class="author-wrap reveal">
       <div class="author-avatar">S</div>
       <div class="author-info">
@@ -532,13 +528,12 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
   </div>
 </section>
 
-<!-- ============ ROADMAP ============ -->
+<!-- ===== ROADMAP ===== -->
 <section id="roadmap">
   <div class="wrap">
     <div class="eyebrow reveal">WHAT'S NEXT</div>
     <h2 class="reveal">From T1 to <em>T3</em> — the roadmap.</h2>
     <p class="section-sub reveal">Each tier adds a layer of autonomy. T1 is live. T2 and T3 are in progress.</p>
-
     <div class="tiers">
       <div class="tier current reveal">
         <div class="tier-badge">● LIVE · T1</div>
@@ -580,13 +575,12 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
   </div>
 </section>
 
-<!-- ============ CDN ============ -->
+<!-- ===== CDN ===== -->
 <section id="cdn">
   <div class="wrap">
     <div class="eyebrow reveal">CHAIN OF CUSTODY</div>
     <h2 class="reveal">Get it via <em>CDN</em>.</h2>
     <p class="section-sub reveal">jsDelivr mirrors the GitHub repo automatically — no publish step needed.</p>
-
     <div class="cdn-box reveal">
       <div class="code-block" style="margin:0;">
         <div class="code-head"><span>index.html</span><button class="copy-btn" data-copy="cb4">Copy</button></div>
@@ -609,11 +603,12 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
 </footer>
 
 <!-- =========================================================
-     1. LOAD RAGINA-T1 
+     1. LOAD RAGINA-T1 — patched version (embedded)
      ========================================================= -->
-<script src="ragina-t1.js"></script> 
+<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t1.js"> </script>
+
 <!-- =========================================================
-     2. PAGE SCRIPTS (UI + integration)
+     2. PAGE SCRIPTS (UI + integration) – FIXED
      ========================================================= -->
 <script>
   // ===== JS SAFETY NET =====
@@ -660,7 +655,7 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
     loopIdx = (loopIdx + 1) % loopSteps.length;
   }, 1800);
 
-  // ===== Terminal simulation (the scripted one) =====
+  // ===== Terminal simulation =====
   const termBody = document.getElementById('termBody');
   const DEMO = [
     { type:'prompt', user:'Schedule a meeting with John tomorrow at 3pm about Q4 launch.' },
@@ -715,6 +710,12 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
   // ===== REAL RAGINA INTEGRATION — LIVE PLAYGROUND ==========
   // =========================================================
   (function initPlayground() {
+    // ★ Wait for the DOM to be fully loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPlayground);
+      return;
+    }
+
     const msgsEl = document.getElementById('playMsgs');
     const formEl = document.getElementById('playForm');
     const inputEl = document.getElementById('playInput');
@@ -722,7 +723,13 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
     const statusEl = document.getElementById('playStatus');
     const statusLabel = document.getElementById('statusLabel');
 
-    // -- Render a chat message into the playground --
+    // ★ Guard: if any element is missing, log and abort
+    if (!msgsEl || !formEl || !inputEl || !submitEl || !statusEl || !statusLabel) {
+      console.error('❌ Playground elements not found – check your HTML IDs.');
+      return;
+    }
+
+    // -- Render a chat message --
     function addMsg(role, text) {
       const el = document.createElement('div');
       el.className = 'p-msg ' + role;
@@ -745,9 +752,10 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
       el.textContent = text;
       msgsEl.appendChild(el);
       msgsEl.scrollTop = msgsEl.scrollHeight;
+      return el;
     }
 
-    // -- Wait for RAGina to be ready, then load this page's text as its knowledge base --
+    // -- Wait for RAGina to be ready --
     function waitForRAGina() {
       return new Promise(resolve => {
         const check = () => {
@@ -759,34 +767,43 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
     }
 
     (async function boot() {
-      await waitForRAGina();
-
-      // Initialize RAGina in headless mode (no floating widget) so it doesn't clash with our UI
-      RAGina.init({
-        showWidget: false,
-        personality: 'sassy',
-        model: 'openai'
-      });
-
-      // Feed the visible text of this landing page into RAGina's retrieval index
-      // (so it can answer "who built you?", "what is T2?", etc.)
       try {
-        const pageText = document.body.innerText
-          .replace(/\s+/g, ' ').trim().slice(0, 20000);
-        RAGina.loadData({
-          "ragina-t1-landing.html": { bodyText: pageText }
+        await waitForRAGina();
+
+        // Initialize RAGina headless
+        RAGina.init({
+          showWidget: false,
+          personality: 'sassy',
+          model: 'openai'
         });
-      } catch (e) {
-        console.warn('Could not index page text:', e);
+
+        // Index the page text
+        try {
+          const pageText = document.body.innerText
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 20000);
+          RAGina.loadData({
+            "ragina-t1-landing.html": { bodyText: pageText }
+          });
+        } catch (e) {
+          console.warn('Could not index page text:', e);
+        }
+
+        statusEl.classList.remove('loading');
+        statusEl.classList.add('ready');
+        statusLabel.textContent = 'ready · ' + RAGina.listTools().length + ' tools';
+        submitEl.disabled = false;
+        inputEl.disabled = false;
+
+        addSysMsg('🔮 RAGina-T1 is live. This page\'s content is her knowledge base. Try the suggestions below — or ask anything.');
+      } catch (err) {
+        statusEl.classList.remove('loading');
+        statusEl.classList.add('error');
+        statusLabel.textContent = '⚠️ error';
+        console.error(err);
+        addSysMsg('⚠️ Failed to initialise RAGina: ' + err.message);
       }
-
-      statusEl.classList.remove('loading');
-      statusEl.classList.add('ready');
-      statusLabel.textContent = 'ready · ' + RAGina.listTools().length + ' tools';
-      submitEl.disabled = false;
-      inputEl.disabled = false;
-
-      addSysMsg('🔮 RAGina-T1 is live. This page\'s content is her knowledge base. Try the suggestions below — or ask anything.');
     })();
 
     // -- Handle form submit --
@@ -806,9 +823,8 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
           persona: 'You are RAGina, a sassy mentalist answering questions about this product page and using tools when needed.',
           maxSteps: 4
         });
-        thinkingEl.remove();
+        if (thinkingEl) thinkingEl.remove();
 
-        // Render each step trace
         if (steps && steps.length) {
           for (const s of steps) {
             if (s.type === 'tool_call') addToolMsg(s.name, s.args || {});
@@ -817,7 +833,7 @@ console.log(steps);    // full trace — which tool ran, with what args</pre>
 
         addMsg('bot', answer);
       } catch (err) {
-        thinkingEl.remove();
+        if (thinkingEl) thinkingEl.remove();
         addSysMsg('⚠ error: ' + err.message);
       } finally {
         submitEl.disabled = false;
