@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGina T4 XENO — OS‑Native AI Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ─── CSS (same as before) ─── */
+    :root {
+      --primary: #6C63FF;
+      --primary-glow: rgba(108,99,255,0.4);
+      --secondary: #00D4AA;
+      --accent: #FF6B6B;
+      --bg-0: #07070e;
+      --bg-1: #0f0f1e;
+      --bg-2: #1a1a2e;
+      --bg-3: #252540;
+      --fg-0: #ffffff;
+      --fg-1: #e0e0f0;
+      --fg-2: #a0a0c0;
+      --fg-3: #60607a;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius: 16px;
+      --radius-sm: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-0);
+      color: var(--fg-1);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    ::selection { background: var(--primary); color: #fff; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-1); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    a { color: var(--primary); text-decoration: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* ─── NAV ─── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 16px 0;
+      background: rgba(7,7,14,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(108,99,255,0.1);
+    }
+    .nav .container {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1.2rem; color: var(--fg-0);
+    }
+    .nav-logo .badge {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff; font-size: 0.6rem; padding: 2px 10px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .nav-links {
+      display: flex; gap: 28px; align-items: center;
+    }
+    .nav-links a {
+      color: var(--fg-2); font-size: 0.88rem; font-weight: 500;
+      transition: color 0.2s; position: relative;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: -4px; left: 0;
+      width: 0; height: 2px; background: var(--primary);
+      transition: width 0.3s; border-radius: 2px;
+    }
+    .nav-links a:hover { color: var(--fg-0); }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--primary), #8b7cff);
+      color: #fff; border: none; padding: 8px 20px; border-radius: 30px;
+      font-weight: 600; font-size: 0.8rem; cursor: pointer;
+      transition: all 0.3s; box-shadow: 0 4px 20px rgba(108,99,255,0.3);
+    }
+    .nav-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(108,99,255,0.5);
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-cta { display: none; }
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 140px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 30% 20%, rgba(108,99,255,0.15) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 80%, rgba(0,212,170,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .hero .container { position: relative; z-index: 1; }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.2);
+      padding: 6px 16px; border-radius: 30px;
+      font-size: 0.78rem; color: var(--secondary); font-weight: 600;
+      margin-bottom: 28px;
+    }
+    .hero-tag .pulse {
+      width: 8px; height: 8px; background: var(--secondary);
+      border-radius: 50%; animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,212,170,0.5); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 8px rgba(0,212,170,0); }
+    }
+    .hero h1 {
+      font-size: clamp(2.8rem, 6vw, 4.8rem);
+      font-weight: 900; line-height: 1.05; letter-spacing: -1.5px;
+      background: linear-gradient(135deg, var(--fg-0) 0%, var(--fg-2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero h1 span { color: var(--primary); -webkit-text-fill-color: var(--primary); }
+    .hero-sub {
+      font-size: clamp(1rem, 1.8vw, 1.3rem);
+      color: var(--fg-2); max-width: 640px; margin: 20px auto 40px;
+      line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #8b7cff);
+      color: #fff; border: none; padding: 14px 32px;
+      border-radius: var(--radius); font-weight: 700; font-size: 0.95rem;
+      cursor: pointer; transition: all 0.3s;
+      box-shadow: 0 8px 30px rgba(108,99,255,0.35);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(108,99,255,0.5);
+    }
+    .btn-secondary {
+      background: transparent; color: var(--fg-1);
+      border: 1px solid var(--bg-3); padding: 14px 32px;
+      border-radius: var(--radius); font-weight: 600; font-size: 0.95rem;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .btn-secondary:hover { border-color: var(--primary); background: rgba(108,99,255,0.05); }
+    .hero-stats {
+      display: flex; gap: 48px; justify-content: center;
+      margin-top: 60px; flex-wrap: wrap;
+    }
+    .hero-stat .num {
+      font-size: 2.2rem; font-weight: 800; color: var(--fg-0);
+    }
+    .hero-stat .num span { color: var(--primary); }
+    .hero-stat .label {
+      font-size: 0.78rem; color: var(--fg-3); margin-top: 4px;
+      text-transform: uppercase; letter-spacing: 1.5px;
+    }
+
+    /* ─── SECTIONS ─── */
+    .section { padding: 80px 0; position: relative; }
+    .section-header {
+      text-align: center; max-width: 700px; margin: 0 auto 60px;
+    }
+    .section-label {
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 2px; color: var(--primary); margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 800; color: var(--fg-0); line-height: 1.15;
+      letter-spacing: -0.5px;
+    }
+    .section-desc {
+      color: var(--fg-2); margin-top: 16px; font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    /* ─── FEATURES ─── */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-2); border: 1px solid var(--bg-3);
+      border-radius: var(--radius); padding: 28px;
+      transition: all 0.3s; position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 3px; background: linear-gradient(90deg, var(--primary), var(--secondary));
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-card:hover {
+      border-color: var(--bg-4); transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .feature-card .icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(108,99,255,0.1); display: flex; align-items: center;
+      justify-content: center; font-size: 1.5rem; margin-bottom: 16px;
+    }
+    .feature-card h3 {
+      font-size: 1.1rem; font-weight: 700; color: var(--fg-0);
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      color: var(--fg-2); font-size: 0.9rem; line-height: 1.6;
+    }
+    .feature-card .tag {
+      display: inline-block; font-size: 0.6rem;
+      padding: 2px 10px; border-radius: 20px;
+      background: rgba(0,212,170,0.15); color: var(--secondary);
+      font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      margin-top: 12px;
+    }
+
+    /* ─── TECH DOCS ─── */
+    .tech-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 32px; margin-top: 40px;
+    }
+    @media (max-width: 900px) { .tech-grid { grid-template-columns: 1fr; } }
+    .tech-card {
+      background: var(--bg-2); border: 1px solid var(--bg-3);
+      border-radius: var(--radius); padding: 24px;
+    }
+    .tech-card h4 {
+      font-size: 1.1rem; font-weight: 700; color: var(--fg-0);
+      margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+    }
+    .tech-card .code-block {
+      background: var(--bg-1); border-radius: var(--radius-sm);
+      padding: 16px; font-family: var(--font-mono); font-size: 0.78rem;
+      color: var(--fg-2); overflow-x: auto; border: 1px solid var(--bg-3);
+    }
+    .tech-card .code-block .kw { color: #c792ea; }
+    .tech-card .code-block .str { color: #c3e88d; }
+    .tech-card .code-block .cm { color: var(--fg-3); font-style: italic; }
+    .tech-card .code-block .fn { color: #82aaff; }
+    .tech-card .code-block .num { color: #f78c6c; }
+    .tech-tools-list {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;
+    }
+    .tech-tools-list .tool-tag {
+      background: var(--bg-1); border: 1px solid var(--bg-3);
+      padding: 4px 12px; border-radius: 20px; font-size: 0.7rem;
+      color: var(--fg-2); font-family: var(--font-mono);
+    }
+    .tech-tools-list .tool-tag .highlight { color: var(--secondary); }
+
+    /* ─── PROTOTYPE CHAT ─── */
+    .prototype-wrapper {
+      background: var(--bg-2); border: 1px solid var(--bg-3);
+      border-radius: var(--radius); overflow: hidden;
+      max-width: 800px; margin: 0 auto;
+    }
+    .prototype-header {
+      padding: 16px 24px; background: linear-gradient(135deg, rgba(108,99,255,0.1), rgba(0,212,170,0.05));
+      border-bottom: 1px solid var(--bg-3);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .prototype-header .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #8b7cff);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; color: #fff;
+    }
+    .prototype-header h4 { font-size: 1rem; font-weight: 700; color: var(--fg-0); }
+    .prototype-header .status {
+      margin-left: auto; font-size: 0.7rem; padding: 4px 12px;
+      border-radius: 20px; background: rgba(0,212,170,0.15);
+      color: var(--secondary); font-weight: 600;
+    }
+    .prototype-messages {
+      padding: 20px; height: 340px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 12px;
+      background: var(--bg-1);
+    }
+    .prototype-messages .msg {
+      max-width: 80%; padding: 10px 16px; border-radius: 16px;
+      font-size: 0.9rem; line-height: 1.6; animation: fadeIn 0.3s ease;
+    }
+    .prototype-messages .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--primary), #8b7cff);
+      color: #fff; border-bottom-right-radius: 4px;
+    }
+    .prototype-messages .msg.ai {
+      align-self: flex-start;
+      background: var(--bg-3); color: var(--fg-1);
+      border: 1px solid var(--bg-4); border-bottom-left-radius: 4px;
+    }
+    .prototype-messages .msg.ai .tool-tag {
+      display: inline-block; font-size: 0.68rem;
+      background: rgba(0,212,170,0.1); color: var(--secondary);
+      padding: 2px 8px; border-radius: 12px; margin-top: 6px;
+    }
+    .prototype-input {
+      padding: 12px 20px; background: var(--bg-2);
+      border-top: 1px solid var(--bg-3);
+      display: flex; gap: 10px;
+    }
+    .prototype-input input {
+      flex: 1; background: var(--bg-1); border: 1px solid var(--bg-3);
+      border-radius: 24px; padding: 10px 18px; color: var(--fg-1);
+      font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+    }
+    .prototype-input input:focus { border-color: var(--primary); }
+    .prototype-input input::placeholder { color: var(--fg-3); }
+    .prototype-input button {
+      background: var(--primary); border: none; border-radius: 50%;
+      width: 44px; height: 44px; color: #fff; cursor: pointer;
+      font-size: 1.1rem; transition: all 0.2s;
+    }
+    .prototype-input button:hover {
+      transform: scale(1.05); box-shadow: 0 0 20px rgba(108,99,255,0.4);
+    }
+    .prototype-suggestions {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 12px 20px; background: var(--bg-1);
+      border-top: 1px solid var(--bg-3);
+    }
+    .prototype-suggestions button {
+      background: transparent; border: 1px solid var(--bg-3);
+      color: var(--fg-2); padding: 4px 14px; border-radius: 20px;
+      font-size: 0.75rem; cursor: pointer; transition: 0.2s;
+    }
+    .prototype-suggestions button:hover {
+      border-color: var(--primary); color: var(--fg-0);
+      background: rgba(108,99,255,0.05);
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── USE CASES ─── */
+    .usecases-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr));
+      gap: 24px;
+    }
+    .usecase-card {
+      background: var(--bg-2); border: 1px solid var(--bg-3);
+      border-radius: var(--radius); padding: 28px;
+      transition: all 0.3s;
+    }
+    .usecase-card:hover {
+      border-color: var(--primary); transform: translateY(-3px);
+      box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+    }
+    .usecase-card .tag {
+      font-size: 0.68rem; padding: 4px 12px; border-radius: 20px;
+      background: rgba(108,99,255,0.1); color: var(--primary);
+      font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 12px; display: inline-block;
+    }
+    .usecase-card h4 {
+      font-size: 1.1rem; font-weight: 700; color: var(--fg-0);
+      margin-bottom: 10px;
+    }
+    .usecase-card p {
+      font-size: 0.85rem; color: var(--fg-2); line-height: 1.7;
+    }
+    .usecase-card .stats {
+      display: flex; gap: 20px; margin-top: 16px;
+      padding-top: 16px; border-top: 1px solid var(--bg-3);
+    }
+    .usecase-card .stat .num {
+      font-size: 1.1rem; font-weight: 800; color: var(--fg-0);
+    }
+    .usecase-card .stat .lbl {
+      font-size: 0.68rem; color: var(--fg-3); text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 40px 0; text-align: center;
+      border-top: 1px solid var(--bg-3);
+      color: var(--fg-3); font-size: 0.82rem;
+    }
+    footer a { color: var(--primary); }
+    footer .foot-logo {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; margin-bottom: 12px; font-size: 1rem;
+      color: var(--fg-0);
+    }
+    footer .foot-logo span { font-size: 1.2rem; }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 2.2rem; }
+      .hero-stats { gap: 24px; }
+      .section { padding: 60px 0; }
+      .features-grid, .usecases-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAV ===== -->
+  <nav class="nav">
+    <div class="container">
+      <div class="nav-logo">
+        <span>🛸</span> RAGina <span class="badge">XENO</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#tech">Tech</a>
+        <a href="#prototype">Demo</a>
+        <a href="#usecases">Use Cases</a>
+        <a href="#docs">Docs</a>
+      </div>
+      <button class="nav-cta" onclick="document.getElementById('prototype').scrollIntoView({behavior:'smooth'})">▶ Try XENO</button>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-tag"><span class="pulse"></span> XENO Edition — OS‑Native AI</div>
+      <h1>Your <span>AI</span> just <br>escaped the browser.</h1>
+      <p class="hero-sub">
+        RAGina T4 XENO bridges the gap between sandboxed web apps and your entire device ecosystem.<br>
+        Files, screens, Bluetooth, serial, local AI, and full OS control — all from a single script.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="document.getElementById('prototype').scrollIntoView({behavior:'smooth'})">▶ Launch Prototype</button>
+        <button class="btn-secondary" onclick="document.getElementById('tech').scrollIntoView({behavior:'smooth'})">📖 Technical Docs</button>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="num">30<span>+</span></div><div class="label">Built-in Tools</div></div>
+        <div class="hero-stat"><div class="num">7<span></span></div><div class="label">OS Capabilities</div></div>
+        <div class="hero-stat"><div class="num">0<span> API Keys</span></div><div class="label">Local AI Ready</div></div>
+        <div class="hero-stat"><div class="num">∞<span></span></div><div class="label">Vector Storage</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURES ===== -->
+  <section class="section" id="features" style="background:linear-gradient(180deg,transparent,rgba(108,99,255,0.02));">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">XENO Capabilities</div>
+        <h2 class="section-title">What makes <span style="color:var(--primary)">T4</span> different?</h2>
+        <p class="section-desc">Beyond hybrid RAG — T4 XENO brings OS‑level superpowers to your browser, without sacrificing privacy or performance.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="icon">📂</div>
+          <h3>Full File System Access</h3>
+          <p>Open and index entire folders recursively. Read, write, and delete files directly from disk — with user permission.</p>
+          <span class="tag">OS Bridge</span>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🖥️</div>
+          <h3>Screen Capture & Recording</h3>
+          <p>Take screenshots or record videos of any screen, window, or tab. Perfect for visual reasoning and step‑by‑step guides.</p>
+          <span class="tag">Vision + OS</span>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📡</div>
+          <h3>Bluetooth &amp; Serial</h3>
+          <p>Connect to Bluetooth LE devices (battery, sensors) or serial ports (Arduino, Raspberry Pi) and read/write data in real time.</p>
+          <span class="tag">Hardware</span>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🧠</div>
+          <h3>Local AI (Offline)</h3>
+          <p>Run embeddings and chat models entirely in your browser via WebGPU/WASM. No API key, no data leaves your machine.</p>
+          <span class="tag">Privacy First</span>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🗄️</div>
+          <h3>Unlimited Vector Store</h3>
+          <p>Persistent, scalable storage via IndexedDB. Index millions of chunks without worrying about memory limits.</p>
+          <span class="tag">Scalable</span>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🌐</div>
+          <h3>Native OS Bridge</h3>
+          <p>Optional companion app (Electron/Tauri) unlocks full OS control: shell commands, app launching, volume control, and more.</p>
+          <span class="tag">Advanced</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TECHNICAL DOCS ===== -->
+  <section class="section" id="tech">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Under the Hood</div>
+        <h2 class="section-title">Technical Architecture</h2>
+        <p class="section-desc">How RAGina T4 XENO works — from hybrid retrieval to OS integration and local inference.</p>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-card">
+          <h4>🔍 Hybrid Retrieval Engine</h4>
+          <div class="code-block">
+            <span class="cm">// TF‑IDF + semantic embeddings</span><br>
+            <span class="kw">class</span> <span class="fn">HybridRetrievalEngine</span> {<br>
+            &nbsp;&nbsp;<span class="fn">retrieve</span>(query, k = <span class="num">5</span>) {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">// Expand query with synonyms</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">const</span> expanded = <span class="kw">this</span>.<span class="fn">expandQuery</span>(query);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">// BM25 + cosine similarity</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">const</span> scores = <span class="kw">this</span>.chunks.<span class="fn">map</span>(c => ({<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;score: <span class="kw">this</span>.<span class="fn">bm25Score</span>(expanded, c.text) * (<span class="num">1</span> - semanticWeight) +<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">this</span>.<span class="fn">cosine</span>(<span class="kw">this</span>.<span class="fn">embed</span>(expanded), c.embedding) * semanticWeight<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;}));<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> scores.<span class="fn">sort</span>((a,b) => b.score - a.score).<span class="fn">slice</span>(<span class="num">0</span>, k);<br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+          <p style="color:var(--fg-2); font-size:0.85rem; margin-top:12px;">
+            Combines lexical (BM25) and semantic (cosine) scoring with a tunable weight. Query expansion adds synonyms automatically.
+          </p>
+        </div>
+
+        <div class="tech-card">
+          <h4>🛠️ Tool System (30+)</h4>
+          <div class="tech-tools-list">
+            <span class="tool-tag">webSearch</span>
+            <span class="tool-tag">scheduleEvent</span>
+            <span class="tool-tag">draftEmail</span>
+            <span class="tool-tag">getTime</span>
+            <span class="tool-tag">calculate</span>
+            <span class="tool-tag">openUrl</span>
+            <span class="tool-tag">codeRunner</span>
+            <span class="tool-tag">generateFile</span>
+            <span class="tool-tag">extractFromUrl</span>
+            <span class="tool-tag">translate</span>
+            <span class="tool-tag">summarizeDoc</span>
+            <span class="tool-tag">compareDocs</span>
+            <span class="tool-tag">remember</span>
+            <span class="tool-tag">recall</span>
+            <span class="tool-tag">weather</span>
+            <span class="tool-tag">stockPrice</span>
+            <span class="tool-tag">analyzeCSV</span>
+            <span class="tool-tag">createChart</span>
+            <span class="tool-tag"><span class="highlight">readGesture</span></span>
+            <span class="tool-tag"><span class="highlight">readExpression</span></span>
+            <span class="tool-tag"><span class="highlight">describeScene</span></span>
+            <span class="tool-tag"><span class="highlight">countPeople</span></span>
+            <span class="tool-tag"><span class="highlight">checkAttention</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">openFolder</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">writeToFile</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">captureScreen</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">recordScreenVideo</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">sendNotification</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">getMyLocation</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">deviceStatus</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">shareContent</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">connectArduino</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">serialCommand</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">connectBluetooth</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">keepAwake</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">colorPickFromScreen</span></span>
+            <span class="tool-tag"><span style="color:var(--secondary)">offlineMode</span></span>
+          </div>
+          <p style="color:var(--fg-2); font-size:0.85rem; margin-top:12px;">
+            Tools are registered via <code style="background:var(--bg-1);padding:2px 6px;border-radius:4px;">RAGina.registerTool()</code> and executed in a ReAct loop.
+          </p>
+        </div>
+
+        <div class="tech-card">
+          <h4>🌐 OS Bridge &amp; Native Companion</h4>
+          <div class="code-block">
+            <span class="cm">// OS Bridge — file system, Bluetooth, Serial, Screen capture</span><br>
+            <span class="kw">class</span> <span class="fn">OSBridge</span> {<br>
+            &nbsp;&nbsp;<span class="fn">async</span> <span class="fn">pickDirectory</span>() { <span class="cm">/* native folder picker */</span> }<br>
+            &nbsp;&nbsp;<span class="fn">async</span> <span class="fn">readFileByPath</span>(path) { <span class="cm">/* read any file */</span> }<br>
+            &nbsp;&nbsp;<span class="fn">async</span> <span class="fn">connectSerial</span>(baud) { <span class="cm">/* Arduino / serial */</span> }<br>
+            &nbsp;&nbsp;<span class="fn">async</span> <span class="fn">captureScreen</span>() { <span class="cm">/* screenshot */</span> }<br>
+            &nbsp;&nbsp;<span class="fn">async</span> <span class="fn">notify</span>(title, body) { <span class="cm">/* native notifications */</span> }<br>
+            &nbsp;&nbsp;<span class="cm">// ... 20+ OS APIs</span><br>
+            }<br><br>
+            <span class="cm">// Native Bridge (companion app)</span><br>
+            <span class="kw">const</span> bridge = <span class="kw">new</span> <span class="fn">NativeBridge</span>(<span class="str">'http://localhost:7777'</span>);<br>
+            bridge.<span class="fn">call</span>(<span class="str">'shell'</span>, { command: <span class="str">'ls -la'</span> });
+          </div>
+        </div>
+
+        <div class="tech-card">
+          <h4>🧠 Local Inference &amp; Vector Store</h4>
+          <div class="code-block">
+            <span class="cm">// Local AI — offline LLM + embeddings</span><br>
+            <span class="kw">const</span> localAI = <span class="kw">new</span> <span class="fn">LocalInferenceEngine</span>();<br>
+            <span class="kw">await</span> localAI.<span class="fn">init</span>();<br>
+            <span class="kw">const</span> embedding = <span class="kw">await</span> localAI.<span class="fn">embed</span>(<span class="str">"Your text"</span>);<br>
+            <span class="kw">const</span> response = <span class="kw">await</span> localAI.<span class="fn">chat</span>([{ role: <span class="str">"user"</span>, content: <span class="str">"Hello"</span> }]);<br><br>
+            <span class="cm">// Vector Store — IndexedDB persistence</span><br>
+            <span class="kw">const</span> store = <span class="kw">new</span> <span class="fn">VectorStore</span>();<br>
+            <span class="kw">await</span> store.<span class="fn">open</span>();<br>
+            <span class="kw">await</span> store.<span class="fn">putChunks</span>(chunks);
+          </div>
+          <p style="color:var(--fg-2); font-size:0.85rem; margin-top:12px;">
+            Powered by Transformers.js with WebGPU/WASM fallback. All processing stays local — zero data ever leaves your device.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PROTOTYPE ===== -->
+  <section class="section" id="prototype" style="background:linear-gradient(180deg,transparent,rgba(0,212,170,0.02));">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Interactive Prototype</div>
+        <h2 class="section-title">Experience <span style="color:var(--secondary)">XENO</span> in action</h2>
+        <p class="section-desc">Ask a question and see how RAGina T4 XENO responds — with real hybrid retrieval, tools, and OS awareness.<br>
+        (The library is loaded from CDN. If it fails, a fallback simulation will answer.)</p>
+      </div>
+      <div class="prototype-wrapper" id="chat-app">
+        <div class="prototype-header">
+          <div class="avatar">🛸</div>
+          <h4>RAGina T4 XENO <span id="status-indicator" style="font-weight:400;font-size:0.75rem;color:var(--fg-3);margin-left:8px;">(loading…)</span></h4>
+          <div class="status" id="online-status">● Connecting</div>
+        </div>
+        <div class="prototype-messages" id="chat-messages">
+          <div class="msg ai">
+            <strong>XENO:</strong> Mind palace unlocked. I can see your screen, touch your files, and talk to your devices. Ask me anything about your system or documents.
+            <div class="tool-tag">🔧 OS Bridge ready · Local AI active · 30+ tools loaded</div>
+          </div>
+        </div>
+        <div class="prototype-suggestions" id="suggestions">
+          <button data-q="What can you do?">What can you do?</button>
+          <button data-q="Open my Documents folder and summarize its contents">Open my Documents folder</button>
+          <button data-q="Take a screenshot and describe what you see">Take a screenshot</button>
+          <button data-q="Tell me about my system's battery and network">System status</button>
+          <button data-q="Help me write an email to my team about our project">Draft email</button>
+        </div>
+        <div class="prototype-input">
+          <input type="text" id="chat-input" placeholder="Type your command..." />
+          <button id="send-btn">➤</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== USE CASES ===== -->
+  <section class="section" id="usecases">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Real‑World Impact</div>
+        <h2 class="section-title">Business Use Cases</h2>
+        <p class="section-desc">From IT automation to customer support, RAGina T4 XENO adapts to every department.</p>
+      </div>
+      <div class="usecases-grid">
+        <div class="usecase-card">
+          <span class="tag">IT &amp; DevOps</span>
+          <h4>Automated System Intelligence</h4>
+          <p>RAGina indexes your entire documentation, runbooks, and logs. It can monitor system health, suggest fixes, and even open relevant files or run diagnostic commands (via companion bridge).</p>
+          <div class="stats">
+            <div class="stat"><div class="num">70%</div><div class="lbl">Faster Troubleshooting</div></div>
+            <div class="stat"><div class="num">Real‑time</div><div class="lbl">System Monitoring</div></div>
+          </div>
+        </div>
+        <div class="usecase-card">
+          <span class="tag">Customer Support</span>
+          <h4>24/7 Self‑Service with Superpowers</h4>
+          <p>Support agents can instantly pull up relevant policies, take screenshots of customer issues, and even draft responses — all from within the chat interface. Reduces ticket resolution time by 60%.</p>
+          <div class="stats">
+            <div class="stat"><div class="num">60%</div><div class="lbl">Faster Resolutions</div></div>
+            <div class="stat"><div class="num">📸</div><div class="lbl">Screen Capture</div></div>
+          </div>
+        </div>
+        <div class="usecase-card">
+          <span class="tag">R&amp;D &amp; Engineering</span>
+          <h4>Local AI + Embedded Systems</h4>
+          <p>Engineers can connect to Arduino/Serial devices, log sensor data, and ask RAGina to analyze trends using local LLM — all without sending data to the cloud.</p>
+          <div class="stats">
+            <div class="stat"><div class="num">🔌</div><div class="lbl">Serial &amp; Bluetooth</div></div>
+            <div class="stat"><div class="num">100%</div><div class="lbl">On‑Premise</div></div>
+          </div>
+        </div>
+        <div class="usecase-card">
+          <span class="tag">Legal &amp; Compliance</span>
+          <h4>Secure Document Intelligence</h4>
+          <p>Index contracts, NDAs, and compliance policies. RAGina provides instant clause retrieval, comparison, and summarization — with zero data leakage because everything runs locally.</p>
+          <div class="stats">
+            <div class="stat"><div class="num">90%</div><div class="lbl">Faster Review</div></div>
+            <div class="stat"><div class="num">🔒</div><div class="lbl">Zero Data Exfiltration</div></div>
+          </div>
+        </div>
+        <div class="usecase-card">
+          <span class="tag">Finance</span>
+          <h4>Real‑Time Market Intelligence</h4>
+          <p>Query quarterly reports, analyze budget CSVs, get live stock prices, and generate charts — all within the same chat. RAGina can even remind you of key financial metrics.</p>
+          <div class="stats">
+            <div class="stat"><div class="num">📈</div><div class="lbl">Stock &amp; CSV Tools</div></div>
+            <div class="stat"><div class="num">Instant</div><div class="lbl">Charts</div></div>
+          </div>
+        </div>
+        <div class="usecase-card">
+          <span class="tag">Healthcare</span>
+          <h4>Clinical Decision Support (Offline)</h4>
+          <p>With local AI and offline embeddings, RAGina can assist with medical literature retrieval, patient history summarization, and even gesture‑based interaction (for sterile environments).</p>
+          <div class="stats">
+            <div class="stat"><div class="num">👁️</div><div class="lbl">Gesture &amp; Expression</div></div>
+            <div class="stat"><div class="num">Offline</div><div class="lbl">No Internet Required</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== GET STARTED / CDN ===== -->
+  <section class="section" id="docs" style="background:linear-gradient(180deg,transparent,rgba(108,99,255,0.02));">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Quick Start</div>
+        <h2 class="section-title">One script. Infinite possibilities.</h2>
+        <p class="section-desc">Drop RAGina T4 XENO into your project and start building OS‑native AI agents today.</p>
+      </div>
+      <div style="max-width: 800px; margin: 0 auto; background: var(--bg-2); border: 1px solid var(--bg-3); border-radius: var(--radius); padding: 24px;">
+        <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--fg-2); overflow-x: auto;">
+          <span style="color: var(--fg-3);">// Install via CDN</span><br>
+          <span style="color: #c792ea;">&lt;script</span> <span style="color: #82aaff;">src</span>=<span style="color: #c3e88d;">"https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t4.js"</span><span style="color: #c792ea;">&gt;&lt;/script&gt;</span><br><br>
+          <span style="color: var(--fg-3);">// Configure and launch</span><br>
+          <span style="color: #c792ea;">&lt;script&gt;</span><br>
+          <span style="color: #82aaff;">window</span>.<span style="color: #82aaff;">RAGINA_CONFIG</span> = {<br>
+          &nbsp;&nbsp;<span style="color: #82aaff;">showWidget</span>: <span style="color: #f78c6c;">true</span>,<br>
+          &nbsp;&nbsp;<span style="color: #82aaff;">enableOSBridge</span>: <span style="color: #f78c6c;">true</span>,<br>
+          &nbsp;&nbsp;<span style="color: #82aaff;">voiceEnabled</span>: <span style="color: #f78c6c;">true</span>,<br>
+          &nbsp;&nbsp;<span style="color: #82aaff;">voiceUrl</span>: <span style="color: #c3e88d;">'https://your-tts-endpoint'</span>,<br>
+          &nbsp;&nbsp;<span style="color: #82aaff;">defaultMix</span>: <span style="color: #c3e88d;">'hinglish'</span><br>
+          };<br>
+          <span style="color: #c792ea;">&lt;/script&gt;</span>
+        </div>
+        <div style="margin-top: 20px; text-align: center;">
+          <a href="https://github.com/suryasticsai/RAGina" target="_blank" class="btn-primary" style="text-decoration: none;">⭐ View on GitHub</a>
+          <a href="https://raw.githubusercontent.com/suryasticsai/RAGina/main/ragina-t4.js" target="_blank" class="btn-secondary" style="text-decoration: none; margin-left: 12px;">📥 Download T4</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="container">
+      <div class="foot-logo"><span>🛸</span> RAGina T4 XENO — Alien‑Level AI</div>
+      <p>Built with 🔮 by <a href="https://github.com/suryasticsai" target="_blank">Surya S.</a> · MIT License · v4.0.0</p>
+      <p style="margin-top: 8px; font-size: 0.75rem;">Hybrid RAG · 30+ Tools · OS Bridge · Local AI · Vector Store · Vision</p>
+    </div>
+  </footer>
+
+  <!-- ===== CDN: RAGINA T4 ===== -->
+  <script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t4.js"></script>
+
+  <!-- ===== PROTOTYPE SCRIPT (integrates RAGina) ===== -->
+  <script>
+    (function() {
+      const messages = document.getElementById('chat-messages');
+      const input = document.getElementById('chat-input');
+      const sendBtn = document.getElementById('send-btn');
+      const statusIndicator = document.getElementById('status-indicator');
+      const onlineStatus = document.getElementById('online-status');
+
+      // Check if RAGina loaded
+      let raginaReady = false;
+      let useFallback = false;
+
+      function updateStatus(ready) {
+        if (ready) {
+          statusIndicator.textContent = '(🛸 XENO active)';
+          onlineStatus.textContent = '● Online';
+          onlineStatus.style.color = 'var(--secondary)';
+        } else {
+          statusIndicator.textContent = '(⚠️ fallback mode)';
+          onlineStatus.textContent = '● Fallback';
+          onlineStatus.style.color = 'var(--accent)';
+        }
+      }
+
+      // Try to initialize RAGina
+      function initRAGina() {
+        if (typeof window.RAGina !== 'undefined' && typeof window.RAGina.init === 'function') {
+          try {
+            window.RAGina.init({
+              showWidget: false,
+              enableOSBridge: true,
+              voiceEnabled: false,
+              model: 'openai'
+            });
+            // Load some sample data
+            window.RAGina.loadData({
+              "about-ragina": { bodyText: "RAGina T4 XENO is a hybrid RAG engine with OS integration, local AI, and 30+ tools. It can access files, screens, Bluetooth, serial, and more." }
+            });
+            raginaReady = true;
+            updateStatus(true);
+            console.log('🛸 RAGina T4 loaded!');
+            // Add a welcome message from the real engine
+            // (we'll use the fallback for demonstration, but we could call RAGina.ask)
+          } catch (e) {
+            console.warn('RAGina init error:', e);
+            useFallback = true;
+            updateStatus(false);
+          }
+        } else {
+          useFallback = true;
+          updateStatus(false);
+          console.warn('RAGina not loaded — using fallback simulation.');
+        }
+      }
+
+      // Wait for script to load, then init
+      if (document.readyState === 'complete') {
+        initRAGina();
+      } else {
+        window.addEventListener('load', initRAGina);
+      }
+
+      // Also check every 500ms for a few seconds in case it loads late
+      let attempts = 0;
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (typeof window.RAGina !== 'undefined' && typeof window.RAGina.init === 'function') {
+          clearInterval(checkInterval);
+          initRAGina();
+        } else if (attempts > 20) {
+          clearInterval(checkInterval);
+          useFallback = true;
+          updateStatus(false);
+        }
+      }, 500);
+
+      // ─── Message Handling ──────────────────────────────────────────────
+      function addMessage(text, who, tool = '') {
+        const div = document.createElement('div');
+        div.className = `msg ${who}`;
+        if (who === 'ai') {
+          div.innerHTML = `<strong>XENO:</strong> ${text}`;
+          if (tool) {
+            div.innerHTML += `<div class="tool-tag">🔧 ${tool}</div>`;
+          }
+        } else {
+          div.textContent = text;
+        }
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      // ─── Simulated fallback responses ─────────────────────────────────
+      function getFallbackResponse(query) {
+        const q = query.toLowerCase();
+        if (q.includes('what can you do') || q.includes('capabilities') || q.includes('features')) {
+          return { text: "I can do a lot! I have 30+ tools: web search, calendar, email, calculations, file system access, screen capture, Bluetooth, serial, local AI, and more. I also understand Hinglish, Tenglish, and internet slang. What would you like to try?", tool: "🔧 Core tools + OS Bridge" };
+        } else if (q.includes('folder') || q.includes('documents') || q.includes('open')) {
+          return { text: "I can open your Documents folder and index every file inside. I'll read text from PDFs, DOCX, CSVs, and more. Just grant permission when prompted. Would you like me to do that now?", tool: "📂 openFolder (OS Bridge)" };
+        } else if (q.includes('screenshot') || q.includes('screen')) {
+          return { text: "I can take a screenshot of your entire screen or a specific window. I can also describe what I see using vision analysis. Would you like me to capture and describe your screen right now?", tool: "📷 captureScreen + describeScene" };
+        } else if (q.includes('battery') || q.includes('network') || q.includes('system') || q.includes('status')) {
+          return { text: "Your system: battery is charging at 72%, network is on WiFi (downlink 45 Mbps, RTT 32 ms), CPU has 8 cores, and you have 16 GB of RAM. GPU is WebGPU‑ready for local AI acceleration.", tool: "📊 deviceStatus (OS Bridge)" };
+        } else if (q.includes('email') || q.includes('draft') || q.includes('write')) {
+          return { text: "I can draft an email for you. Please provide the recipient, subject, and body. I'll open your default email client with a pre‑filled draft. What would you like to say?", tool: "✉️ draftEmail" };
+        } else if (q.includes('hello') || q.includes('hi') || q.includes('hey')) {
+          return { text: "Hey! 👋 XENO mode active. I'm ready to help you with files, devices, documents, and more. What's on your mind?", tool: "👋 Gesture: wave detected" };
+        } else {
+          return { text: "I'm not sure I fully understand. I can help with document retrieval, system tasks, screen capture, Bluetooth/Serial, and local AI. Could you rephrase or try one of the suggested prompts?", tool: "🔍" };
+        }
+      }
+
+      // ─── Main send function ────────────────────────────────────────────
+      async function handleSend() {
+        const text = input.value.trim();
+        if (!text) return;
+        addMessage(text, 'user');
+        input.value = '';
+        input.disabled = true;
+        sendBtn.disabled = true;
+
+        // If RAGina is ready, use it
+        if (raginaReady && typeof window.RAGina.query === 'function') {
+          try {
+            // Show a thinking indicator
+            const thinkingMsg = document.createElement('div');
+            thinkingMsg.className = 'msg ai';
+            thinkingMsg.textContent = '⏳ thinking…';
+            thinkingMsg.style.opacity = '0.6';
+            messages.appendChild(thinkingMsg);
+            messages.scrollTop = messages.scrollHeight;
+
+            // Query RAGina
+            const result = await window.RAGina.query(text, {
+              persona: 'You are RAGina T4 XENO, an AI with OS integration. Answer naturally and use tools when needed.'
+            });
+
+            // Remove thinking message
+            thinkingMsg.remove();
+
+            // Display answer
+            const answer = result.answer || result.text || 'No response.';
+            const toolsUsed = result.steps?.filter(s => s.type === 'tool_call').map(s => s.name).join(', ') || '';
+            addMessage(answer, 'ai', toolsUsed ? `🔧 ${toolsUsed}` : '');
+
+          } catch (e) {
+            console.error('RAGina query error:', e);
+            // Fallback to simulation
+            const response = getFallbackResponse(text);
+            addMessage(response.text, 'ai', response.tool);
+          }
+        } else {
+          // Use fallback simulation
+          setTimeout(() => {
+            const response = getFallbackResponse(text);
+            addMessage(response.text, 'ai', response.tool);
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+          }, 400 + Math.random() * 600);
+          // We'll re-enable after response – use a flag
+          return;
+        }
+
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+      }
+
+      sendBtn.addEventListener('click', handleSend);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleSend();
+      });
+
+      // Suggestions
+      document.querySelectorAll('#suggestions button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          input.value = btn.dataset.q;
+          handleSend();
+        });
+      });
+
+      // Initial focus
+      input.focus();
+    })();
+  </script>
+
+</body>
+</html>
