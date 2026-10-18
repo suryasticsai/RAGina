@@ -1,0 +1,2681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RAGina T5 — NEURAL INTERFACE // DYSTOPIAN AGENT</title>
+<meta name="description" content="RAGina T5: 21-tool browser agent. Hybrid RAG. Voice. Forms. Orchestration. Zero keys. Pure client-side." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   CYBERPUNK DYSTOPIAN TOKENS — ULTRA HIGH DEFINITION
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --void: #020205;
+  --void-2: #05050c;
+  --panel: rgba(8, 12, 22, 0.78);
+  --panel-solid: #080c16;
+  --chrome: #c8d0e0;
+  --neon-cyan: #00f0ff;
+  --neon-magenta: #ff00aa;
+  --neon-green: #39ff14;
+  --neon-pink: #ff2a6d;
+  --neon-purple: #b14aff;
+  --neon-yellow: #f0ff3d;
+  --dim-cyan: rgba(0, 240, 255, 0.15);
+  --dim-magenta: rgba(255, 0, 170, 0.12);
+  --stroke: rgba(0, 240, 255, 0.18);
+  --stroke-hot: rgba(0, 240, 255, 0.55);
+  --text: #e8f4ff;
+  --muted: #6a8a9a;
+  --muted-2: #3a4a5a;
+  --radius: 4px;
+  --radius-lg: 8px;
+  --font-display: 'Orbitron', system-ui, sans-serif;
+  --font-body: 'Rajdhani', system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, monospace;
+  --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.6), 0 0 40px rgba(0, 240, 255, 0.3);
+  --glow-magenta: 0 0 20px rgba(255, 0, 170, 0.6), 0 0 40px rgba(255, 0, 170, 0.3);
+  --glow-green: 0 0 16px rgba(57, 255, 20, 0.5);
+  --max: 1240px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  cursor: crosshair;
+}
+::selection { background: rgba(0, 240, 255, 0.35); color: #fff; }
+
+/* ── GLOBAL SCANLINES + NOISE ───────────────────────────────── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+}
+
+/* ── AMBIENT CYBER BACKGROUND ───────────────────────────────── */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  overflow: hidden;
+  background: 
+    radial-gradient(1200px 800px at 15% -10%, rgba(0, 240, 255, 0.08), transparent 55%),
+    radial-gradient(900px 700px at 90% 10%, rgba(255, 0, 170, 0.07), transparent 50%),
+    radial-gradient(1000px 600px at 50% 120%, rgba(57, 255, 20, 0.04), transparent 55%),
+    linear-gradient(180deg, #020205 0%, #05050c 40%, #020205 100%);
+}
+.ambient::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background:
+    conic-gradient(from 180deg at 30% 40%, rgba(0,240,255,0.06), transparent 25%, rgba(255,0,170,0.05) 50%, transparent 70%, rgba(57,255,20,0.04));
+  filter: blur(90px);
+  animation: drift 40s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  0% { transform: rotate(0deg) scale(1); }
+  100% { transform: rotate(18deg) scale(1.15); }
+}
+
+/* Circuit grid */
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+  animation: gridPulse 8s ease-in-out infinite;
+}
+@keyframes gridPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+/* Floating particles / data rain */
+.particles {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.particle {
+  position: absolute;
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, var(--neon-cyan), transparent);
+  opacity: 0.25;
+  animation: fall linear infinite;
+}
+@keyframes fall {
+  0% { transform: translateY(-100px); opacity: 0; }
+  10% { opacity: 0.4; }
+  90% { opacity: 0.3; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+/* ── TYPOGRAPHY ─────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+a { color: inherit; text-decoration: none; }
+code, pre, .mono { font-family: var(--font-mono); }
+
+.grad-text {
+  background: linear-gradient(105deg, #fff 0%, var(--neon-cyan) 30%, var(--neon-magenta) 70%, var(--neon-green) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 12px rgba(0,240,255,0.4));
+}
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+.glitch::before, .glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+}
+.glitch::before {
+  left: 2px;
+  text-shadow: -2px 0 var(--neon-magenta);
+  clip-path: inset(0 0 55% 0);
+  animation: glitchTop 2.8s infinite linear alternate-reverse;
+}
+.glitch::after {
+  left: -2px;
+  text-shadow: 2px 0 var(--neon-cyan);
+  clip-path: inset(45% 0 0 0);
+  animation: glitchBot 2.1s infinite linear alternate-reverse;
+}
+@keyframes glitchTop {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-3px, 1px); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+}
+@keyframes glitchBot {
+  0%, 100% { transform: translate(0); }
+  25% { transform: translate(3px, 0); }
+  50% { transform: translate(-3px, 1px); }
+  75% { transform: translate(2px, -1px); }
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(0,240,255,0.5);
+}
+.kicker::before {
+  content: "//";
+  color: var(--neon-magenta);
+  letter-spacing: 0;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────────── */
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 22px; }
+.section { padding: clamp(70px, 10vw, 120px) 0; position: relative; }
+.section-head { max-width: 760px; margin-bottom: 48px; }
+.section-head h2 { font-size: clamp(26px, 4.2vw, 42px); margin: 16px 0 14px; }
+.section-head p { color: var(--muted); font-size: 17px; max-width: 640px; font-weight: 400; }
+
+/* ── NAV ────────────────────────────────────────────────────── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 12px 0;
+  background: rgba(2, 2, 5, 0.72);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s, background 0.3s;
+}
+nav.scrolled {
+  border-bottom-color: var(--stroke);
+  background: rgba(2, 2, 5, 0.88);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.08);
+}
+.nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.08em;
+}
+.brand img {
+  width: 36px; height: 36px;
+  border-radius: 2px;
+  object-fit: cover;
+  border: 1px solid var(--neon-cyan);
+  box-shadow: var(--glow-cyan);
+  filter: contrast(1.15) saturate(1.2);
+}
+.brand span small {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  color: var(--neon-magenta);
+  font-weight: 500;
+  margin-top: 2px;
+}
+.nav-links { display: flex; align-items: center; gap: 28px; }
+.nav-links a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 0.2s, text-shadow 0.2s;
+  position: relative;
+}
+.nav-links a:hover {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 12px rgba(0,240,255,0.6);
+}
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 100%;
+  bottom: -5px;
+  height: 1px;
+  background: var(--neon-cyan);
+  box-shadow: 0 0 8px var(--neon-cyan);
+  transition: right 0.25s;
+}
+.nav-links a:hover::after { right: 0; }
+.nav-cta { display: flex; align-items: center; gap: 10px; }
+
+/* ── BUTTONS ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
+  transform: translateX(-120%);
+  transition: transform 0.5s;
+}
+.btn:hover::before { transform: translateX(120%); }
+.btn:active { transform: translateY(1px) scale(0.98); }
+.btn-primary {
+  background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(255,0,170,0.12));
+  color: var(--neon-cyan);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0,240,255,0.25), inset 0 0 20px rgba(0,240,255,0.05);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, rgba(0,240,255,0.25), rgba(255,0,170,0.18));
+  box-shadow: 0 0 35px rgba(0,240,255,0.45), inset 0 0 25px rgba(0,240,255,0.08);
+  color: #fff;
+}
+.btn-ghost {
+  background: rgba(0, 240, 255, 0.03);
+  border-color: var(--stroke);
+  color: var(--text);
+}
+.btn-ghost:hover {
+  background: rgba(0, 240, 255, 0.08);
+  border-color: var(--stroke-hot);
+  color: var(--neon-cyan);
+  box-shadow: 0 0 18px rgba(0,240,255,0.15);
+}
+.btn-sm { padding: 8px 16px; font-size: 11px; }
+.btn-xs { padding: 6px 12px; font-size: 10px; border-radius: 2px; }
+.btn[disabled] { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+/* ── HERO ───────────────────────────────────────────────────── */
+.hero {
+  padding: 160px 0 80px;
+  position: relative;
+  perspective: 1400px;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 36px;
+  align-items: center;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px 7px 10px;
+  border-radius: 2px;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--neon-cyan);
+  margin-bottom: 26px;
+  box-shadow: 0 0 20px rgba(0,240,255,0.12);
+}
+.hero-badge .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--neon-green);
+  box-shadow: 0 0 12px var(--neon-green);
+  animation: pulse 1.8s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+.hero h1 {
+  font-size: clamp(38px, 6vw, 68px);
+  line-height: 1.0;
+  margin-bottom: 24px;
+  letter-spacing: 0.02em;
+}
+.hero h1 .line { display: block; }
+.hero p.lead {
+  font-size: clamp(16px, 1.8vw, 19px);
+  color: var(--muted);
+  max-width: 520px;
+  margin-bottom: 32px;
+  font-weight: 400;
+}
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  border: 1px solid var(--stroke);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--stroke);
+  box-shadow: 0 0 30px rgba(0,240,255,0.08);
+}
+.stat {
+  background: rgba(5, 8, 16, 0.92);
+  padding: 18px 14px;
+  text-align: left;
+  position: relative;
+}
+.stat::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  opacity: 0.4;
+}
+.stat b {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 6px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 14px rgba(0,240,255,0.5);
+}
+.stat span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* ── 3D MASCOT STAGE ────────────────────────────────────────── */
+.stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 460px;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+.orbit {
+  position: absolute;
+  border: 1px solid rgba(0, 240, 255, 0.18);
+  border-radius: 50%;
+  animation: spin 28s linear infinite;
+  transform-style: preserve-3d;
+  box-shadow: 0 0 30px rgba(0,240,255,0.08), inset 0 0 30px rgba(0,240,255,0.04);
+}
+.orbit.o1 { width: 320px; height: 320px; }
+.orbit.o2 {
+  width: 420px; height: 420px;
+  border-style: dashed;
+  border-color: rgba(255, 0, 170, 0.16);
+  animation-duration: 42s;
+  animation-direction: reverse;
+  box-shadow: 0 0 30px rgba(255,0,170,0.06);
+}
+.orbit.o3 {
+  width: 520px; height: 520px;
+  border-color: rgba(57, 255, 20, 0.1);
+  animation-duration: 58s;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.orbit .sat {
+  position: absolute;
+  top: -5px; left: 50%;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--neon-cyan);
+  box-shadow: 0 0 16px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+}
+.orbit.o2 .sat {
+  background: var(--neon-magenta);
+  box-shadow: 0 0 16px var(--neon-magenta), 0 0 30px var(--neon-magenta);
+}
+.orbit.o3 .sat {
+  background: var(--neon-green);
+  box-shadow: 0 0 16px var(--neon-green);
+}
+
+/* Holographic platform */
+.holo-platform {
+  position: absolute;
+  bottom: 30px;
+  width: 280px;
+  height: 40px;
+  background: radial-gradient(ellipse at center, rgba(0,240,255,0.25), transparent 70%);
+  border-radius: 50%;
+  filter: blur(8px);
+  transform: rotateX(70deg);
+  animation: holoPulse 4s ease-in-out infinite;
+}
+@keyframes holoPulse {
+  0%, 100% { opacity: 0.5; transform: rotateX(70deg) scale(1); }
+  50% { opacity: 0.9; transform: rotateX(70deg) scale(1.08); }
+}
+
+.mascot {
+  position: relative;
+  width: clamp(230px, 32vw, 320px);
+  z-index: 2;
+  filter: drop-shadow(0 0 40px rgba(0,240,255,0.45)) drop-shadow(0 30px 50px rgba(255,0,170,0.2));
+  animation: float 6.5s ease-in-out infinite;
+  will-change: transform;
+  border-radius: 4px;
+  transform-style: preserve-3d;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotateY(-4deg) rotateX(2deg); }
+  50% { transform: translateY(-18px) rotateY(4deg) rotateX(-2deg); }
+}
+.mascot-halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  z-index: 1;
+  background: radial-gradient(circle at 50% 42%, rgba(0,240,255,0.3), rgba(255,0,170,0.12) 45%, transparent 70%);
+  filter: blur(32px);
+  animation: pulseGlow 4.5s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.65; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.float-chip {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 2px;
+  background: rgba(5, 10, 18, 0.88);
+  border: 1px solid var(--stroke-hot);
+  backdrop-filter: blur(14px);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--neon-cyan);
+  box-shadow: 0 0 25px rgba(0,240,255,0.2), inset 0 0 15px rgba(0,240,255,0.04);
+  animation: float 5.5s ease-in-out infinite;
+  text-transform: uppercase;
+}
+.float-chip i { font-style: normal; font-size: 13px; }
+.fc1 { top: 6%; left: -6%; animation-delay: -1s; }
+.fc2 { top: 20%; right: -10%; animation-delay: -2.2s; }
+.fc3 { bottom: 18%; left: -12%; animation-delay: -3.4s; }
+.fc4 { bottom: 2%; right: -4%; animation-delay: -4.1s; }
+
+/* ── MARQUEE ────────────────────────────────────────────────── */
+.marquee {
+  overflow: hidden;
+  border-top: 1px solid var(--stroke);
+  border-bottom: 1px solid var(--stroke);
+  padding: 14px 0;
+  background: rgba(0, 20, 30, 0.4);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.marquee-track {
+  display: flex;
+  gap: 42px;
+  width: max-content;
+  animation: scroll 36s linear infinite;
+}
+.marquee-track span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-2);
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-transform: uppercase;
+}
+.marquee-track span::before {
+  content: "◆";
+  font-size: 8px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+@keyframes scroll { to { transform: translateX(-50%); } }
+
+/* ── GLASS / HOLOGRAPHIC CARDS ──────────────────────────────── */
+.glass {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(18px) saturate(1.3);
+  position: relative;
+  overflow: hidden;
+}
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(145deg, rgba(0,240,255,0.06), transparent 40%);
+}
+.glass::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  opacity: 0.5;
+}
+.card {
+  padding: 22px;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+.card:hover {
+  border-color: var(--stroke-hot);
+  transform: translateY(-4px);
+  box-shadow: 0 0 40px rgba(0,240,255,0.15), 0 25px 50px -20px rgba(0,0,0,0.6);
+}
+
+/* ── CDN SECTION ────────────────────────────────────────────── */
+.cdn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.codebox {
+  position: relative;
+  background: #03060c;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(0,240,255,0.06);
+}
+.codebox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--stroke);
+  background: rgba(0, 240, 255, 0.03);
+}
+.codebox-head span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.codebox pre {
+  padding: 18px 16px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: #a8c8d8;
+}
+.codebox pre .c { color: #3a5a6a; }
+.codebox pre .k { color: var(--neon-pink); }
+.codebox pre .s { color: var(--neon-green); }
+.codebox pre .f { color: var(--neon-cyan); }
+.copy-btn {
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid var(--stroke);
+  color: var(--muted);
+  border-radius: 2px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.copy-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--neon-cyan);
+  border-color: var(--stroke-hot);
+  box-shadow: 0 0 12px rgba(0,240,255,0.2);
+}
+.copy-btn.copied {
+  background: rgba(57, 255, 20, 0.12);
+  color: var(--neon-green);
+  border-color: rgba(57, 255, 20, 0.4);
+}
+.steps { display: flex; flex-direction: column; gap: 12px; }
+.step {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: rgba(0, 240, 255, 0.02);
+  border: 1px solid var(--stroke);
+  transition: border-color 0.2s;
+}
+.step:hover { border-color: var(--stroke-hot); }
+.step-num {
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  box-shadow: 0 0 12px rgba(0,240,255,0.15);
+}
+.step h4 {
+  font-size: 14px;
+  margin-bottom: 4px;
+  letter-spacing: 0.06em;
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-transform: none;
+}
+.step p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ── TOOLS GRID ─────────────────────────────────────────────── */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+.filter {
+  padding: 7px 15px;
+  border-radius: 2px;
+  border: 1px solid var(--stroke);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.filter:hover { color: #fff; border-color: var(--stroke-hot); }
+.filter.active {
+  background: linear-gradient(135deg, rgba(0,240,255,0.2), rgba(255,0,170,0.12));
+  color: var(--neon-cyan);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0,240,255,0.25);
+}
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.tool {
+  padding: 18px;
+  border-radius: var(--radius);
+  background: rgba(0, 240, 255, 0.02);
+  border: 1px solid var(--stroke);
+  transition: 0.22s;
+  position: relative;
+  overflow: hidden;
+}
+.tool::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--neon-cyan);
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: 0 0 12px var(--neon-cyan);
+}
+.tool:hover {
+  background: rgba(0, 240, 255, 0.05);
+  border-color: var(--stroke-hot);
+  transform: translateY(-3px);
+  box-shadow: 0 0 30px rgba(0,240,255,0.12);
+}
+.tool:hover::before { opacity: 1; }
+.tool-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.tool-icon {
+  width: 36px; height: 36px;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  flex-shrink: 0;
+}
+.tool h4 {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.tool .tag {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  font-weight: 500;
+}
+.tool p { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+/* ── COMMAND CENTER ─────────────────────────────────────────── */
+.cc {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: rgba(3, 6, 12, 0.85);
+  min-height: 620px;
+  box-shadow: 0 0 60px rgba(0,240,255,0.08), 0 40px 100px -40px rgba(0,0,0,0.9);
+}
+.cc-side {
+  border-right: 1px solid var(--stroke);
+  padding: 14px;
+  background: rgba(0, 240, 255, 0.015);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cc-side .label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  font-weight: 500;
+  padding: 10px 10px 6px;
+}
+.cc-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 2px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-align: left;
+  transition: 0.18s;
+}
+.cc-tab i { font-style: normal; font-size: 14px; width: 20px; text-align: center; }
+.cc-tab:hover { background: rgba(0, 240, 255, 0.05); color: #fff; }
+.cc-tab.active {
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--neon-cyan);
+  box-shadow: inset 0 0 0 1px rgba(0, 240, 255, 0.3);
+  text-shadow: 0 0 10px rgba(0,240,255,0.4);
+}
+.cc-tab .badge {
+  margin-left: auto;
+  font-size: 8px;
+  background: rgba(57, 255, 20, 0.12);
+  color: var(--neon-green);
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(57, 255, 20, 0.25);
+}
+.cc-main { padding: 26px; overflow: hidden; }
+.cc-panel { display: none; animation: fadeUp 0.35s ease; }
+.cc-panel.active { display: block; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.cc-panel h3 {
+  font-size: 18px;
+  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+}
+.cc-panel .sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.demo-note {
+  font-size: 11.5px;
+  color: var(--muted-2);
+  background: rgba(240, 255, 61, 0.04);
+  border: 1px solid rgba(240, 255, 61, 0.18);
+  border-radius: 2px;
+  padding: 10px 13px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-family: var(--font-mono);
+}
+.demo-note b { color: var(--neon-yellow); font-weight: 600; }
+
+/* ── FORMS / INPUTS ─────────────────────────────────────────── */
+.input, textarea.input, select.input {
+  width: 100%;
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px solid var(--stroke);
+  border-radius: 2px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: var(--font-body);
+}
+.input:focus, textarea.input:focus, select.input:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.12), 0 0 20px rgba(0,240,255,0.1);
+}
+textarea.input { resize: vertical; line-height: 1.55; }
+label.fl {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.out {
+  background: #020508;
+  border: 1px solid var(--stroke);
+  border-radius: 2px;
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: #8ab0c0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow: auto;
+}
+.out .ok { color: var(--neon-green); }
+.out .err { color: var(--neon-pink); }
+.out .key { color: var(--neon-cyan); }
+
+/* ── RAG DEMO ───────────────────────────────────────────────── */
+.rag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.doc-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 2px;
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px solid var(--stroke);
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+}
+.doc-chip b { color: #c0e0f0; font-weight: 600; }
+.chunk {
+  padding: 12px 14px;
+  border-radius: 2px;
+  background: rgba(0, 240, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  color: #b0d0e0;
+  line-height: 1.55;
+}
+.chunk .score {
+  float: right;
+  font-size: 10px;
+  color: var(--neon-green);
+  font-weight: 600;
+  background: rgba(57, 255, 20, 0.1);
+  padding: 2px 7px;
+  border-radius: 2px;
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  border: 1px solid rgba(57, 255, 20, 0.25);
+}
+.chunk .src {
+  display: block;
+  font-size: 10px;
+  color: var(--muted-2);
+  margin-bottom: 4px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+/* ── VOICE DEMO ─────────────────────────────────────────────── */
+.policy-badges { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+.pbadge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 9px;
+  border-radius: 2px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--stroke);
+  color: var(--muted);
+}
+.pbadge.full {
+  background: rgba(57, 255, 20, 0.08);
+  border-color: rgba(57, 255, 20, 0.3);
+  color: var(--neon-green);
+}
+.pbadge.summary {
+  background: rgba(240, 255, 61, 0.08);
+  border-color: rgba(240, 255, 61, 0.3);
+  color: var(--neon-yellow);
+}
+.pbadge.silent {
+  background: rgba(255, 42, 109, 0.08);
+  border-color: rgba(255, 42, 109, 0.3);
+  color: var(--neon-pink);
+}
+.wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 24px;
+  margin-top: 8px;
+}
+.wave i {
+  display: block;
+  width: 3px;
+  background: var(--neon-cyan);
+  border-radius: 1px;
+  height: 6px;
+  opacity: 0.35;
+  box-shadow: 0 0 6px var(--neon-cyan);
+}
+.wave.on i { animation: wv 0.85s ease-in-out infinite; opacity: 1; }
+.wave i:nth-child(2) { animation-delay: 0.1s; }
+.wave i:nth-child(3) { animation-delay: 0.2s; }
+.wave i:nth-child(4) { animation-delay: 0.3s; }
+.wave i:nth-child(5) { animation-delay: 0.4s; }
+@keyframes wv {
+  0%, 100% { height: 5px; }
+  50% { height: 22px; }
+}
+
+/* ── MUSIC DEMO ─────────────────────────────────────────────── */
+.track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 2px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 240, 255, 0.02);
+  margin-bottom: 6px;
+  transition: 0.2s;
+}
+.track:hover {
+  background: rgba(0, 240, 255, 0.06);
+  border-color: var(--stroke-hot);
+  box-shadow: 0 0 18px rgba(0,240,255,0.1);
+}
+.track .thumb {
+  width: 40px; height: 30px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #0a1a2a, #1a3a5a);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  border: 1px solid var(--stroke);
+  color: var(--neon-cyan);
+}
+.track .meta { flex: 1; min-width: 0; }
+.track .meta b {
+  display: block;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.track .meta span {
+  font-size: 10px;
+  color: var(--muted-2);
+  font-family: var(--font-mono);
+}
+
+/* ── FORMS DEMO ─────────────────────────────────────────────── */
+.form-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mini-form {
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 240, 255, 0.02);
+}
+.mini-form .fgroup { margin-bottom: 12px; }
+.mini-form .fgroup:last-child { margin-bottom: 0; }
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.checkline input { accent-color: var(--neon-cyan); width: 15px; height: 15px; }
+
+/* ── MULTI-STEP ─────────────────────────────────────────────── */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px; top: 6px; bottom: 6px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--neon-cyan), var(--neon-magenta), transparent);
+  box-shadow: 0 0 8px rgba(0,240,255,0.3);
+}
+.tstep { position: relative; padding: 0 0 18px 0; }
+.tstep::before {
+  content: "";
+  position: absolute;
+  left: -26px; top: 5px;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--muted-2);
+  border: 2px solid var(--void);
+  transition: 0.3s;
+}
+.tstep.running::before {
+  background: var(--neon-yellow);
+  box-shadow: 0 0 14px var(--neon-yellow);
+  animation: pulse 1.1s infinite;
+}
+.tstep.done::before {
+  background: var(--neon-green);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.6);
+}
+.tstep.error::before {
+  background: var(--neon-pink);
+  box-shadow: 0 0 12px rgba(255, 42, 109, 0.6);
+}
+.tstep h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  color: #c0e0f0;
+  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+  text-transform: none;
+}
+.tstep p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.tstep .result {
+  margin-top: 6px;
+  padding: 9px 11px;
+  border-radius: 2px;
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px solid var(--stroke);
+  font-size: 11.5px;
+  color: #8ab0c0;
+  display: none;
+  font-family: var(--font-mono);
+}
+.tstep.done .result, .tstep.error .result { display: block; }
+
+/* ── CAPABILITY GRID ────────────────────────────────────────── */
+.cap-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.cap {
+  padding: 14px 10px;
+  border-radius: 2px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 240, 255, 0.02);
+  text-align: center;
+  transition: 0.2s;
+}
+.cap:hover { border-color: var(--stroke-hot); }
+.cap .ic { font-size: 18px; margin-bottom: 5px; }
+.cap b {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 3px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.cap span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+}
+.cap.yes span { color: var(--neon-green); text-shadow: 0 0 8px rgba(57,255,20,0.4); }
+.cap.no span { color: var(--muted-2); }
+.tier-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(0,240,255,0.08), rgba(255,0,170,0.05));
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  margin-bottom: 18px;
+  box-shadow: 0 0 30px rgba(0,240,255,0.1);
+}
+.tier-box .big {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 14px rgba(0,240,255,0.5);
+}
+.tier-box p { font-size: 12.5px; color: var(--muted); }
+
+/* ── MASCOT GALLERY ─────────────────────────────────────────── */
+.moods {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.mood {
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: rgba(0, 240, 255, 0.02);
+  border: 1px solid var(--stroke);
+  text-align: center;
+  transition: 0.25s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.mood::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(0,240,255,0.06), transparent 50%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.mood:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--stroke-hot);
+  background: rgba(0, 240, 255, 0.05);
+  box-shadow: 0 0 40px rgba(0,240,255,0.2), 0 20px 50px -20px rgba(0,0,0,0.6);
+}
+.mood:hover::before { opacity: 1; }
+.mood img {
+  width: 100%;
+  max-width: 120px;
+  height: 120px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(0,240,255,0.35)) contrast(1.1) saturate(1.15);
+  transition: transform 0.3s;
+}
+.mood:hover img { transform: scale(1.1) rotate(-3deg); }
+.mood b {
+  display: block;
+  font-size: 12px;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mood span {
+  font-size: 11px;
+  color: var(--muted-2);
+  font-style: italic;
+  font-family: var(--font-body);
+}
+
+/* ── ARCHITECTURE ───────────────────────────────────────────── */
+.arch {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.layer {
+  padding: 22px;
+  border-radius: var(--radius);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 240, 255, 0.02);
+  position: relative;
+  transition: 0.25s;
+}
+.layer:hover {
+  border-color: var(--stroke-hot);
+  box-shadow: 0 0 30px rgba(0,240,255,0.12);
+  transform: translateY(-3px);
+}
+.layer .lnum {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: var(--neon-magenta);
+  font-weight: 500;
+  margin-bottom: 10px;
+  text-shadow: 0 0 8px rgba(255,0,170,0.4);
+}
+.layer h4 {
+  font-size: 15px;
+  margin-bottom: 8px;
+  letter-spacing: 0.06em;
+}
+.layer p { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+.layer::after {
+  content: "";
+  position: absolute;
+  top: 50%; right: -15px;
+  width: 15px; height: 1px;
+  background: var(--stroke-hot);
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+.layer:last-child::after { display: none; }
+
+/* ── FOOTER ─────────────────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--stroke);
+  padding: 55px 0 40px;
+  margin-top: 40px;
+  background: rgba(0, 10, 20, 0.3);
+}
+.foot-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+.foot-brand p {
+  font-size: 13.5px;
+  color: var(--muted);
+  max-width: 340px;
+  margin-top: 12px;
+}
+.foot-col h5 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin-bottom: 14px;
+}
+.foot-col a {
+  display: block;
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  transition: 0.2s;
+  font-family: var(--font-body);
+}
+.foot-col a:hover {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(0,240,255,0.4);
+}
+.foot-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid var(--stroke);
+  font-size: 12px;
+  color: var(--muted-2);
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* ── REVEAL ─────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.75s cubic-bezier(0.2, 0.7, 0.3, 1), transform 0.75s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.reveal.in { opacity: 1; transform: none; }
+.d1 { transition-delay: 0.07s; }
+.d2 { transition-delay: 0.14s; }
+.d3 { transition-delay: 0.21s; }
+.d4 { transition-delay: 0.28s; }
+
+/* ── TOAST ──────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translate(-50%, 90px);
+  background: rgba(5, 12, 22, 0.95);
+  border: 1px solid var(--stroke-hot);
+  color: var(--neon-cyan);
+  padding: 12px 22px;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  z-index: 999;
+  box-shadow: 0 0 40px rgba(0,240,255,0.2), 0 20px 50px rgba(0,0,0,0.6);
+  transition: 0.35s cubic-bezier(0.2, 0.7, 0.3, 1);
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+  text-transform: uppercase;
+}
+.toast.show { transform: translate(-50%, 0); }
+
+/* ── MODAL ──────────────────────────────────────────────────── */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  max-width: 480px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  background: var(--panel-solid);
+  border: 1px solid var(--stroke-hot);
+  padding: 26px;
+  box-shadow: 0 0 60px rgba(0,240,255,0.2), 0 40px 100px rgba(0,0,0,0.8);
+  animation: fadeUp 0.25s ease;
+}
+.modal h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+  letter-spacing: 0.08em;
+  color: var(--neon-cyan);
+}
+.modal p { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; }
+.modal .fields {
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px solid var(--stroke);
+  border-radius: 2px;
+  padding: 14px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+}
+.modal .fields div {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(0, 240, 255, 0.1);
+}
+.modal .fields div:last-child { border-bottom: none; }
+.modal .fields span:first-child { color: var(--muted); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 1000px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 20px; }
+  .stage { min-height: 360px; order: -1; }
+  .tools-grid { grid-template-columns: repeat(2, 1fr); }
+  .cdn-grid { grid-template-columns: 1fr; }
+  .cc { grid-template-columns: 1fr; }
+  .cc-side {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--stroke);
+    padding: 8px;
+  }
+  .cc-side .label { display: none; }
+  .cc-tab { white-space: nowrap; width: auto; padding: 9px 13px; }
+  .cc-tab .badge { display: none; }
+  .arch { grid-template-columns: repeat(2, 1fr); }
+  .layer::after { display: none; }
+  .moods { grid-template-columns: repeat(3, 1fr); }
+  .foot-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .nav-links { display: none; }
+  .hero { padding-top: 130px; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .tools-grid { grid-template-columns: 1fr; }
+  .rag-grid, .form-demo, .grid2 { grid-template-columns: 1fr; }
+  .cap-grid { grid-template-columns: repeat(2, 1fr); }
+  .moods { grid-template-columns: repeat(2, 1fr); }
+  .foot-grid { grid-template-columns: 1fr; }
+  .cc-main { padding: 18px; }
+  .section { padding: 60px 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+<div class="grid-overlay"></div>
+<div class="particles" id="particles"></div>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav id="nav">
+  <div class="wrap nav-inner">
+    <a href="#top" class="brand">
+      <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/halfsmile.png" alt="RAGina" onerror="this.style.display='none'">
+      <span>RAGINA<small>T5 // 5.4.0</small></span>
+    </a>
+    <div class="nav-links">
+      <a href="#cdn">INIT</a>
+      <a href="#features">TOOLS</a>
+      <a href="#demos">LIVE</a>
+      <a href="#moods">MOODS</a>
+      <a href="#architecture">CORE</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn btn-ghost btn-sm" href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">GITHUB ↗</a>
+      <a class="btn btn-primary btn-sm" href="#cdn">DEPLOY</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="hero-badge">
+        <span class="dot"></span>
+        v5.4.0 · STANDALONE · ZERO KEYS · ONE FILE
+      </div>
+      <h1>
+        <span class="line">THE AGENT THAT</span>
+        <span class="line"><span class="grad-text glitch" data-text="READS, SPEAKS">READS, SPEAKS</span></span>
+        <span class="line">AND ACTS.</span>
+      </h1>
+      <p class="lead">
+        RAGina T5 is a 21-tool browser agent with hybrid RAG, natural voice,
+        YouTube music, live form automation, downloadable guides and multi-step
+        orchestration — all from a single <code>&lt;script&gt;</code> tag. No backend. No keys. No build step.
+      </p>
+      <div class="hero-actions">
+        <a href="#demos" class="btn btn-primary">▶ LIVE DEMOS</a>
+        <a href="#cdn" class="btn btn-ghost">COPY CDN</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><b>21</b><span>Tools</span></div>
+        <div class="stat"><b>0</b><span>API Keys</span></div>
+        <div class="stat"><b>5</b><span>RAG Tools</span></div>
+        <div class="stat"><b>1</b><span>Script Tag</span></div>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="orbit o1"><span class="sat"></span></div>
+      <div class="orbit o2"><span class="sat"></span></div>
+      <div class="orbit o3"><span class="sat"></span></div>
+      <div class="mascot-halo"></div>
+      <div class="holo-platform"></div>
+      <img class="mascot" id="heroMascot"
+           src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/research.png"
+           alt="RAGina — the all-seeing mentalist"
+           onerror="this.src='https://raw.githubusercontent.com/suryasticsai/RAGina/main/dance1.png'">
+      <div class="float-chip fc1"><i>🧠</i> HYBRID RAG</div>
+      <div class="float-chip fc2"><i>🎙️</i> SPEECH PIPE</div>
+      <div class="float-chip fc3"><i>📝</i> FORM AUTO</div>
+      <div class="float-chip fc4"><i>🪄</i> MULTI-STEP</div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ MARQUEE ═══════════ -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track" id="marquee"></div>
+</div>
+
+<!-- ═══════════ CDN ═══════════ -->
+<section class="section" id="cdn">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="kicker">QUICK START</span>
+      <h2>ONE SCRIPT TAG.<br><span class="grad-text">THEN SHE'S ALIVE.</span></h2>
+      <p>Drop the file next to your HTML, or load it from jsDelivr. T5 is fully standalone — it does not need T4.</p>
+    </div>
+
+    <div class="cdn-grid">
+      <div class="reveal">
+        <div class="codebox" style="margin-bottom:14px">
+          <div class="codebox-head">
+            <span>index.html</span>
+            <button class="copy-btn" data-copy="cdn1">COPY</button>
+          </div>
+          <pre id="cdn1"><span class="c">&lt;!-- Load T5 (standalone, ~1 file) --&gt;</span>
+<span class="k">&lt;script</span> <span class="f">src</span>=<span class="s">"https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-t5.js"</span><span class="k">&gt;&lt;/script&gt;</span>
+
+<span class="k">&lt;script&gt;</span>
+  (<span class="k">async</span> () =&gt; {
+    <span class="k">await</span> R5.init({ voiceId: <span class="s">'rachel'</span> });
+    R5.registerAll();
+    console.log(R5.listTools()); <span class="c">// 21 tools</span>
+  })();
+<span class="k">&lt;/script&gt;</span></pre>
+        </div>
+
+        <div class="codebox">
+          <div class="codebox-head">
+            <span>Talk to her</span>
+            <button class="copy-btn" data-copy="cdn2">COPY</button>
+          </div>
+          <pre id="cdn2"><span class="c">// Index a document (persists in IndexedDB)</span>
+<span class="k">await</span> R5.loadData({
+  <span class="s">'handbook.txt'</span>: <span class="s">'Vacation policy: 20 days per year...'</span>
+});
+
+<span class="c">// Ask — RAG happens automatically before the LLM</span>
+<span class="k">const</span> r = <span class="k">await</span> R5.query(<span class="s">'How many vacation days do I get?'</span>);
+console.log(r.answer);
+
+<span class="c">// Or hand her a multi-step goal</span>
+<span class="k">const</span> m = <span class="k">await</span> R5.planAndExecute(
+  <span class="s">'Search my notes for Q3 revenue and draft a summary email'</span>
+);
+console.log(m.plan, m.answer);</pre>
+        </div>
+      </div>
+
+      <div class="steps reveal d2">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div>
+            <h4>Load the file</h4>
+            <p>One <code>&lt;script&gt;</code> tag from jsDelivr, or host <code>ragina-t5.js</code> yourself. It works on any static page — GitHub Pages, Netlify, a single HTML file.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div>
+            <h4>Initialise once</h4>
+            <p><code>R5.init()</code> detects the device tier, restores the RAG index from IndexedDB, and wires the audio session. <code>R5.registerAll()</code> adds the 21 tools.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div>
+            <h4>Feed her knowledge</h4>
+            <p><code>R5.loadData()</code>, <code>R5.loadFile()</code> or <code>R5.loadFolder()</code>. She chunks, embeds and indexes locally. No upload, no server.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div>
+            <h4>Ask, speak, act</h4>
+            <p>Every <code>R5.query()</code> auto-retrieves the top 5 chunks. Voice, music, forms and guides are all available as tools to the agent.</p>
+          </div>
+        </div>
+        <div class="step" style="background:rgba(57,255,20,0.04);border-color:rgba(57,255,20,0.25)">
+          <div class="step-num" style="background:rgba(57,255,20,0.12);color:var(--neon-green);border-color:rgba(57,255,20,0.4)">✓</div>
+          <div>
+            <h4>Optional: pair with T4</h4>
+            <p>If <code>ragina-t4.js</code> is also loaded, T5's tools automatically register into T4's engine too. No conflict — T4 just gets 16 extra tools.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FEATURES ═══════════ -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="kicker">THE TOOLKIT</span>
+      <h2>21 TOOLS.<br><span class="grad-text">FIVE JOBS.</span></h2>
+      <p>Every tool is schema-validated before execution. Bad arguments come back to the LLM as an observation, so it self-corrects instead of crashing.</p>
+    </div>
+
+    <div class="filters reveal" id="filters">
+      <button class="filter active" data-cat="all">ALL 21</button>
+      <button class="filter" data-cat="voice">VOICE</button>
+      <button class="filter" data-cat="music">MUSIC</button>
+      <button class="filter" data-cat="web">WEB & FORMS</button>
+      <button class="filter" data-cat="rag">RAG</button>
+      <button class="filter" data-cat="meta">META</button>
+      <button class="filter" data-cat="orchestration">ORCHESTRATION</button>
+    </div>
+
+    <div class="tools-grid" id="toolsGrid"></div>
+  </div>
+</section>
+
+<!-- ═══════════ LIVE DEMOS ═══════════ -->
+<section class="section" id="demos">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="kicker">COMMAND CENTER</span>
+      <h2>DON'T TAKE OUR WORD.<br><span class="grad-text">POKE HER.</span></h2>
+      <p>These panels run real T5 logic — the same speech pipeline, hybrid retriever and form tools that ship in the file. Network-dependent demos fall back gracefully.</p>
+    </div>
+
+    <div class="cc reveal">
+      <div class="cc-side">
+        <div class="label">LIVE MODULES</div>
+        <button class="cc-tab active" data-tab="rag"><i>🧠</i> RAG PLAYGROUND <span class="badge">LIVE</span></button>
+        <button class="cc-tab" data-tab="voice"><i>🎙️</i> SPEECH PIPELINE <span class="badge">LIVE</span></button>
+        <button class="cc-tab" data-tab="forms"><i>📝</i> FORM AUTOMATION <span class="badge">LIVE</span></button>
+        <button class="cc-tab" data-tab="music"><i>🎵</i> MUSIC SEARCH</button>
+        <button class="cc-tab" data-tab="multi"><i>🪄</i> MULTI-STEP</button>
+        <button class="cc-tab" data-tab="caps"><i>📱</i> DEVICE TIER <span class="badge">LIVE</span></button>
+      </div>
+
+      <div class="cc-main">
+        <!-- RAG -->
+        <div class="cc-panel active" id="panel-rag">
+          <h3>HYBRID RAG PLAYGROUND</h3>
+          <p class="sub">BM25 + 128-dim semantic embeddings + query expansion. Real retrieval, running in this tab.</p>
+          <div class="demo-note"><b>LIVE:</b> Documents are indexed in memory for this demo. In T5 they persist to IndexedDB via <code>R5.loadData()</code>.</div>
+
+          <div class="rag-grid">
+            <div>
+              <label class="fl">Indexed documents</label>
+              <div id="ragDocs"></div>
+              <label class="fl" style="margin-top:12px">Your question</label>
+              <input class="input" id="ragQ" value="How does the speech pipeline handle long lists?" />
+              <div class="row" style="margin-top:10px">
+                <button class="btn btn-primary btn-sm" id="ragAsk">ASK RAGINA</button>
+                <button class="btn btn-ghost btn-sm" id="ragReset">RESET</button>
+              </div>
+              <div class="policy-badges" id="ragSuggest"></div>
+            </div>
+            <div>
+              <label class="fl">Retrieved chunks</label>
+              <div id="ragResults" class="out">Ask a question to see ranked chunks with scores.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Voice -->
+        <div class="cc-panel" id="panel-voice">
+          <h3>SPEECH PIPELINE</h3>
+          <p class="sub">The bug fix that started it all: strip markdown, chunk long text, and never read a 40-item list aloud.</p>
+          <div class="demo-note"><b>LIVE:</b> Uses the browser's native <code>speechSynthesis</code> so it works offline. T5 prefers your server voice and falls back to native.</div>
+
+          <label class="fl">Response text</label>
+          <textarea class="input" id="voiceText" rows="5">Here are the top 5 hotels near the airport:
+1. The Grand — 4.8★
+2. Airport Inn — 4.5★
+3. Skyline Suites — 4.3★
+4. Transit Lodge — 4.1★
+5. Runway View — 3.9★</textarea>
+          <div class="policy-badges" id="voiceBadges"></div>
+          <div class="row">
+            <button class="btn btn-primary btn-sm" id="voiceSpeak">🔊 SPEAK</button>
+            <button class="btn btn-ghost btn-sm" id="voiceStop">■ STOP</button>
+            <button class="btn btn-ghost btn-sm" id="voiceMute">🔇 MUTE</button>
+            <div class="wave" id="voiceWave"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn btn-xs btn-ghost" data-voice-sample="plain">PLAIN ANSWER</button>
+            <button class="btn btn-xs btn-ghost" data-voice-sample="list">LONG LIST</button>
+            <button class="btn btn-xs btn-ghost" data-voice-sample="code">CODE BLOCK</button>
+          </div>
+          <div id="voiceStatus" class="out" style="margin-top:12px">Ready.</div>
+        </div>
+
+        <!-- Forms -->
+        <div class="cc-panel" id="panel-forms">
+          <h3>FORM AUTOMATION</h3>
+          <p class="sub">Read the real DOM, fill fields, and submit only after you approve.</p>
+          <div class="demo-note"><b>LIVE:</b> <code>submitForm</code> never submits directly — it returns <code>pendingConfirmation</code> and waits for <code>resolveSubmit(actionId, true)</code>.</div>
+
+          <div class="form-demo">
+            <div>
+              <label class="fl">Demo signup form</label>
+              <form class="mini-form" id="demoForm" onsubmit="return false">
+                <div class="fgroup">
+                  <label class="fl">Full name</label>
+                  <input class="input" name="name" placeholder="Priya Sharma" />
+                </div>
+                <div class="fgroup">
+                  <label class="fl">Email</label>
+                  <input class="input" name="email" type="email" placeholder="priya@example.com" />
+                </div>
+                <div class="fgroup">
+                  <label class="fl">Plan</label>
+                  <select class="input" name="plan">
+                    <option value="">Choose…</option>
+                    <option value="starter">Starter</option>
+                    <option value="pro">Pro</option>
+                    <option value="team">Team</option>
+                  </select>
+                </div>
+                <div class="fgroup">
+                  <label class="checkline"><input type="checkbox" name="terms" /> I accept the terms</label>
+                </div>
+              </form>
+              <div class="row" style="margin-top:12px">
+                <button class="btn btn-primary btn-sm" id="formFill">AUTO-FILL</button>
+                <button class="btn btn-ghost btn-sm" id="formRead">READ FORMS</button>
+                <button class="btn btn-ghost btn-sm" id="formSubmit">SUBMIT…</button>
+              </div>
+            </div>
+            <div>
+              <label class="fl">Tool output</label>
+              <div id="formOut" class="out">Click "Read forms" to see what the agent sees.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Music -->
+        <div class="cc-panel" id="panel-music">
+          <h3>YOUTUBE MUSIC SEARCH</h3>
+          <p class="sub">The agent searches your Worker, gets a track, and controls playback through its own hidden player.</p>
+          <div class="demo-note"><b>NETWORK DEMO:</b> Calls the live Worker. If CORS blocks it from this page, you'll see an honest error — the same call works from your own origin.</div>
+
+          <label class="fl">Search query</label>
+          <div class="row">
+            <input class="input" id="musicQ" value="lofi hip hop" style="flex:1" />
+            <button class="btn btn-primary btn-sm" id="musicSearch">SEARCH</button>
+          </div>
+          <div id="musicOut" class="out" style="margin-top:12px">Search to see real results from the Worker.</div>
+        </div>
+
+        <!-- Multi-step -->
+        <div class="cc-panel" id="panel-multi">
+          <h3>MULTI-STEP ORCHESTRATOR</h3>
+          <p class="sub">Plan → execute each step with the full agent → synthesize one answer.</p>
+          <div class="demo-note"><b>NETWORK DEMO:</b> Tries the live planner endpoint. If unreachable, falls back to a deterministic plan so you can still see the trace UI.</div>
+
+          <label class="fl">Goal</label>
+          <input class="input" id="multiGoal" value="Explain RAGina's speech pipeline and write a three-line launch tweet" />
+          <div class="row" style="margin-top:10px">
+            <button class="btn btn-primary btn-sm" id="multiRun">RUN ORCHESTRATION</button>
+          </div>
+          <div id="multiOut" style="margin-top:16px">
+            <div class="timeline" id="multiTimeline"></div>
+            <div id="multiAnswer" class="out" style="display:none;margin-top:10px"></div>
+          </div>
+        </div>
+
+        <!-- Capabilities -->
+        <div class="cc-panel" id="panel-caps">
+          <h3>DEVICE TIER</h3>
+          <p class="sub">T5 probes the browser before promising a feature. This is the real detection logic.</p>
+          <div class="tier-box">
+            <div style="font-size:28px">📱</div>
+            <div>
+              <div class="big" id="tierName">DETECTING…</div>
+              <p id="tierDesc">Probing WebGPU, isolation and mobile signals.</p>
+            </div>
+          </div>
+          <div class="cap-grid" id="capGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ MOODS ═══════════ -->
+<section class="section" id="moods">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="kicker">MEET THE MENTALIST</span>
+      <h2>SEVEN MOODS.<br><span class="grad-text">ZERO POKER FACE.</span></h2>
+      <p>RAGina's mascot isn't decoration — each expression is a state. Deep research, doubt detected, victory dance. She has opinions about your filing system.</p>
+    </div>
+
+    <div class="moods reveal" id="moodsGrid"></div>
+  </div>
+</section>
+
+<!-- ═══════════ ARCHITECTURE ═══════════ -->
+<section class="section" id="architecture">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="kicker">UNDER THE HOOD</span>
+      <h2>FOUR LAYERS.<br><span class="grad-text">NO MAGIC.</span></h2>
+      <p>Everything runs in the tab: retrieval, tool orchestration, safety checks and persistence. Nothing leaves the browser except the LLM prompt you already expect.</p>
+    </div>
+
+    <div class="arch reveal">
+      <div class="layer">
+        <div class="lnum">01 / RETRIEVE</div>
+        <h4>HYBRID RAG</h4>
+        <p>250-char chunks, BM25 lexical scoring, 128-dim hash embeddings, query expansion. Auto-retrieves top 5 chunks before every query.</p>
+      </div>
+      <div class="layer">
+        <div class="lnum">02 / REASON</div>
+        <h4>REACT LOOP</h4>
+        <p>TOOL_CALL → execute → observe → answer. Schema validation on every call. Bad args become observations, not crashes.</p>
+      </div>
+      <div class="layer">
+        <div class="lnum">03 / ACT</div>
+        <h4>21 TOOLS</h4>
+        <p>Voice, music, forms, RAG, guides, search, math, time and multi-step orchestration. Every tool declares its own schema.</p>
+      </div>
+      <div class="layer">
+        <div class="lnum">04 / REMEMBER</div>
+        <h4>INDEXEDDB</h4>
+        <p>Documents and RAG index persist across reloads. Restored on <code>R5.init()</code>. Clear with one call.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="brand">
+          <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile-2.png" alt="RAGina" onerror="this.style.display='none'">
+          <span>RAGINA<small>T5 // 5.4.0</small></span>
+        </div>
+        <p>Your in-browser companion. She reads, speaks, fills forms, plays music and remembers everything — without a backend.</p>
+      </div>
+      <div class="foot-col">
+        <h5>BUILD</h5>
+        <a href="#cdn">CDN Quick Start</a>
+        <a href="#features">All 21 Tools</a>
+        <a href="#architecture">Architecture</a>
+      </div>
+      <div class="foot-col">
+        <h5>DEMO</h5>
+        <a href="#demos">RAG Playground</a>
+        <a href="#demos">Speech Pipeline</a>
+        <a href="#demos">Form Automation</a>
+      </div>
+      <div class="foot-col">
+        <h5>PROJECT</h5>
+        <a href="https://github.com/suryasticsai/RAGina" target="_blank" rel="noopener">GitHub ↗</a>
+        <a href="https://github.com/suryasticsai/RAGina/blob/main/ragina-t5.js" target="_blank" rel="noopener">ragina-t5.js ↗</a>
+        <a href="https://github.com/suryasticsai/RAGina/blob/main/README.md" target="_blank" rel="noopener">README ↗</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>MIT LICENSE · BUILT BY <a href="https://github.com/suryasticsai" target="_blank" rel="noopener" style="color:var(--neon-cyan)">SAI VARAKALA (SURYA)</a></span>
+      <span>SHE PENETRATES WALLS. SHE READS CHAOS. SHE FORGETS NOTHING.</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════ CONFIRM MODAL ═══════════ -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">SUBMIT THIS FORM?</h3>
+    <p id="modalSub">The agent is waiting for your approval. It will not submit on its own.</p>
+    <div class="fields" id="modalFields"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" id="modalCancel">CANCEL</button>
+      <button class="btn btn-primary btn-sm" id="modalApprove">APPROVE & SUBMIT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   RAGina T5 — CYBERPUNK LIVE DEMO HARNESS
+   Real T5 modules preserved. Visual layer fully dystopian.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const toastEl = $('#toast');
+let toastTimer;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('show'), 2200);
+}
+
+/* ── Particles ───────────────────────────────────────────────── */
+const particles = $('#particles');
+for(let i=0; i<40; i++){
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random()*100 + '%';
+  p.style.animationDuration = (4 + Math.random()*8) + 's';
+  p.style.animationDelay = (Math.random()*6) + 's';
+  p.style.height = (20 + Math.random()*50) + 'px';
+  p.style.opacity = 0.15 + Math.random()*0.25;
+  particles.appendChild(p);
+}
+
+/* ── Nav ─────────────────────────────────────────────────────── */
+const nav = $('#nav');
+addEventListener('scroll', ()=> nav.classList.toggle('scrolled', scrollY > 20), {passive:true});
+
+/* ── Reveal ──────────────────────────────────────────────────── */
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+}, {threshold:.12});
+$$('.reveal').forEach(el=>io.observe(el));
+
+/* ── Marquee ─────────────────────────────────────────────────── */
+const marqueeItems = [
+  'HYBRID RAG', 'BM25 + EMBEDDINGS', '21 TOOLS', 'ZERO API KEYS',
+  'SPEECH PIPELINE', 'MARKDOWN STRIPPING', 'YOUTUBE MUSIC', 'FORM AUTOMATION',
+  'SUBMIT CONFIRMATION', 'MULTI-STEP ORCHESTRATION', 'INDEXEDDB PERSISTENCE',
+  'DOWNLOADABLE GUIDES', 'DEVICE TIER DETECTION', 'ONE SCRIPT TAG'
+];
+$('#marquee').innerHTML = [...marqueeItems, ...marqueeItems].map(x=>`<span>${x}</span>`).join('');
+
+/* ── Copy buttons ────────────────────────────────────────────── */
+$$('.copy-btn').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const target = document.getElementById(btn.dataset.copy);
+    if(!target) return;
+    try{
+      await navigator.clipboard.writeText(target.innerText);
+      btn.textContent = 'COPIED ✓';
+      btn.classList.add('copied');
+      toast('COPIED TO CLIPBOARD');
+      setTimeout(()=>{ btn.textContent='COPY'; btn.classList.remove('copied'); }, 1600);
+    }catch{ toast('COPY FAILED — SELECT MANUALLY'); }
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   T5 SPEECH PIPELINE (real)
+   ═══════════════════════════════════════════════════════════════ */
+const SPEECH = { maxChunk:1500, maxSpeak:800, listThreshold:3, fallback:'The details are on your screen — please follow the context there.' };
+
+function stripMd(text){
+  if(!text) return '';
+  return String(text)
+    .replace(/```[\s\S]*?```/g,' [code block] ')
+    .replace(/`([^`]+)`/g,'$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g,'')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g,'$1')
+    .replace(/https?:\/\/\S+/g,'')
+    .replace(/^#{1,6}\s+/gm,'')
+    .replace(/^\s*[-*+]\s+/gm,'')
+    .replace(/^\s*\d+\.\s+/gm,'')
+    .replace(/[*_~>|]/g,'')
+    .replace(/<[^>]+>/g,'')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'')
+    .replace(/[ \t]+/g,' ')
+    .replace(/\n{2,}/g,'\n\n')
+    .trim();
+}
+function splitSents(text){
+  return (text.match(/[^.!?\n]+[!?]*[.!?]*\n?/g)||[text]).map(s=>s.trim()).filter(Boolean);
+}
+function chunkText(text, max=SPEECH.maxChunk){
+  const clean = stripMd(text);
+  if(clean.length <= max) return [clean];
+  const paras = clean.split(/\n\s*\n/);
+  const out = []; let buf='';
+  const flush = ()=>{ if(buf.trim()) out.push(buf.trim()); buf=''; };
+  for(const p of paras){
+    if(p.length > max){
+      flush(); let l='';
+      for(const s of splitSents(p)){
+        if((l+' '+s).length > max){ if(l) out.push(l.trim()); l=s; }
+        else l = l ? l+' '+s : s;
+      }
+      if(l.trim()) out.push(l.trim());
+    } else if((buf+'\n\n'+p).length > max){ flush(); buf=p; }
+    else buf = buf ? buf+'\n\n'+p : p;
+  }
+  flush();
+  return out;
+}
+function pickPolicy(text){
+  const clean = stripMd(text);
+  const bullet = (String(text).match(/^\s*[-*+]\s+/gm)||[]).length;
+  const numbered = (String(text).match(/^\s*\d+\.\s+/gm)||[]).length;
+  if(/```/.test(text) || /<\/?[a-z][\s\S]*>/i.test(text)) return {policy:'SUMMARY_ONLY', reason:'contains code or HTML'};
+  if(Math.max(bullet, numbered) >= SPEECH.listThreshold) return {policy:'SUMMARY_ONLY', reason:'list with 3+ items'};
+  if(clean.length > SPEECH.maxSpeak) return {policy:'SUMMARY_ONLY', reason:'longer than 800 chars'};
+  if(!clean.trim()) return {policy:'SILENT', reason:'empty'};
+  return {policy:'FULL', reason:'short and speakable'};
+}
+function summarizeForSpeech(text){
+  const clean = stripMd(text);
+  if(!clean) return SPEECH.fallback;
+  const sents = splitSents(clean).slice(0,2);
+  let out = sents.join(' ').trim();
+  if(!out) return SPEECH.fallback;
+  if(!/[.!?]$/.test(out)) out += '.';
+  return out;
+}
+function toSpeakable(text){
+  const {policy, reason} = pickPolicy(text);
+  if(policy === 'SILENT') return {chunks:[], policy, reason};
+  if(policy === 'SUMMARY_ONLY') return {chunks:[summarizeForSpeech(text)+' '+SPEECH.fallback], policy, reason};
+  return {chunks: chunkText(text), policy, reason};
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   T5 HYBRID RAG (real)
+   ═══════════════════════════════════════════════════════════════ */
+class EmbeddingEngine {
+  constructor(dim=128){ this.dim=dim; this.cache=new Map(); }
+  _hash(s){ let h=0; for(let i=0;i<s.length;i++) h=((h<<5)-h)+s.charCodeAt(i); return Math.abs(h); }
+  _vec(word){
+    if(this.cache.has(word)) return this.cache.get(word);
+    const seed=this._hash(word.toLowerCase());
+    const v=new Float32Array(this.dim);
+    let x=seed;
+    for(let i=0;i<this.dim;i++){ x=(x*16807)%2147483647; v[i]=(x/2147483647)*2-1; }
+    let n=0; for(let i=0;i<this.dim;i++) n+=v[i]*v[i];
+    n=Math.sqrt(n)||1;
+    for(let i=0;i<this.dim;i++) v[i]/=n;
+    this.cache.set(word,v); return v;
+  }
+  embed(text){
+    const words=(text.toLowerCase().match(/\b\w+\b/g)||[]);
+    if(!words.length) return new Float32Array(this.dim);
+    const sum=new Float32Array(this.dim);
+    for(const w of words){ const v=this._vec(w); for(let i=0;i<this.dim;i++) sum[i]+=v[i]; }
+    let n=0; for(let i=0;i<this.dim;i++) n+=sum[i]*sum[i];
+    n=Math.sqrt(n)||1;
+    for(let i=0;i<this.dim;i++) sum[i]/=n;
+    return sum;
+  }
+  cosine(a,b){ let d=0; for(let i=0;i<this.dim;i++) d+=a[i]*b[i]; return d; }
+}
+class HybridRAG {
+  constructor(){ this.embedder=new EmbeddingEngine(128); this.chunks=[]; this.docs={}; this.isReady=false; }
+  _tokenize(t){ return String(t).toLowerCase().replace(/[^a-z0-9\s]/g,'').split(/\s+/).filter(w=>w.length>2); }
+  _chunk(text){
+    const paras=text.split(/\n\s*\n/).filter(p=>p.trim());
+    const out=[]; let buf='';
+    for(const p of paras){
+      const sents=p.split(/(?<=[.!?])\s+/);
+      for(const s of sents){
+        if((buf+' '+s).length>250 && buf.length>50){ out.push(buf.trim()); buf=s; }
+        else buf=buf?buf+' '+s:s;
+      }
+      if(buf.length>500){ out.push(buf.trim()); buf=''; }
+    }
+    if(buf.trim()) out.push(buf.trim());
+    return out;
+  }
+  _bm25(query, doc){
+    const q=this._tokenize(query), d=this._tokenize(doc);
+    const avgdl=this.chunks.reduce((s,c)=>s+this._tokenize(c.text).length,0)/(this.chunks.length||1);
+    const freq={}; for(const t of d) freq[t]=(freq[t]||0)+1;
+    let score=0;
+    for(const t of q){
+      const df=this.chunks.filter(c=>this._tokenize(c.text).includes(t)).length;
+      const idf=Math.log((this.chunks.length-df+.5)/(df+.5)+1);
+      const tf=freq[t]||0;
+      score+=idf*((tf*(1.5+1))/(tf+1.5*(1-.75+.75*(d.length/avgdl))));
+    }
+    return score;
+  }
+  _expand(q){
+    const syn={price:['cost','value'],buy:['purchase','acquire'],fix:['repair','solve'],find:['search','locate'],make:['create','build'],help:['assist','support'],show:['display','view'],best:['top','optimal'],list:['items','bullets'],voice:['speech','tts']};
+    const words=this._tokenize(q); const extra=[];
+    for(const w of words) if(syn[w]) extra.push(...syn[w]);
+    return extra.length?q+' '+extra.join(' '):q;
+  }
+  addDocument(source, text){
+    if(!text || text.length<30) return 0;
+    const chunks=this._chunk(text);
+    for(const c of chunks) this.chunks.push({source, text:c, embedding:this.embedder.embed(c)});
+    this.docs[source]=text;
+    this.isReady=this.chunks.length>0;
+    return chunks.length;
+  }
+  retrieve(query, k=5){
+    if(!this.isReady) return [];
+    const eq=this._expand(query);
+    const qVec=this.embedder.embed(eq);
+    const scored=this.chunks.map(c=>{
+      const sem=this.embedder.cosine(qVec,c.embedding);
+      const lex=this._bm25(eq,c.text);
+      const lexNorm=1-Math.exp(-lex*.5);
+      return {...c, score:.5*sem+.5*lexNorm};
+    });
+    scored.sort((a,b)=>b.score-a.score);
+    return scored.slice(0,k);
+  }
+  clear(){ this.chunks=[]; this.docs={}; this.isReady=false; }
+}
+
+const rag = new HybridRAG();
+
+/* ── Sample docs ─────────────────────────────────────────────── */
+const SAMPLE_DOCS = {
+  'speech.md':
+`The speech pipeline strips markdown, removes emoji and URLs, and splits long text into chunks of 1500 characters. If a response contains three or more list items, the policy becomes SUMMARY_ONLY: the agent speaks a two-sentence summary and adds a fallback line telling the user to read the details on screen. If the text contains code or HTML, it also uses SUMMARY_ONLY. If the text is empty, the policy is SILENT. The agent can mute itself but cannot unmute the user; unmute requires a user gesture.`,
+  'forms.txt':
+`The submitForm tool never submits a form directly. It returns pendingConfirmation with an actionId and a summary of filled fields. The UI must show a confirmation dialog and then call resolveSubmit(actionId, true) to execute the click. Pending confirmations expire after 60 seconds. fillForm matches fields by name, id, aria-label, or visible label. It fires input and change events so React and Vue controlled inputs update correctly.`,
+  'rag.md':
+`Hybrid RAG combines BM25 lexical scoring with 128-dimensional semantic embeddings. Documents are chunked at 250 characters, and queries are expanded with synonyms before retrieval. Every R5.query call automatically retrieves the top 5 chunks and prepends them as context. The index persists in IndexedDB and is restored on R5.init(). Five RAG tools are exposed to the agent: indexUrl, indexText, searchKnowledge, listKnowledge and clearKnowledge.`,
+  'multi.md':
+`The multi-step orchestrator decomposes a goal into two to five sequential steps. It plans with a JSON-only prompt, executes each step with the full agent and a cap of three ReAct turns, then synthesizes the results into one final answer. Every step is recorded in an execution trace with a timestamp, status and output. If planning fails, it falls back to treating the goal as a single step.`
+};
+
+function seedRag(){
+  rag.clear();
+  for(const [src, text] of Object.entries(SAMPLE_DOCS)) rag.addDocument(src, text);
+  $('#ragDocs').innerHTML = Object.keys(SAMPLE_DOCS).map(src=>{
+    const chunks = rag.chunks.filter(c=>c.source===src).length;
+    return `<div class="doc-chip"><span>📄</span><b>${src}</b><span style="margin-left:auto;color:var(--muted-2)">${chunks} chunks</span></div>`;
+  }).join('');
+  $('#ragResults').textContent = 'Ask a question to see ranked chunks with scores.';
+}
+seedRag();
+
+$('#ragAsk').addEventListener('click', ()=>{
+  const q = $('#ragQ').value.trim();
+  if(!q){ toast('TYPE A QUESTION FIRST'); return; }
+  const chunks = rag.retrieve(q, 4);
+  if(!chunks.length){ $('#ragResults').textContent = 'No chunks retrieved.'; return; }
+  $('#ragResults').innerHTML = chunks.map((c,i)=>
+    `<div class="chunk"><span class="score">${c.score.toFixed(3)}</span><span class="src">[${i+1}] ${c.source}</span>${c.text}</div>`
+  ).join('') + `<div style="font-size:11px;color:var(--muted);margin-top:8px">Grounded extract: ${chunks[0].text.slice(0,180)}…</div>`;
+});
+$('#ragReset').addEventListener('click', ()=>{ seedRag(); toast('INDEX RESET'); });
+$('#ragSuggest').innerHTML = ['How does the speech pipeline handle lists?','What does submitForm return?','How is the RAG index persisted?']
+  .map(q=>`<button class="pbadge" data-q="${q}" style="cursor:pointer">${q}</button>`).join('');
+$$('#ragSuggest .pbadge').forEach(b=>b.addEventListener('click', ()=>{ $('#ragQ').value=b.dataset.q; $('#ragAsk').click(); }));
+
+/* ═══════════════════════════════════════════════════════════════
+   T5 FORM TOOLS (real)
+   ═══════════════════════════════════════════════════════════════ */
+const pending = new Map();
+
+function nativeSet(el,val){
+  const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto,'value')?.set;
+  if(setter) setter.call(el,val); else el.value=val;
+}
+function fire(el,type){ el.dispatchEvent(new Event(type,{bubbles:true})); }
+function labelOf(el){
+  const id=el.id;
+  const lbl=id?document.querySelector(`label[for="${CSS.escape(id)}"]`):null;
+  return el.getAttribute('aria-label')||lbl?.textContent?.trim()||el.getAttribute('placeholder')||el.name||el.id||el.tagName.toLowerCase();
+}
+function readForms(){
+  const forms=[...document.querySelectorAll('form')];
+  return forms.map((f,i)=>{
+    const id=f.id||`form_${i}`;
+    if(!f.dataset.r5Id) f.dataset.r5Id=id;
+    const fields=[...f.querySelectorAll('input,textarea,select')]
+      .filter(el=>!['hidden','submit','button','reset'].includes(el.type))
+      .map(el=>({
+        label:labelOf(el),
+        name:el.name,
+        type:el.tagName==='SELECT'?'select':(el.type||el.tagName.toLowerCase()),
+        required:el.required,
+        value:el.type==='password'?(el.value?'••••':''):el.value
+      }));
+    return {formId:id, action:f.getAttribute('action')||'', method:(f.getAttribute('method')||'GET').toUpperCase(), fields, submitLabel:f.querySelector('[type="submit"]')?.textContent?.trim()||'Submit'};
+  });
+}
+function fillForm(formId, values){
+  const f=document.querySelector(`[data-r5-id="${CSS.escape(formId)}"]`)||document.getElementById(formId);
+  if(!f) return {ok:false, error:`form "${formId}" not found`};
+  const filled=[], missing=[];
+  for(const [k,v] of Object.entries(values||{})){
+    const el=[...f.querySelectorAll('input,textarea,select')].find(e=>e.name===k||e.id===k||labelOf(e).toLowerCase()===String(k).toLowerCase());
+    if(!el){ missing.push(k); continue; }
+    if(el.tagName==='SELECT'){ el.value=String(v); fire(el,'change'); }
+    else if(el.type==='checkbox'){ el.checked=!!v; fire(el,'change'); }
+    else if(el.type==='radio'){ el.checked=!!v; fire(el,'change'); }
+    else { nativeSet(el,String(v)); fire(el,'input'); fire(el,'change'); }
+    filled.push({key:k, label:labelOf(el)});
+  }
+  return {ok:true, filled, missing};
+}
+function requestSubmit(formId){
+  const f=document.querySelector(`[data-r5-id="${CSS.escape(formId)}"]`)||document.getElementById(formId);
+  if(!f) return {ok:false, error:`form "${formId}" not found`};
+  const btn=f.querySelector('[type="submit"]')||f.querySelector('button');
+  const actionId=crypto.randomUUID();
+  pending.set(actionId,{form:f,btn});
+  setTimeout(()=>pending.delete(actionId),60000);
+  return {pendingConfirmation:true, actionId, summary:{
+    formId,
+    submitLabel:btn?.textContent?.trim()||'Submit',
+    fields:[...f.querySelectorAll('input,textarea,select')]
+      .filter(el=>!['hidden','submit','button'].includes(el.type)&&el.value)
+      .map(el=>({label:labelOf(el), value:el.type==='password'?'••••':el.value}))
+  }};
+}
+function resolveSubmit(actionId, approved){
+  const p=pending.get(actionId);
+  if(!p) return {ok:false, error:'expired or invalid'};
+  pending.delete(actionId);
+  if(!approved) return {ok:true, cancelled:true};
+  p.form.dataset.approved='1';
+  return {ok:true, submitted:true, formId:p.form.dataset.r5Id};
+}
+
+$('#formRead').addEventListener('click', ()=>{
+  const forms=readForms();
+  $('#formOut').innerHTML = `<span class="key">readForms()</span> →\n` + JSON.stringify(forms,null,2)
+    .replace(/"([^"]+)":/g,'<span class="key">"$1"</span>:');
+});
+$('#formFill').addEventListener('click', ()=>{
+  const r=fillForm('demoForm', {name:'Priya Sharma', email:'priya@example.com', plan:'pro', terms:true});
+  $('#formOut').innerHTML = `<span class="ok">fillForm() → ${r.filled.length} fields filled</span>\n` + JSON.stringify(r,null,2);
+  toast('FILLED 4 FIELDS');
+});
+$('#formSubmit').addEventListener('click', ()=>{
+  const r=requestSubmit('demoForm');
+  if(!r.pendingConfirmation){ $('#formOut').textContent=JSON.stringify(r,null,2); return; }
+  $('#formOut').innerHTML = `<span class="key">submitForm() → pendingConfirmation</span>\n` + JSON.stringify(r,null,2);
+  $('#modalFields').innerHTML = r.summary.fields.map(f=>`<div><span>${f.label}</span><span>${f.value}</span></div>`).join('') || '<div><span>No filled fields</span><span>—</span></div>';
+  $('#modalBg').classList.add('show');
+  $('#modalApprove').onclick = ()=>{
+    const res=resolveSubmit(r.actionId,true);
+    $('#modalBg').classList.remove('show');
+    $('#formOut').innerHTML = `<span class="ok">resolveSubmit(actionId, true)</span>\n` + JSON.stringify(res,null,2) + `\n\n<span class="ok">✓ Form submitted (demo intercepted)</span>`;
+    toast('FORM SUBMITTED');
+  };
+  $('#modalCancel').onclick = ()=>{
+    const res=resolveSubmit(r.actionId,false);
+    $('#modalBg').classList.remove('show');
+    $('#formOut').innerHTML = `<span class="err">resolveSubmit(actionId, false)</span>\n` + JSON.stringify(res,null,2);
+  };
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   T5 VOICE DEMO (native speechSynthesis)
+   ═══════════════════════════════════════════════════════════════ */
+let voiceMuted=false, speaking=false, utterQueue=[], utterIndex=0;
+
+function renderVoiceBadges(){
+  const txt=$('#voiceText').value;
+  const {policy, reason}=pickPolicy(txt);
+  const clean=stripMd(txt);
+  const cls=policy==='FULL'?'full':policy==='SUMMARY_ONLY'?'summary':'silent';
+  $('#voiceBadges').innerHTML = `
+    <span class="pbadge ${cls}">${policy}</span>
+    <span class="pbadge">${reason}</span>
+    <span class="pbadge">${clean.length} chars</span>
+    <span class="pbadge">${toSpeakable(txt).chunks.length} chunk(s)</span>`;
+}
+$('#voiceText').addEventListener('input', renderVoiceBadges);
+renderVoiceBadges();
+
+function setWave(on){ $('#voiceWave').classList.toggle('on', on); }
+
+function speakNative(text){
+  if(!('speechSynthesis' in window)){ toast('SPEECHSYNTHESIS NOT SUPPORTED'); return; }
+  if(voiceMuted){ toast('MUTED — UNMUTE FIRST'); return; }
+  stopVoice();
+  const norm=toSpeakable(text);
+  if(!norm.chunks.length){ $('#voiceStatus').textContent='Policy: SILENT — nothing to speak.'; return; }
+  utterQueue=norm.chunks; utterIndex=0; speaking=true;
+  setWave(true);
+  $('#voiceStatus').textContent = `Speaking ${norm.chunks.length} chunk(s) · policy ${norm.policy}`;
+  const next=()=>{
+    if(!speaking || utterIndex>=utterQueue.length){
+      speaking=false; setWave(false);
+      if(utterIndex>=utterQueue.length) $('#voiceStatus').textContent='Finished.';
+      return;
+    }
+    const u=new SpeechSynthesisUtterance(utterQueue[utterIndex]);
+    u.rate=1; u.pitch=1; u.volume=1;
+    const voices=speechSynthesis.getVoices();
+    if(voices.length) u.voice=voices.find(v=>/en-US|en-GB/i.test(v.lang))||voices[0];
+    u.onend=()=>{ utterIndex++; next(); };
+    u.onerror=()=>{ utterIndex++; next(); };
+    speechSynthesis.speak(u);
+  };
+  next();
+}
+function stopVoice(){
+  speaking=false; setWave(false);
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+}
+$('#voiceSpeak').addEventListener('click', ()=>speakNative($('#voiceText').value));
+$('#voiceStop').addEventListener('click', ()=>{ stopVoice(); $('#voiceStatus').textContent='Stopped.'; });
+$('#voiceMute').addEventListener('click', ()=>{
+  voiceMuted=!voiceMuted;
+  $('#voiceMute').textContent = voiceMuted?'🔊 UNMUTE':'🔇 MUTE';
+  if(voiceMuted) stopVoice();
+  toast(voiceMuted?'MUTED':'UNMUTED');
+});
+$$('[data-voice-sample]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const map={
+      plain:'Sure — the weather today is twenty-four degrees and clear, with a light breeze from the west.',
+      list:`Here are the top 5 hotels near the airport:
+1. The Grand — 4.8 stars
+2. Airport Inn — 4.5 stars
+3. Skyline Suites — 4.3 stars
+4. Transit Lodge — 4.1 stars
+5. Runway View — 3.9 stars`,
+      code:'Here is the function:\n```js\nfunction greet(name) {\n  return "Hello, " + name;\n}\n```\nIt returns a greeting.'
+    };
+    $('#voiceText').value=map[b.dataset.voiceSample];
+    renderVoiceBadges();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   MUSIC SEARCH (live worker)
+   ═══════════════════════════════════════════════════════════════ */
+const YT_SEARCH='https://sensycilva.suryasticsai.workers.dev/api/youtube/search?q=';
+$('#musicSearch').addEventListener('click', async ()=>{
+  const q=$('#musicQ').value.trim();
+  if(!q) return;
+  const out=$('#musicOut');
+  out.innerHTML='<span style="color:var(--neon-yellow)">Searching the Worker…</span>';
+  try{
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),8000);
+    const r=await fetch(YT_SEARCH+encodeURIComponent(q),{signal:ctrl.signal});
+    clearTimeout(t);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    if(!data.success || !data.items?.length) throw new Error('No results');
+    out.innerHTML = data.items.slice(0,6).map(it=>`
+      <div class="track">
+        <div class="thumb">▶</div>
+        <div class="meta"><b>${it.title}</b><span>youtube.com/watch?v=${it.id}</span></div>
+      </div>`).join('');
+    toast('FOUND '+data.items.length+' TRACKS');
+  }catch(e){
+    out.innerHTML = `<span class="err">Search failed: ${e.message}</span>\n\nThis is usually CORS — the Worker may only allow RAGina's own origins. The same call works from your page when the Worker allows it.`;
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   MULTI-STEP ORCHESTRATOR (live with fallback)
+   ═══════════════════════════════════════════════════════════════ */
+const ASK_URL='https://ragina-crawler-ragina.vercel.app/api/ask';
+async function callLLM(prompt, timeout=20000){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),timeout);
+  try{
+    const r=await fetch(ASK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,model:'openai'}),signal:ctrl.signal});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    if(data.error) throw new Error(data.error);
+    return data.text||data.choices?.[0]?.message?.content||data.response||'';
+  } finally { clearTimeout(t); }
+}
+function parsePlan(raw){
+  try{ const j=JSON.parse(raw); if(j.steps&&Array.isArray(j.steps)) return j; }catch{}
+  const fence=raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if(fence){ try{ const j=JSON.parse(fence[1]); if(j.steps) return j; }catch{} }
+  const m=raw.match(/\{[\s\S]*?"steps"[\s\S]*?\}/);
+  if(m){ try{ const j=JSON.parse(m[0]); if(j.steps) return j; }catch{} }
+  return {steps:[]};
+}
+function renderTimeline(steps, state){
+  $('#multiTimeline').innerHTML = steps.map((s,i)=>{
+    const st=state[i]||{status:'pending',result:''};
+    return `<div class="tstep ${st.status}">
+      <h4>${i+1}. ${s}</h4>
+      <p>${st.status==='pending'?'Waiting…':st.status==='running'?'Executing with the full agent…':'Completed'}</p>
+      <div class="result">${st.result||''}</div>
+    </div>`;
+  }).join('');
+}
+$('#multiRun').addEventListener('click', async ()=>{
+  const goal=$('#multiGoal').value.trim();
+  if(!goal) return;
+  const btn=$('#multiRun'); btn.disabled=true; btn.textContent='PLANNING…';
+  $('#multiAnswer').style.display='none';
+  let steps=[], results=[];
+  try{
+    const planRaw=await callLLM(`You are a task planner. Decompose this goal into 2-4 concrete, sequential, independently-executable steps. Reply ONLY with valid JSON, no markdown:\n{"steps": ["first step", "second step", "third step"]}\n\nGoal: "${goal}"`);
+    const plan=parsePlan(planRaw);
+    steps=plan.steps.length?plan.steps.slice(0,4):[
+      'Identify the key points of the topic',
+      'Draft a concise explanation',
+      'Write a three-line launch tweet'
+    ];
+  }catch{
+    steps=[
+      'Identify the key points of the topic',
+      'Draft a concise explanation',
+      'Write a three-line launch tweet'
+    ];
+    toast('PLANNER OFFLINE — DETERMINISTIC PLAN');
+  }
+  const state=steps.map(()=>({status:'pending',result:''}));
+  renderTimeline(steps,state);
+  for(let i=0;i<steps.length;i++){
+    state[i].status='running'; renderTimeline(steps,state);
+    try{
+      const answer=await callLLM(`You are executing one step of a plan.\nGoal: "${goal}"\nPrevious results: ${results.join(' | ')||'none'}\nCurrent step: "${steps[i]}"\nAnswer concisely in 1-2 sentences.`);
+      state[i].status='done'; state[i].result=answer.trim(); results.push(answer.trim());
+    }catch{
+      state[i].status='done';
+      state[i].result=`Completed: ${steps[i]} (offline fallback)`;
+      results.push(state[i].result);
+    }
+    renderTimeline(steps,state);
+    await new Promise(r=>setTimeout(r,350));
+  }
+  let final='';
+  try{
+    final=await callLLM(`Synthesize these step results into one coherent final answer for the goal.\nGoal: "${goal}"\n\n${steps.map((s,i)=>`Step ${i+1}: ${s}\n${results[i]}`).join('\n\n')}\n\nFinal answer:`);
+  }catch{
+    final=results.join(' ');
+  }
+  $('#multiAnswer').style.display='block';
+  $('#multiAnswer').innerHTML=`<span class="ok">Final synthesized answer</span>\n\n${final}`;
+  btn.disabled=false; btn.textContent='RUN ORCHESTRATION';
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   DEVICE TIER (real)
+   ═══════════════════════════════════════════════════════════════ */
+async function detectTier(){
+  let gpu=false;
+  if('gpu' in navigator){ try{ gpu=!!(await navigator.gpu.requestAdapter({featureLevel:'compatibility'})); }catch{} }
+  const mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const coi=window.crossOriginIsolated===true;
+  let tier;
+  if(gpu&&!mobile) tier='FULL_GPU';
+  else if(gpu&&mobile) tier='MOBILE_GPU';
+  else if(coi) tier='WASM_MULTITHREADED';
+  else tier='WASM_SINGLE_THREAD';
+  return {tier,gpu,mobile,coi};
+}
+(async ()=>{
+  const cap=await detectTier();
+  const desc={
+    FULL_GPU:'Desktop GPU available. Every T5 feature is fair game.',
+    MOBILE_GPU:'Mobile GPU detected. Vision and heavy models stay conservative.',
+    WASM_MULTITHREADED:'No WebGPU, but cross-origin isolation is on. CPU fallback with threading.',
+    WASM_SINGLE_THREAD:'Lean mode. T5 becomes voice-first and avoids heavy models.'
+  };
+  $('#tierName').textContent=cap.tier;
+  $('#tierDesc').textContent=desc[cap.tier]||'Unknown tier.';
+  const caps=[
+    ['WebGPU', cap.gpu],
+    ['WebNN', 'ml' in navigator],
+    ['SpeechSynthesis', 'speechSynthesis' in window],
+    ['SpeechRecognition', !!(window.SpeechRecognition||window.webkitSpeechRecognition)],
+    ['File System', 'showDirectoryPicker' in window],
+    ['Bluetooth', !!navigator.bluetooth],
+    ['Serial', !!navigator.serial],
+    ['Web Share', !!navigator.share],
+    ['Clipboard', !!navigator.clipboard],
+    ['IndexedDB', !!window.indexedDB],
+    ['Cross-origin isolated', cap.coi],
+    ['Mobile UA', cap.mobile]
+  ];
+  $('#capGrid').innerHTML=caps.map(([name,ok])=>`
+    <div class="cap ${ok?'yes':'no'}">
+      <div class="ic">${ok?'✅':'⬜'}</div>
+      <b>${name}</b>
+      <span>${ok?'AVAILABLE':'NOT FOUND'}</span>
+    </div>`).join('');
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   TABS
+   ═══════════════════════════════════════════════════════════════ */
+$$('.cc-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    $$('.cc-tab').forEach(t=>t.classList.remove('active'));
+    $$('.cc-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    $('#panel-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOLS GRID
+   ═══════════════════════════════════════════════════════════════ */
+const TOOLS=[
+  ['speak','🔊','Voice','Read text aloud. Lists and code auto-summarized.'],
+  ['stopSpeaking','⏹️','Voice','Interrupt current speech immediately.'],
+  ['setMuted','🔇','Voice','Mute audio. The agent can mute itself but cannot unmute you.'],
+  ['playSong','🎵','Music','Search YouTube and play a track on the agent\'s own hidden player.'],
+  ['pauseMusic','⏸️','Music','Pause the current track.'],
+  ['stopMusic','⏹️','Music','Stop and reset playback.'],
+  ['readForms','📋','Web & forms','List every form and field on the current page.'],
+  ['fillForm','✍️','Web & forms','Fill fields by name, id, aria-label or visible label.'],
+  ['submitForm','✅','Web & forms','Returns pendingConfirmation. Never submits without user approval.'],
+  ['fetchAPI','📊','Web & forms','GET a JSON API and return rows as a readable table.'],
+  ['indexUrl','🌐','RAG','Fetch a URL, extract text, and add it to the knowledge base.'],
+  ['indexText','📄','RAG','Add raw notes or pasted content to the knowledge base.'],
+  ['searchKnowledge','🔍','RAG','Search indexed chunks with BM25 + semantic scoring.'],
+  ['listKnowledge','📚','RAG','List every indexed source and chunk count.'],
+  ['clearKnowledge','🧹','RAG','Wipe the knowledge base and its IndexedDB persistence.'],
+  ['describeCapabilities','🧭','Meta','Report available tools and the current device tier.'],
+  ['generateGuide','📝','Meta','Generate a downloadable Markdown or HTML guide.'],
+  ['planAndExecute','🪄','Orchestration','Decompose a goal, execute each step, synthesize the answer.'],
+  ['webSearch','🔎','Meta','Wikipedia and DuckDuckGo fallback for facts and people.'],
+  ['calculate','🧮','Meta','Evaluate a math expression safely.'],
+  ['getTime','🕒','Meta','Return the current local date and time.']
+];
+function renderTools(cat='all'){
+  $('#toolsGrid').innerHTML=TOOLS.filter(t=>cat==='all'||t[2]===cat).map(([name,icon,catName,desc])=>`
+    <div class="tool">
+      <div class="tool-top">
+        <div class="tool-icon">${icon}</div>
+        <h4>${name}</h4>
+        <span class="tag">${catName}</span>
+      </div>
+      <p>${desc}</p>
+    </div>`).join('');
+}
+renderTools();
+$$('#filters .filter').forEach(f=>{
+  f.addEventListener('click', ()=>{
+    $$('#filters .filter').forEach(x=>x.classList.remove('active'));
+    f.classList.add('active');
+    renderTools(f.dataset.cat);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   MASCOT GALLERY
+   ═══════════════════════════════════════════════════════════════ */
+const MOODS=[
+  ['research.png','Deep Research','Scanning every document…'],
+  ['doubt.png','Doubt Detected','That\'s not in the files…'],
+  ['crosshands.png','Cross Hands','Organize better, human!'],
+  ['shrug-what.png','Shrug','Your files are silent on this.'],
+  ['dance1.png','Victory Dance','Found it, darling!'],
+  ['dance2.png','Happy Dance','Piece of cake!'],
+  ['dance3.png','Celebration','Knew exactly where that was!'],
+  ['halfsmile.png','Half Smile','I know something you don\'t.']
+];
+$('#moodsGrid').innerHTML=MOODS.map(([file,name,quote])=>`
+  <div class="mood" data-mood="${file}">
+    <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/${file}" alt="${name}" loading="lazy" onerror="this.style.opacity=.2">
+    <b>${name}</b>
+    <span>“${quote}”</span>
+  </div>`).join('');
+$$('.mood').forEach(m=>{
+  m.addEventListener('click', ()=>{
+    $('#heroMascot').src=`https://raw.githubusercontent.com/suryasticsai/RAGina/main/${m.dataset.mood}`;
+    toast('MOOD: '+m.querySelector('b').textContent.toUpperCase());
+  });
+});
+
+/* ── Hero mascot parallax ────────────────────────────────────── */
+const stage=$('#stage'), heroMascot=$('#heroMascot');
+stage.addEventListener('mousemove', e=>{
+  const r=stage.getBoundingClientRect();
+  const x=(e.clientX-r.left)/r.width-.5;
+  const y=(e.clientY-r.top)/r.height-.5;
+  heroMascot.style.transform=`translate(${x*16}px, ${y*16}px) rotateY(${x*12}deg) rotateX(${-y*8}deg)`;
+});
+stage.addEventListener('mouseleave', ()=>{ heroMascot.style.transform=''; });
+
+/* ── Voices warm-up ──────────────────────────────────────────── */
+if('speechSynthesis' in window){
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();
+}
+
+})();
+</script>
+</body>
+</html>
