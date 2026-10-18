@@ -1,4 +1,4 @@
-```markdown
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/suryasticsai/RAGina/main/smile.png" alt="RAGina Mascot" width="140" style="border-radius: 30px; box-shadow: 0 0 40px rgba(108,99,255,0.3);"/>
 </p>
